@@ -66,4 +66,3 @@ class ExporterAgent(BaseAgent):
             "inventory": self.inventory
         })
         return d
-    
