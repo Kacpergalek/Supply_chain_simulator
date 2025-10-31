@@ -8,8 +8,23 @@ class StatisticsManager:
         self.cost = {} # Dict: {'company' : float}
         self.cost_after_disruption = {} # Dict: {'company' : float}
         self.loss = {}
-        self.total_routes = []
-        self.changed_routes = []
+        self.total_routes = 0
+        self.changed_routes = 0
+
+    def update_fulfilled_demand(self, company, fulfilled_demand):
+        self.fulfilled_demand[company] += fulfilled_demand
+        pass
+
+    def update_lost_demand(self, company, lost_demand):
+        self.lost_demand[company] += lost_demand
+        pass
+
+    def define_cost(self, company, cost):
+        self.cost[company] = cost
+        pass
+
+    def define_cost_after_disruption(self, company, cost):
+        self.cost_after_disruption[company] = cost
 
     def calculate_loss(self):
         #TODO
