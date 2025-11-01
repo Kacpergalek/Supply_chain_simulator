@@ -22,5 +22,5 @@ strategies to minimize losses (e.g., rerouting, buffers, alternative suppliers).
 
 ## Contributors ✋
 **Berenike Banek** - berenike@student.agh.edu.pl  
-**Konrad Ćwięka** - [email]  
+**Konrad Ćwięka** - kcwieka@student.agh.edu.pl 
 **Kacper Gałek** - [email]
