@@ -1,5 +1,6 @@
 from .base_agent import BaseAgent
 import math
+from typing import Optional, Dict, Any
 
 try:
     import networkx as nx
@@ -75,156 +76,177 @@ class ExporterAgent(BaseAgent):
 
 
 
-    def find_cheapest_path(self, graph, source_node, dest_node, params=None):
+    def find_cheapest_path(self, sim_graph, dest_node: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Zwraca dict z kluczami:
-          - 'path': list of node ids (przybliżone lub rzeczywiste)
-          - 'total_weight': suma wag (zgodnie z params)
-          - 'total_distance_km': odległość w km (estymowana lub suma krawędzi)
-          - 'estimated_lead_time_days': est. czas (prosty model)
-          - 'estimated_cost': est. koszt (prosty model)
-          - 'method': 'graph' lub 'heuristic'
-        Params default: {'alpha':1.0, 'beta':0.0, 'gamma':0.0}
+        Znajdź najtańszą ścieżkę z self.node_id do dest_node na obiekcie SimulationGraph.
+
+        Arguments:
+            sim_graph: SimulationGraph lub inny nx.MultiDiGraph z krawędziami zawierającymi 'length' (metry) i 'cost' (opcjonalnie)
+            dest_node: target node id (int)
+            params: dict (opcjonalne), możliwe klucze:
+                - alpha (float): waga distance_km (domyślnie 1.0)
+                - beta  (float): waga cost (domyślnie 0.0)
+                - gamma (float): waga risk (domyślnie 0.0)  -- jeśli krawędzie mają 'risk' attr
+                - coords_map: dict node_id -> (lat, lon) używane w fallback
+                - avg_speed_km_per_day: float (do est. lead time, domyślnie 60.0)
+        Returns:
+            dict z polami:
+              - method: 'graph' lub 'heuristic'
+              - path: list node ids (przybliżony lub rzeczywisty)
+              - total_weight: suma wag (alpha*dist + beta*cost + gamma*risk)
+              - total_distance_km
+              - estimated_lead_time_days
+              - estimated_cost
         """
         if params is None:
-            params = {'alpha': 1.0, 'beta': 0.0, 'gamma': 0.0}
+            params = {}
 
-        alpha = float(params.get('alpha', 1.0))
-        beta = float(params.get('beta', 0.0))
-        gamma = float(params.get('gamma', 0.0))
+        alpha = float(params.get("alpha", 1.0))
+        beta = float(params.get("beta", 0.0))
+        gamma = float(params.get("gamma", 0.0))
+        coords_map = params.get("coords_map", None)
+        avg_speed = float(params.get("avg_speed_km_per_day", 60.0))
 
-
-        if graph is not None and nx is not None:
-            
-            def edge_weight(u, v, data):
-                # distance_km
-                dist_m = data.get('length', None) or data.get('distance_m', None) or data.get('distance', None)
-                if dist_m is None:
-                    # fallback - jeśli nie ma length, użyj 1
-                    dist_km = 1.0
-                else:
-                    # NetworkX/OSMnx zwykle trzyma 'length' w metrach
-                    if dist_m > 10000:  # heurystyka: jeżeli już w km (mała szansa)
-                        # jeśli wartość jest w metrach zostaw
-                        dist_km = dist_m / 1000.0
-                    else:
-                        # zakładamy, że 'length' to metry
-                        dist_km = float(dist_m) / 1000.0
-
-                cost_attr = data.get('cost', 0.0)    
-                risk_attr = data.get('risk', 0.0)     
-
-                weight = alpha * dist_km + beta * float(cost_attr) + gamma * float(risk_attr)
-                return weight
-
- 
+     
+        if sim_graph is not None:
+          
             tmp_attr = "_tmp_combined_weight"
 
-            for u, v, data in graph.edges(data=True):
-                data[tmp_attr] = edge_weight(u, v, data)
+ 
+            for u, v, key, data in sim_graph.edges(data=True, keys=True):
+             
+                length_m = data.get("length", None)
+                if length_m is None:
+                    dist_km = 0.0
+                else:
+                    try:
+                        dist_km = float(length_m) / 1000.0
+                    except Exception:
+                        dist_km = 0.0
 
+                cost_attr = float(data.get("cost", 0.0))
+                risk_attr = float(data.get("risk", 0.0))
+
+                data[tmp_attr] = alpha * dist_km + beta * cost_attr + gamma * risk_attr
+
+           
             try:
-                path = nx.shortest_path(graph, source=source_node, target=dest_node, weight=tmp_attr)
-                # sumaryczne metryki:
+                path = sim_graph.safe_shortest_path(self.node_id, dest_node, weigth=tmp_attr)
+               
                 total_weight = 0.0
-                total_dist_km = 0.0
+                total_distance_km = 0.0
                 total_cost = 0.0
                 total_risk = 0.0
-                for i in range(len(path) - 1):
-                    u = path[i]; v = path[i + 1]
-                    ed = graph.get_edge_data(u, v)
-                    # w multigraph może być dict, weź pierwszy klucz
-                    if isinstance(ed, dict) and len(ed) > 0:
-                        # ed może być {0: {...}} for MultiGraph
-                        if 0 in ed and isinstance(ed[0], dict):
-                            ed_data = ed[0]
-                        else:
-                            # when simple graph ed is attributes dict
-                            if 'length' in ed:
-                                ed_data = ed
-                            else:
-                                # ed might be nested; choose first
-                                first_key = list(ed.keys())[0]
-                                ed_data = ed[first_key] if isinstance(ed[first_key], dict) else ed
-                    else:
-                        ed_data = ed
 
-                    dist_m = ed_data.get('length', ed_data.get('distance', 0.0))
-                    dist_km = float(dist_m) / 1000.0 if dist_m is not None else 0.0
-                    cost_e = float(ed_data.get('cost', 0.0))
-                    risk_e = float(ed_data.get('risk', 0.0))
-                    w = alpha * dist_km + beta * cost_e + gamma * risk_e
-                    total_weight += w
-                    total_dist_km += dist_km
+            
+                for u, v in zip(path[:-1], path[1:]):
+
+                    edges_between = sim_graph[u].get(v, {})
+                 
+                    best_weight = None
+                    best_data = None
+                    for k, ed in edges_between.items():
+                        w_val = ed.get(tmp_attr, None)
+
+                        if w_val is None:
+                            length_m = ed.get("length", 0.0)
+                            dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
+                            c = float(ed.get("cost", 0.0))
+                            r = float(ed.get("risk", 0.0))
+                            w_val = alpha * dist_km + beta * c + gamma * r
+                        if best_weight is None or w_val < best_weight:
+                            best_weight = w_val
+                            best_data = ed
+
+          
+                    if best_data is None:
+                        dist_km = 0.0
+                        cost_e = 0.0
+                        risk_e = 0.0
+                        w_val = 0.0
+                    else:
+                        length_m = best_data.get("length", 0.0)
+                        dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
+                        cost_e = float(best_data.get("cost", 0.0))
+                        risk_e = float(best_data.get("risk", 0.0))
+                        w_val = best_weight
+
+                    total_weight += w_val
+                    total_distance_km += dist_km
                     total_cost += cost_e
                     total_risk += risk_e
 
-                # cleanup tmp_attr to avoid side-effects
-                for u, v, data in graph.edges(data=True):
+                for u, v, key, data in sim_graph.edges(data=True, keys=True):
                     if tmp_attr in data:
                         del data[tmp_attr]
 
-                # estimate lead time: prosty model: assume average speed 60 km/day
-                avg_speed_km_per_day = 60.0
-                est_days = total_dist_km / avg_speed_km_per_day if avg_speed_km_per_day > 0 else None
+                est_days = total_distance_km / avg_speed if avg_speed > 0 else None
 
                 return {
-                    'method': 'graph',
-                    'path': path,
-                    'total_weight': total_weight,
-                    'total_distance_km': total_dist_km,
-                    'estimated_lead_time_days': est_days,
-                    'estimated_cost': total_cost
+                    "method": "graph",
+                    "path": path,
+                    "total_weight": total_weight,
+                    "total_distance_km": total_distance_km,
+                    "estimated_lead_time_days": est_days,
+                    "estimated_cost": total_cost,
+                    "total_risk": total_risk
                 }
-            except (nx.NetworkXNoPath, nx.NodeNotFound) as e:
-                # brak ścieżki w grafie -> fallback to heuristic
-                pass
 
-        # ---------------------------
-        # fallback (brak grafu lub brak ścieżki)
-        # ---------------------------
-        # W ciemno: estymacja po odległości Haversine (na podstawie node ids nie mamy lat/lon; więc
-        # oczekujemy, że user może przekazać opcjonalnie mapping node->(lat,lon) w params['coords_map'].
-        coords_map = None
-        if params and isinstance(params, dict):
-            coords_map = params.get('coords_map', None)
+            except Exception as e:
+                # jeśli coś poszło nie tak (np. NodeNotFound, NoPath), przejdź do heurystyki
+                # przed przejściem - cleanup tmp_attr (na wszelki wypadek)
+                for u, v, key, data in sim_graph.edges(data=True, keys=True):
+                    if tmp_attr in data:
+                        del data[tmp_attr]
+             
 
-        if coords_map and source_node in coords_map and dest_node in coords_map:
-            lat1, lon1 = coords_map[source_node]
+        # 2) Fallback heurystyczny (brak grafu lub brak drogi)
+        # Spróbuj pobrać współrzędne z sim_graph.nodes[node]['y'/'x'] albo z coords_map
+        lat1 = lon1 = lat2 = lon2 = None
+        if coords_map and self.node_id in coords_map and dest_node in coords_map:
+            lat1, lon1 = coords_map[self.node_id]
             lat2, lon2 = coords_map[dest_node]
+        else:
+            # spróbuj z sim_graph nodes jeśli dostępny
+            try:
+                if sim_graph is not None:
+                    n1 = sim_graph.nodes[self.node_id]
+                    n2 = sim_graph.nodes[dest_node]
+                    lat1 = float(n1.get("y", None))
+                    lon1 = float(n1.get("x", None))
+                    lat2 = float(n2.get("y", None))
+                    lon2 = float(n2.get("x", None))
+            except Exception:
+                lat1 = lon1 = lat2 = lon2 = None
+
+        if lat1 is not None and lon1 is not None and lat2 is not None and lon2 is not None:
             dist_km = self._haversine_km(lon1, lat1, lon2, lat2)
         else:
-            # jeśli nie ma coords, nie znamy odległości; użyjemy 1.0 km jako placeholder
+            # jeśli brak współrzędnych - użyj placeholdera (np. 1 km), by zwrócić sensowny obiekt
             dist_km = 1.0
 
-        # estymowany "weight" i cost: prosty model
-        est_weight = alpha * dist_km + beta * 0.0 + gamma * 0.0
-        # est_cost: załóżmy cena transportu = 0.1 * distance_km * volume_factor
+        est_weight = alpha * dist_km
         est_cost = 0.1 * dist_km
-        # est_lead_time: przyjmijmy 60 km/day
-        est_days = dist_km / 60.0
+        est_days = dist_km / avg_speed if avg_speed > 0 else None
 
         return {
-            'method': 'heuristic',
-            'path': [source_node, dest_node],
-            'total_weight': est_weight,
-            'total_distance_km': dist_km,
-            'estimated_lead_time_days': est_days,
-            'estimated_cost': est_cost
+            "method": "heuristic",
+            "path": [self.node_id, dest_node],
+            "total_weight": est_weight,
+            "total_distance_km": dist_km,
+            "estimated_lead_time_days": est_days,
+            "estimated_cost": est_cost,
+            "total_risk": 0.0
         }
 
     @staticmethod
     def _haversine_km(lon1, lat1, lon2, lat2):
-        """
-        Prosty wzór Haversine zwracający odległość w kilometrach.
-        """
-        # convert decimal degrees to radians
         lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
         dlon = lon2 - lon1
         dlat = lat2 - lat1
         a = math.sin(dlat/2.0)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2.0)**2
         c = 2 * math.asin(math.sqrt(a))
-        R = 6371.0  # Earth radius in kilometers
+        R = 6371.0
         return R * c
 
     
