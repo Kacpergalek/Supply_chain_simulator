@@ -127,7 +127,7 @@ class ExporterAgent(BaseAgent):
                 cost_attr = float(data.get("cost", 0.0))
                 risk_attr = float(data.get("risk", 0.0))
 
-                data[tmp_attr] = alpha * dist_km + beta * cost_attr + gamma * risk_attr
+                data[tmp_attr] = (alpha * dist_km) * (beta * cost_attr) + gamma * risk_attr
 
            
             try:
@@ -200,14 +200,14 @@ class ExporterAgent(BaseAgent):
                         del data[tmp_attr]
              
 
-        # 2) Fallback heurystyczny (brak grafu lub brak drogi)
-        # Spróbuj pobrać współrzędne z sim_graph.nodes[node]['y'/'x'] albo z coords_map
+        # 2) Fallback heurystyczny (brak grafu lub brak drogi), raczej nie potrzebne ale jakby co
+
         lat1 = lon1 = lat2 = lon2 = None
         if coords_map and self.node_id in coords_map and dest_node in coords_map:
             lat1, lon1 = coords_map[self.node_id]
             lat2, lon2 = coords_map[dest_node]
         else:
-            # spróbuj z sim_graph nodes jeśli dostępny
+
             try:
                 if sim_graph is not None:
                     n1 = sim_graph.nodes[self.node_id]
@@ -222,7 +222,7 @@ class ExporterAgent(BaseAgent):
         if lat1 is not None and lon1 is not None and lat2 is not None and lon2 is not None:
             dist_km = self._haversine_km(lon1, lat1, lon2, lat2)
         else:
-            # jeśli brak współrzędnych - użyj placeholdera (np. 1 km), by zwrócić sensowny obiekt
+
             dist_km = 1.0
 
         est_weight = alpha * dist_km
