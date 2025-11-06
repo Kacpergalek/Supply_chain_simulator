@@ -102,11 +102,76 @@ class ExporterAgent(BaseAgent):
             params = {}
 
         alpha = float(params.get("alpha", 1.0))
-        beta = float(params.get("beta", 0.0))
+        beta = float(params.get("beta", 1.0))
+        if beta == 0:
+            beta = 1.0 
         gamma = float(params.get("gamma", 0.0))
+        delta = float(params.get("time_weight", 1.0)) 
         coords_map = params.get("coords_map", None)
         avg_speed = float(params.get("avg_speed_km_per_day", 60.0))
+        driving_hours_per_day = float(params.get("driving_hours_per_day", 8.0)) 
+        default_speed_kmh = float(params.get("default_speed_kmh", max(60.0, avg_speed / driving_hours_per_day)))
 
+        def parse_maxspeed(ms):
+            """
+            ms może być: int/float, string ('50', '50 mph', '50;70'), list ['50','70'] itd.
+            Zwraca speed w km/h lub None jeśli nie da się sparsować.
+            """
+            if ms is None:
+                return None
+            # jeśli liczba
+            if isinstance(ms, (int, float)):
+                try:
+                    return float(ms)
+                except Exception:
+                    return None
+            # jeśli lista / tuple
+            if isinstance(ms, (list, tuple)):
+                vals = []
+                for it in ms:
+                    v = parse_maxspeed(it)
+                    if v is not None:
+                        vals.append(v)
+                return max(vals) if vals else None
+            # jeśli string
+            if isinstance(ms, str):
+                s = ms.strip()
+                # usuń nawiasy i spacje
+                s = s.strip("[]() ")
+                # często separator ';' lub ',' lub '|' - spróbuj rozbić
+                for sep in [";", ",", "|", " "]:
+                    if sep in s:
+                        parts = [p.strip() for p in s.split(sep) if p.strip()]
+                        vals = []
+                        for p in parts:
+                            # sprawdź mph
+                            if "mph" in p.lower():
+                                try:
+                                    num = float(''.join(ch for ch in p if (ch.isdigit() or ch == ".")))
+                                    vals.append(num * 1.60934)  # mph -> km/h
+                                except Exception:
+                                    pass
+                            else:
+                                try:
+                                    num = float(''.join(ch for ch in p if (ch.isdigit() or ch == ".")))
+                                    vals.append(num)
+                                except Exception:
+                                    pass
+                        if vals:
+                            return max(vals)
+                # jeśli nie było rozdzielania, spróbuj pojedynczej liczby lub '50mph'
+                if "mph" in s.lower():
+                    try:
+                        num = float(''.join(ch for ch in s if (ch.isdigit() or ch == ".")))
+                        return num * 1.60934
+                    except Exception:
+                        return None
+                try:
+                    num = float(''.join(ch for ch in s if (ch.isdigit() or ch == ".")))
+                    return num
+                except Exception:
+                    return None
+            return None
      
         if sim_graph is not None:
           
@@ -127,8 +192,15 @@ class ExporterAgent(BaseAgent):
                 cost_attr = float(data.get("cost", 0.0))
                 risk_attr = float(data.get("risk", 0.0))
 
-                data[tmp_attr] = (alpha * dist_km) * (beta * cost_attr) + gamma * risk_attr
+                speed_kmh = parse_maxspeed(data.get("maxspeed", None))
+                if speed_kmh is None or speed_kmh <= 0:
+                    speed_kmh = default_speed_kmh
 
+                km_per_day = speed_kmh * driving_hours_per_day 
+                time_days = dist_km / km_per_day if km_per_day > 0 else None
+
+                data[tmp_attr] = (alpha * dist_km) * (beta * cost_attr) + gamma * risk_attr + (delta * (time_days if time_days is not None else 0.0))
+                data["_tmp_time_days"] = time_days if time_days is not None else 0.0
            
             try:
                 path = sim_graph.safe_shortest_path(self.node_id, dest_node, weigth=tmp_attr)
@@ -137,7 +209,7 @@ class ExporterAgent(BaseAgent):
                 total_distance_km = 0.0
                 total_cost = 0.0
                 total_risk = 0.0
-
+                total_time_days = 0.0
             
                 for u, v in zip(path[:-1], path[1:]):
 
@@ -153,7 +225,10 @@ class ExporterAgent(BaseAgent):
                             dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
                             c = float(ed.get("cost", 0.0))
                             r = float(ed.get("risk", 0.0))
-                            w_val = alpha * dist_km + beta * c + gamma * r
+                            speed_kmh = parse_maxspeed(ed.get("maxspeed", None)) or default_speed_kmh
+                            km_per_day = speed_kmh * driving_hours_per_day if driving_hours_per_day > 0 else default_speed_kmh * driving_hours_per_day
+                            time_days_local = dist_km / km_per_day if km_per_day > 0 else 0.0
+                            w_val = (alpha * dist_km) * (beta * c) + gamma * r + delta * time_days_local
                         if best_weight is None or w_val < best_weight:
                             best_weight = w_val
                             best_data = ed
@@ -164,23 +239,33 @@ class ExporterAgent(BaseAgent):
                         cost_e = 0.0
                         risk_e = 0.0
                         w_val = 0.0
+                        time_days_e =0.0
                     else:
                         length_m = best_data.get("length", 0.0)
                         dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
                         cost_e = float(best_data.get("cost", 0.0))
                         risk_e = float(best_data.get("risk", 0.0))
+                        time_days_e = float(best_data.get("_tmp_time_days", 0.0))
                         w_val = best_weight
 
                     total_weight += w_val
                     total_distance_km += dist_km
                     total_cost += cost_e
                     total_risk += risk_e
+                    total_time_days += time_days_e
 
                 for u, v, key, data in sim_graph.edges(data=True, keys=True):
                     if tmp_attr in data:
                         del data[tmp_attr]
+                    if "_tmp_time_days" in data:
+                        del data["_tmp_time_days"]
 
-                est_days = total_distance_km / avg_speed if avg_speed > 0 else None
+                est_days = None
+                if delta > 0.0:
+                    est_days = total_time_days
+                else:
+                    # fallback na avg_speed_km_per_day
+                    est_days = total_distance_km / avg_speed if avg_speed > 0 else None
 
                 return {
                     "method": "graph",
@@ -198,6 +283,8 @@ class ExporterAgent(BaseAgent):
                 for u, v, key, data in sim_graph.edges(data=True, keys=True):
                     if tmp_attr in data:
                         del data[tmp_attr]
+                    if "_tmp_time_days" in data:
+                        del data["_tmp_time_days"]
              
 
         # 2) Fallback heurystyczny (brak grafu lub brak drogi), raczej nie potrzebne ale jakby co
@@ -248,5 +335,7 @@ class ExporterAgent(BaseAgent):
         c = 2 * math.asin(math.sqrt(a))
         R = 6371.0
         return R * c
+
+    
 
     
