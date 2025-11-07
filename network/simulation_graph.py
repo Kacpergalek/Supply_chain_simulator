@@ -32,6 +32,7 @@ class SimulationGraph(nx.MultiDiGraph):
         for u, v, key, data in self.edges(data=True, keys=True):
             for attribute in attributes:
                 data.pop(attribute, None)
+        
     
 
     def set_capacity(self, capacity, osmids=None, path=None):
@@ -58,26 +59,27 @@ class SimulationGraph(nx.MultiDiGraph):
                     data["cost"] = price
 
 
-    def deactivate_nodes(self, nodes : int):
+    def deactivate_nodes(self, nodes : list[int]):
         for node, data in self.nodes(data=True):
             if node in nodes:
                 data["active"] = False
 
 
-    def activate_nodes(self, nodes : int):
+    def activate_nodes(self, nodes : list[int]):
         for node, data in self.nodes(data=True):
             if node in nodes:
                 data["active"] = True
 
 
-    def safe_shortest_path(self, start_node, end_node, weigth="cost"):
-        graph_cpy = self.copy()
+    def safe_shortest_path(self, start_node : int, end_node : int, weigth="cost"):
+        mutlidigraf = nx.MultiDiGraph(self)
+        sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
 
-        deactivated_nodes = [node for node, data in graph_cpy.nodes(data=True) if data["active"] == False]
+        deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
 
-        graph_cpy.remove_nodes_from(deactivated_nodes)
+        sim_graph_cpy.remove_nodes_from(deactivated_nodes)
 
-        return nx.shortest_path(graph_cpy, start_node, end_node, weight=weigth)
+        return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weigth)
 
 
     def send_goods(self, amount, path=None, osmids=None):
@@ -109,3 +111,5 @@ class SimulationGraph(nx.MultiDiGraph):
             "default_capacity" : self.default_capacity,
             "default_price" : self.default_price
         }
+    
+        

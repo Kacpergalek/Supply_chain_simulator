@@ -6,7 +6,7 @@ import osmnx as ox
 import json
 
 
-class GraphReader():
+class GraphManager():
     def __init__(self, folder="network_data"):
         self.folder = folder
         os.makedirs(f"../{self.folder}", exist_ok=True)
