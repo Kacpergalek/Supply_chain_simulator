@@ -71,7 +71,7 @@ class SimulationGraph(nx.MultiDiGraph):
                 data["active"] = True
 
 
-    def safe_shortest_path(self, start_node : int, end_node : int, weigth="cost"):
+    def safe_shortest_path(self, start_node : int, end_node : int, weight="cost"):
         mutlidigraf = nx.MultiDiGraph(self)
         sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
 
@@ -79,7 +79,7 @@ class SimulationGraph(nx.MultiDiGraph):
 
         sim_graph_cpy.remove_nodes_from(deactivated_nodes)
 
-        return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weigth)
+        return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weight)
 
 
     def send_goods(self, amount, path=None, osmids=None):

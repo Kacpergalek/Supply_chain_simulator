@@ -15,8 +15,8 @@ G.add_edge(3, 2, key=0, length=10000, cost=20.0, maxspeed=150)     # 130 km
 
 # symuluj minimalny interface SimulationGraph: implementacja safe_shortest_path
 class FakeSimGraph(nx.MultiDiGraph):
-    def safe_shortest_path(self, start, end, weigth="length"):
-        return nx.shortest_path(self, start, end, weight=weigth)
+    def safe_shortest_path(self, start, end, weight="length"):
+        return nx.shortest_path(self, start, end, weight=weight)
 
 sim = FakeSimGraph()
 sim.add_nodes_from(G.nodes(data=True))

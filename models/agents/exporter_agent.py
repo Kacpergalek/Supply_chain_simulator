@@ -98,6 +98,7 @@ class ExporterAgent(BaseAgent):
               - estimated_lead_time_days
               - estimated_cost
         """
+        print(f"[DEBUG] Agent {self.agent_id}: sim_graph={type(sim_graph)}")
         if params is None:
             params = {}
 
@@ -203,7 +204,7 @@ class ExporterAgent(BaseAgent):
                 data["_tmp_time_days"] = time_days if time_days is not None else 0.0
            
             try:
-                path = sim_graph.safe_shortest_path(self.node_id, dest_node, weigth=tmp_attr)
+                path = sim_graph.safe_shortest_path(self.node_id, dest_node, weight=tmp_attr)
                
                 total_weight = 0.0
                 total_distance_km = 0.0
@@ -285,6 +286,7 @@ class ExporterAgent(BaseAgent):
                         del data[tmp_attr]
                     if "_tmp_time_days" in data:
                         del data["_tmp_time_days"]
+                print(f"⚠️ Graph path failed for agent {self.agent_id}: {e}")
              
 
         # 2) Fallback heurystyczny (brak grafu lub brak drogi), raczej nie potrzebne ale jakby co
