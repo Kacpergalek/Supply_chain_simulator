@@ -6,7 +6,7 @@ import networkx as nx
 import osmnx as ox
 import json
 
-from network.simulation_graph import SimulationGraph
+from simulation_graph import SimulationGraph
 
 
 class GraphManager():
