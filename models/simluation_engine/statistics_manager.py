@@ -3,28 +3,35 @@ import time
 
 class StatisticsManager:
     def __init__(self):
-        self.lost_demand = {} # Dict: {'company' : number}
-        self.fulfilled_demand = {} # Dict: {'company' : number}
-        self.cost = {} # Dict: {'company' : float}
-        self.cost_after_disruption = {} # Dict: {'company' : float}
+        #TODO change dicts to lists probably
+        self.lost_demand = {} # Dict: {'str(company_id)' : number}
+        self.fulfilled_demand = {} # Dict: {'str(company_id)' : number}
+        self.cost = {} # Dict: {'str(company_id)' : float}
+        self.cost_after_disruption = {} # Dict: {'str(company_id)' : float}
         self.loss = {}
         self.total_routes = 0
         self.changed_routes = 0
 
-    def update_fulfilled_demand(self, company, fulfilled_demand):
-        self.fulfilled_demand[company] += fulfilled_demand
+    def update_fulfilled_demand(self, company_id, fulfilled_demand):
+        self.fulfilled_demand[str(company_id)] += fulfilled_demand
         pass
 
-    def update_lost_demand(self, company, lost_demand):
-        self.lost_demand[company] += lost_demand
+    def update_lost_demand(self, company_id, lost_demand):
+        self.lost_demand[str(company_id)] += lost_demand
         pass
 
-    def define_cost(self, company, cost):
-        self.cost[company] = cost
+    def define_cost(self, company_id, cost):
+        self.cost[str(company_id)] = cost
         pass
 
-    def define_cost_after_disruption(self, company, cost):
-        self.cost_after_disruption[company] = cost
+    def define_total_routes(self, total_routes):
+        self.total_routes = total_routes
+
+    def increment_changed_routes(self):
+        self.changed_routes += 1
+
+    def define_cost_after_disruption(self, company_id, cost):
+        self.cost_after_disruption[str(company_id)] = cost
 
     def calculate_loss(self):
         #TODO

@@ -1,37 +1,46 @@
 import pickle
+import time
+from pathlib import Path
 
+from models.agents import ExporterAgent, BaseAgent
+from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
 import logging
 
+from models.simluation_engine.utils import find_delivery_by_agent, find_exporter_by_node_id
+
 logger = logging.getLogger(__name__)
 
 class Simulation:
-    def __init__(self, model, max_time, time_resolution, network, agents):
-        # TODO clean up the initialization and check for name collisions
-        self.model = model
+    def __init__(self, max_time, time_resolution, network):
         self.current_time = 0
         self.max_time = max_time
-        self.time_resolution = time_resolution
         self.network = network
-        self.exporters = [agent for agent in agents if agent.type == 'exporter']
-        self.distributors = [agent for agent in agents if agent.type == 'distributor']
+        self.exporters = []
+        self.importers = []
+        self.deliveries = []
         self.disruption = {}
 
         self.time_manager = TimeManager(time_resolution)
         self.statistics_manager = StatisticsManager()
         pass
 
+
     def run(self):
 
-        logger.info("Starting simulation")
+        print("Starting simulation")
+        time.sleep(2)
 
         try:
             self.initialize()
+            print(f"Simulation initialized\nExporters:\n{self.exporters}\n"
+                  f"Importers:\n{self.importers}\nDeliveries:{self.deliveries}")
 
             while self.should_continue():
                 self.execute_time_step()
                 self.current_time += 1
+                time.sleep(5)
 
             self.finalize()
 
@@ -39,27 +48,41 @@ class Simulation:
             logger.error(f"Simulation failed: {e}")
             raise
         finally:
-            logger.info(f"Simulation completed after {self.current_time} time steps")
+            print(f"Simulation completed after {self.current_time} time steps")
 
     def initialize(self):
-        #TODO
-        # 1) load OSM data
-        # 2) initialize network
-        # 3) initialize delivery routes
-        # 4) initialize agents
-        # 5) collect simulation parameters
-        with open('../parameters/disruption_parameters.pkl', 'rb') as f:
+        path = Path(__file__).parent.parent.parent
+
+        with open(f"{path}/network_data/paths.pkl", 'rb') as f:
+            paths = pickle.load(f)
+        for i in range(10):
+            exporter = ExporterAgent(i, paths['exporter_node'][int(i)])
+            self.exporters.append(exporter)
+        for i in range(10):
+            importer = BaseAgent(i + 10, paths['importer_node'][int(i)])
+            self.importers.append(importer)
+        # for i in range(20, len(self.network.nodes) + 20):
+        #     distributor = BaseAgent(i, paths['distributor_node'][int(i)])
+        #     self.distributors.append(distributor)
+        for i in range(10):
+            delivery = Delivery(i, self.exporters[i].node_id, self.importers[i].node_id)
+            self.deliveries.append(delivery)
+
+        for delivery in self.deliveries:
+            exporter = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
+            path = exporter.find_cheapest_path(self.network, delivery.end_node_id)
+            delivery.route = path['path']
+            delivery.length = path['total_distance_km']
+            delivery.cost = path['estimated_cost']
+
+        with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
             self.disruption = pickle.load(f)
-        #TODO
-        # 6) add initial data to statistics_manager
-        #TODO
-        routes = []
-        self.statistics_manager.total_routes = len(routes)
-        for company in self.exporters:
-            #TODO
-            cost = 0
-            self.statistics_manager.define_cost(company.agent_id, cost)
-        pass
+        print(self.disruption)
+
+        self.statistics_manager.define_total_routes(len(self.deliveries))
+        for exporter in self.exporters:
+            cost = find_delivery_by_agent(self.deliveries, exporter.agent_id).cost
+            self.statistics_manager.define_cost(exporter.agent_id, cost)
 
     def should_continue(self) -> bool:
         if self.current_time >= self.max_time:
@@ -78,25 +101,20 @@ class Simulation:
     def execute_time_step(self):
 
         t = self.current_time
-        logger.debug(f"Executing time step {t}")
+        print(f"Executing time step {t}")
 
         """ Start a disruption """
         if self.disruption['dayOfStart'] == t:
             self.execute_disruption()
             self.find_disrupted_routes()
-            self.update_agents()
 
         """ End a disruption"""
-        if self.disruption['dayOfStart'] + self.disruption['numberOfDays'] == t:
+        if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
             self.end_disruption()
-            self.update_agents()
-            # TODO
-            changed_routes = []
-            self.statistics_manager.changed_routes = len(changed_routes)
+            self.default_routes()
             for company in self.exporters:
-                # TODO
-                cost = 0
-                self.statistics_manager.define_cost_after_disruption(company.agent_id, cost)
+                new_path = company.find_cheapest_path(self.network, find_delivery_by_agent(self.deliveries, company).end_node_id)
+                self.statistics_manager.define_cost_after_disruption(company.agent_id, new_path['estimated_cost'])
 
         """ What happens regardless of a disruption"""
         for company in self.exporters:
@@ -104,53 +122,49 @@ class Simulation:
             pass
 
         """ What happens when there is no disruption"""
-        if t < self.disruption['dayOfStart'] or t > self.disruption['dayOfStart'] + self.disruption['numberOfDays']:
+        if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for company in self.exporters:
                 # TODO capacity
                 fulfilled_demand = 0
-                self.statistics_manager.update_lost_demand(company.agent_id, fulfilled_demand)
+                # self.statistics_manager.update_lost_demand(company.agent_id, fulfilled_demand)
 
         """ What happens during a disruption"""
-        if self.disruption['dayOfStart'] <= t <= self.disruption['dayOfStart'] + self.disruption['numberOfDays']:
+        if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for company in self.exporters:
                 # TODO capacity
                 lost_demand = 0
-                self.statistics_manager.update_lost_demand(company.agent_id, lost_demand)
+                # self.statistics_manager.update_lost_demand(company.agent_id, lost_demand)
+
+        for agent in self.exporters:
+            print(f'{agent.to_dict()}\n')
+        print('\n')
         pass
 
     def execute_disruption(self):
         """ Disabling the node or the edge where disruption happens"""
-        #TODO check for name collisions
         for node in self.network.nodes:
             if node.node_id == self.disruption['placeOfDisruption']:
                 node.active = False
-        for edge in self.network.edges:
-            if edge.edge_id == self.disruption['placeOfDisruption']:
-                edge.active = False
         pass
 
     def find_disrupted_routes(self):
-        #TODO
-        # 1) iterate through all routes
-        # if at least 1 node or edge is disabled mark the starting node (exporter agent)
-        # 2) update changed_routed in the stat manager
-        pass
+        for delivery in self.deliveries:
+            for node in delivery.route:
+                if not node.active:
+                    self.statistics_manager.increment_changed_routes()
+                    delivery.disrupted = True
+                    new_path = delivery.find_cheapest_route()
+                    delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
 
-    def update_agents(self):
-        for exporter in self.exporters:
-            #TODO
-            # 1) if an exporter agent is marked
-            # search for the next cheapest route
-            continue
-        pass
+    def default_routes(self):
+        for delivery in self.deliveries:
+            if delivery.disrupted:
+                delivery.update_disrupted(False)
+                new_path = delivery.find_cheapest_route()
+                delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
 
     def end_disruption(self):
         """ Enabling all disabled nodes and edges"""
-        #TODO check for name collisions
         for node in self.network.nodes:
             if not node.active:
                 node.active = True
-        for edge in self.network.edges:
-            if not edge.active:
-                edge.active = True
-        pass
