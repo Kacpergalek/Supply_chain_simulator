@@ -290,7 +290,7 @@ class ExporterAgent(BaseAgent):
              
 
         # 2) Fallback heurystyczny (brak grafu lub brak drogi), raczej nie potrzebne ale jakby co
-
+        '''
         lat1 = lon1 = lat2 = lon2 = None
         if coords_map and self.node_id in coords_map and dest_node in coords_map:
             lat1, lon1 = coords_map[self.node_id]
@@ -340,4 +340,4 @@ class ExporterAgent(BaseAgent):
 
     
 
-    
+    '''

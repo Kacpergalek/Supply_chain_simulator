@@ -1,7 +1,7 @@
 import sys, os, math
 import networkx as nx
 import pandas as pd
-from graph_reader import GraphManager
+from .graph_reader import GraphManager
 
 project_root = os.path.abspath("..")
 if project_root not in sys.path:
@@ -11,7 +11,7 @@ from models.agents.exporter_agent import ExporterAgent
 
 
 
-from simulation_graph import SimulationGraph
+from .simulation_graph import SimulationGraph
 
 reader = GraphManager()
 try:
@@ -125,4 +125,4 @@ for i, (exp_node, imp_node) in enumerate(zip(exporter_nodes, importer_nodes), st
 
 
 df_paths = pd.DataFrame(results)
-display(df_paths[["exporter_node", "importer_node", "total_distance_km", "estimated_cost", "estimated_lead_time_days", "method"]])
+print(df_paths)
