@@ -2,6 +2,9 @@ import pickle
 import time
 from pathlib import Path
 
+import numpy as np
+from numpy.ma.core import minimum
+
 from models.agents import ExporterAgent, BaseAgent
 from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
@@ -16,7 +19,7 @@ class Simulation:
     def __init__(self, max_time, time_resolution, network):
         self.current_time = 0
         self.max_time = max_time
-        self.network = network # TODO jak wyciągnąć atrybuty węzła
+        self.network = network
         self.exporters = []
         self.importers = []
         self.deliveries = []
@@ -24,7 +27,6 @@ class Simulation:
 
         self.time_manager = TimeManager(time_resolution)
         self.statistics_manager = StatisticsManager()
-        pass
 
 
     def run(self):
@@ -68,11 +70,7 @@ class Simulation:
             self.deliveries.append(delivery)
 
         for delivery in self.deliveries:
-            exporter = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-            path = exporter.find_cheapest_path(self.network, delivery.end_node_id) # TODO nie działa
-            delivery.route = path['path']
-            delivery.length = path['total_distance_km'] # TODO dodać długości km z każdej krawędzi
-            delivery.cost = path['estimated_cost']
+            delivery.update_delivery(self.exporters, self.network)
 
         with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
             self.disruption = pickle.load(f)
@@ -104,15 +102,13 @@ class Simulation:
         if self.disruption['dayOfStart'] == t:
             self.execute_disruption()
             self.find_disrupted_routes()
+            self.update_disrupted_routes()
             print(f"Disruption started at {t}\n{self.disruption}")
 
         """ End a disruption"""
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
             self.end_disruption()
             self.default_routes()
-            for company in self.exporters:
-                new_path = company.find_cheapest_path(self.network, find_delivery_by_agent(self.deliveries, company).end_node_id)
-                self.statistics_manager.define_cost_after_disruption(company.agent_id, new_path['estimated_cost'])
             print("Disruption ended")
 
         """ What happens regardless of a disruption"""
@@ -123,9 +119,9 @@ class Simulation:
         """ What happens when there is no disruption"""
         if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for company in self.exporters:
-                # TODO capacity skąd wziąć
-                fulfilled_demand = 0
-                # self.statistics_manager.update_lost_demand(company.agent_id, fulfilled_demand)
+                delivery = find_delivery_by_agent(self.deliveries, company.agent_id)
+                fulfilled_demand = delivery.capacity
+                self.statistics_manager.update_fulfilled_demand(company.agent_id, fulfilled_demand)
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
@@ -137,32 +133,37 @@ class Simulation:
         for agent in self.exporters:
             print(f'{agent.to_dict()}\n')
         print('\n')
-        pass
 
     def execute_disruption(self):
         """ Disabling the node or the edge where disruption happens"""
         for node in self.network.nodes:
             if node == self.disruption['placeOfDisruption']:
                 node.active = False
-        pass
 
     def find_disrupted_routes(self):
+        """ Mark all routes that contain disrupted nodes as disrupted"""
         for delivery in self.deliveries:
             for node in delivery.route:
                 if not node.active:
                     self.statistics_manager.increment_changed_routes()
                     delivery.disrupted = True
-                    new_path = delivery.find_cheapest_route()
-                    delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
-                    # TODO dodać długości km z każdej krawędzi
+
+    def update_disrupted_routes(self):
+        """ Updating routes, lengths and costs of disrupted deliveries"""
+        disrupted_deliveries = [delivery for delivery in self.deliveries if delivery.disrupted]
+        for delivery in disrupted_deliveries:
+            delivery.reset_delivery()
+            delivery.update_delivery(self.exporters, self.network)
+            agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
+            self.statistics_manager.define_cost_after_disruption(agent.agent_id, delivery.cost)
 
     def default_routes(self):
+        """ Resetting routes and lengths of disrupted deliveries"""
         for delivery in self.deliveries:
             if delivery.disrupted:
-                delivery.update_disrupted(False)
-                new_path = delivery.find_cheapest_route()
-                delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
-                # TODO dodać długości km z każdej krawędzi
+                delivery.disrupted = False
+                delivery.reset_delivery()
+                delivery.update_delivery(self.exporters, self.network)
 
     def end_disruption(self):
         """ Enabling all disabled nodes and edges"""

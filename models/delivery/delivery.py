@@ -1,3 +1,8 @@
+import numpy as np
+
+from models.simluation_engine.utils import find_exporter_by_node_id
+
+
 class Delivery:
     def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int):
         self.delivery_id = delivery_id
@@ -6,10 +11,23 @@ class Delivery:
         self.route = []
         self.length = 0
         self.cost = 0
+        self.capacity = 0
         self.disrupted = False
-        pass
 
-    def update_route(self, route: list, length, cost):
-        self.route = route
-        self.length = length
-        self.cost = cost
+    def reset_delivery(self):
+        self.route = 0
+        self.length = 0
+        self.cost = 0
+
+    def update_delivery(self, exporters, network):
+        exporter = find_exporter_by_node_id(exporters, self.start_node_id)
+        path = exporter.find_cheapest_path(network, self.end_node_id)  # TODO nie działa
+        self.route = path['path']
+        minimum_capacity = np.inf
+
+        for i in range(len(self.route)):
+            self.length += network.edges[self.route[i], self.route[i + 1]].length
+            self.cost += network.edges[self.route[i], self.route[i + 1]].cost
+            if network.edges[self.route[i], self.route[i + 1]].capacity < minimum_capacity:
+                minimum_capacity = network.edges[self.route[i], self.route[i + 1]].capacity
+        self.capacity = minimum_capacity

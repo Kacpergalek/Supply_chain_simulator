@@ -6,7 +6,7 @@ from models.simluation_engine.engine import Simulation
 from network.graph_reader import GraphManager
 
 reader = GraphManager()
-graph = reader.load_pickle_graph("poland.pkl")
+graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
 # print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))
 # print(graph.edges.values())
 # simulation = Simulation(10, 'day', graph)
@@ -24,3 +24,5 @@ for node in graph.nodes:
         break
 # with open('data.json', 'w') as f:
 #     json.dump(nodes_for_disruption, f, indent=4)
+
+print(graph.edges[nodes_for_disruption[0], nodes_for_disruption[1], 0])
