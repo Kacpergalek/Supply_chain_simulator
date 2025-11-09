@@ -98,7 +98,7 @@ class ExporterAgent(BaseAgent):
               - estimated_lead_time_days
               - estimated_cost
         """
-        print(f"[DEBUG] Agent {self.agent_id}: sim_graph={type(sim_graph)}")
+        #print(f"[DEBUG] Agent {self.agent_id}: sim_graph={type(sim_graph)}")
         if params is None:
             params = {}
 
@@ -110,7 +110,7 @@ class ExporterAgent(BaseAgent):
         delta = float(params.get("time_weight", 1.0)) 
         coords_map = params.get("coords_map", None)
         avg_speed = float(params.get("avg_speed_km_per_day", 60.0))
-        driving_hours_per_day = float(params.get("driving_hours_per_day", 8.0)) 
+        driving_hours_per_day = float(params.get("driving_hours_per_day", 24.0)) 
         default_speed_kmh = float(params.get("default_speed_kmh", max(60.0, avg_speed / driving_hours_per_day)))
 
         def parse_maxspeed(ms):
@@ -289,55 +289,4 @@ class ExporterAgent(BaseAgent):
                 print(f"⚠️ Graph path failed for agent {self.agent_id}: {e}")
              
 
-        # 2) Fallback heurystyczny (brak grafu lub brak drogi), raczej nie potrzebne ale jakby co
-        '''
-        lat1 = lon1 = lat2 = lon2 = None
-        if coords_map and self.node_id in coords_map and dest_node in coords_map:
-            lat1, lon1 = coords_map[self.node_id]
-            lat2, lon2 = coords_map[dest_node]
-        else:
-
-            try:
-                if sim_graph is not None:
-                    n1 = sim_graph.nodes[self.node_id]
-                    n2 = sim_graph.nodes[dest_node]
-                    lat1 = float(n1.get("y", None))
-                    lon1 = float(n1.get("x", None))
-                    lat2 = float(n2.get("y", None))
-                    lon2 = float(n2.get("x", None))
-            except Exception:
-                lat1 = lon1 = lat2 = lon2 = None
-
-        if lat1 is not None and lon1 is not None and lat2 is not None and lon2 is not None:
-            dist_km = self._haversine_km(lon1, lat1, lon2, lat2)
-        else:
-
-            dist_km = 1.0
-
-        est_weight = alpha * dist_km
-        est_cost = 0.1 * dist_km
-        est_days = dist_km / avg_speed if avg_speed > 0 else None
-
-        return {
-            "method": "heuristic",
-            "path": [self.node_id, dest_node],
-            "total_weight": est_weight,
-            "total_distance_km": dist_km,
-            "estimated_lead_time_days": est_days,
-            "estimated_cost": est_cost,
-            "total_risk": 0.0
-        }
-
-    @staticmethod
-    def _haversine_km(lon1, lat1, lon2, lat2):
-        lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = math.sin(dlat/2.0)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2.0)**2
-        c = 2 * math.asin(math.sqrt(a))
-        R = 6371.0
-        return R * c
-
-    
-
-    '''
+        
