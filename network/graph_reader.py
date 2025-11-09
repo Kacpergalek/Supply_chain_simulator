@@ -12,7 +12,7 @@ from network.simulation_graph import SimulationGraph
 class GraphManager():
     def __init__(self, folder="network_data"):
         self.folder = folder
-        os.makedirs(f"../{self.folder}", exist_ok=True)
+        # os.makedirs(f"../{self.folder}", exist_ok=True)
 
 
     def load_pickle_graph(self, pickle_file_name) -> SimulationGraph:

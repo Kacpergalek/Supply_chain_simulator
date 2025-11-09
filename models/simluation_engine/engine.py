@@ -16,7 +16,7 @@ class Simulation:
     def __init__(self, max_time, time_resolution, network):
         self.current_time = 0
         self.max_time = max_time
-        self.network = network
+        self.network = network # TODO jak wyciągnąć atrybuty węzła
         self.exporters = []
         self.importers = []
         self.deliveries = []
@@ -52,6 +52,7 @@ class Simulation:
 
     def initialize(self):
         path = Path(__file__).parent.parent.parent
+        print(f"Path: {path}")
 
         with open(f"{path}/network_data/paths.pkl", 'rb') as f:
             paths = pickle.load(f)
@@ -61,23 +62,20 @@ class Simulation:
         for i in range(10):
             importer = BaseAgent(i + 10, paths['importer_node'][int(i)])
             self.importers.append(importer)
-        # for i in range(20, len(self.network.nodes) + 20):
-        #     distributor = BaseAgent(i, paths['distributor_node'][int(i)])
-        #     self.distributors.append(distributor)
+
         for i in range(10):
             delivery = Delivery(i, self.exporters[i].node_id, self.importers[i].node_id)
             self.deliveries.append(delivery)
 
         for delivery in self.deliveries:
             exporter = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-            path = exporter.find_cheapest_path(self.network, delivery.end_node_id)
+            path = exporter.find_cheapest_path(self.network, delivery.end_node_id) # TODO nie działa
             delivery.route = path['path']
-            delivery.length = path['total_distance_km']
+            delivery.length = path['total_distance_km'] # TODO dodać długości km z każdej krawędzi
             delivery.cost = path['estimated_cost']
 
         with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
             self.disruption = pickle.load(f)
-        print(self.disruption)
 
         self.statistics_manager.define_total_routes(len(self.deliveries))
         for exporter in self.exporters:
@@ -96,7 +94,6 @@ class Simulation:
         self.statistics_manager.save_to_csv(df)
 
         self.statistics_manager.show_kpi_panel()
-        pass
 
     def execute_time_step(self):
 
@@ -107,6 +104,7 @@ class Simulation:
         if self.disruption['dayOfStart'] == t:
             self.execute_disruption()
             self.find_disrupted_routes()
+            print(f"Disruption started at {t}\n{self.disruption}")
 
         """ End a disruption"""
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
@@ -115,6 +113,7 @@ class Simulation:
             for company in self.exporters:
                 new_path = company.find_cheapest_path(self.network, find_delivery_by_agent(self.deliveries, company).end_node_id)
                 self.statistics_manager.define_cost_after_disruption(company.agent_id, new_path['estimated_cost'])
+            print("Disruption ended")
 
         """ What happens regardless of a disruption"""
         for company in self.exporters:
@@ -124,14 +123,14 @@ class Simulation:
         """ What happens when there is no disruption"""
         if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for company in self.exporters:
-                # TODO capacity
+                # TODO capacity skąd wziąć
                 fulfilled_demand = 0
                 # self.statistics_manager.update_lost_demand(company.agent_id, fulfilled_demand)
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for company in self.exporters:
-                # TODO capacity
+                # TODO capacity skąz wziąć
                 lost_demand = 0
                 # self.statistics_manager.update_lost_demand(company.agent_id, lost_demand)
 
@@ -143,7 +142,7 @@ class Simulation:
     def execute_disruption(self):
         """ Disabling the node or the edge where disruption happens"""
         for node in self.network.nodes:
-            if node.node_id == self.disruption['placeOfDisruption']:
+            if node == self.disruption['placeOfDisruption']:
                 node.active = False
         pass
 
@@ -155,6 +154,7 @@ class Simulation:
                     delivery.disrupted = True
                     new_path = delivery.find_cheapest_route()
                     delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
+                    # TODO dodać długości km z każdej krawędzi
 
     def default_routes(self):
         for delivery in self.deliveries:
@@ -162,6 +162,7 @@ class Simulation:
                 delivery.update_disrupted(False)
                 new_path = delivery.find_cheapest_route()
                 delivery.update_route(new_path['path'], new_path['total_distance_km'], new_path['estimated_cost'])
+                # TODO dodać długości km z każdej krawędzi
 
     def end_disruption(self):
         """ Enabling all disabled nodes and edges"""

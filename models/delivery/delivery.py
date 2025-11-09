@@ -9,7 +9,7 @@ class Delivery:
         self.disrupted = False
         pass
 
-    def update_route(self, route, length, cost):
+    def update_route(self, route: list, length, cost):
         self.route = route
         self.length = length
         self.cost = cost
