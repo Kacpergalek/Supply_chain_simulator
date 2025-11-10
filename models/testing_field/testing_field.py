@@ -1,11 +1,17 @@
 import json
+import os
+import pickle
 from pathlib import Path
 
-import numpy as np
+# import numpy as np
 
-from models.simluation_engine.engine import Simulation
+# from models.simluation_engine.engine import Simulation
 from network.graph_reader import GraphManager
 
+# path = Path(__file__).parent.parent.parent
+# with open(f'{path}/network_data/poland_motorway_trunk_primary.pkl', "rb") as pickle_file:
+#     graph = pickle.load(pickle_file)
+# print(graph)
 reader = GraphManager()
 graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
 # print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))

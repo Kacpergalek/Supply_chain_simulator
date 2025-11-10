@@ -19,12 +19,13 @@ class SimulationGraph(nx.MultiDiGraph):
                 data["active"] = True
             if "type" not in data:
                 data["type"] = "road" # będziemy dodawać firmy/dostawców
+            
 
 
     @classmethod
     def from_osmnx(cls, place, default_capacity=1000, default_price=0.5, network_type="drive", custom_filter='["highway"~"motorway"]', **kwargs):
         graph = ox.graph_from_place(place, network_type=network_type, custom_filter=custom_filter, **kwargs)
-
+        graph = graph.to_undirected()
         return cls(default_capacity, default_price, incoming_graph_data=graph)
     
 
@@ -78,7 +79,7 @@ class SimulationGraph(nx.MultiDiGraph):
         deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
 
         sim_graph_cpy.remove_nodes_from(deactivated_nodes)
-
+        # sim_graph_cpy = sim_graph_cpy.to_undirected()
         return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weight)
 
 
