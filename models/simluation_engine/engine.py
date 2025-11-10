@@ -2,11 +2,16 @@ import pickle
 import time
 import logging
 from pathlib import Path
+import sys 
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
+
 
 from models.agents import ExporterAgent, BaseAgent
 from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
+from network.graph_reader import GraphManager
 
 from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
@@ -167,3 +172,10 @@ class Simulation:
         for node in self.network.nodes:
             if not node.active:
                 node.active = True
+
+
+if __name__ == "__main__":
+    graph_manager = GraphManager()
+    graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl") 
+    simulation = Simulation(max_time= 10, time_resolution="day", network=graph)    
+    simulation.run()
