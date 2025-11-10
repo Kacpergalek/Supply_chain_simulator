@@ -3,6 +3,8 @@ import pickle
 from flask import Flask, render_template, jsonify, send_from_directory, request
 from pathlib import Path
 import json
+import plotly.io as pio
+import plotly.graph_objs as go
 
 app = Flask(__name__)
 
@@ -11,6 +13,10 @@ RESULTS_PATH = Path('form_data')
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/category/dashboard")
+def dashboard():
+    return render_template("dashboard.html")
 
 
 @app.route("/api/disruption_type")
@@ -44,6 +50,21 @@ def process():
 
     return jsonify(data)
 
+@app.route("/category/dashboard/api/process", methods=["POST"])
+def dashboard_process():
+    data = request.get_json()
+
+    print("Received disruption data from dashboard:\n", data)
+    with open('parameters/disruption_parameters.pkl', 'wb') as f:
+        pickle.dump(data, f)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=['2025-11-01', '2025-11-02', '2025-11-03'],
+                             y=[100, 150, 200],
+                             mode='lines+markers',
+                             name='Sales'))
+    
+    return jsonify(fig.to_dict())
 
 if __name__ == "__main__":
     app.run(debug=True)
