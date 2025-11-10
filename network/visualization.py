@@ -72,8 +72,8 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
             mid_x = (x1 + x2) / 2
             mid_y = (y1 + y2) / 2
             ax.annotate('', xy=(mid_x, mid_y), xytext=(mid_x - dx * 0.3, mid_y - dy * 0.3),
-                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=1.5),
-                        zorder=6)
+                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=2),
+                        zorder=10)
 
     # Węzły eksportera i importera + podpisy
     for n in exporter_nodes:
