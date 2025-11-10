@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import time
 import datetime
@@ -5,24 +6,24 @@ import datetime
 class StatisticsManager:
     def __init__(self):
         # list index = agent id
-        self.lost_demand = []
-        self.fulfilled_demand = []
-        self.cost = []
-        self.cost_after_disruption = []
-        self.loss = []
+        self.lost_demand = np.zeros(10)
+        self.fulfilled_demand = np.zeros(10)
+        self.cost = np.zeros(10)
+        self.cost_after_disruption = np.zeros(10)
+        self.loss = np.zeros(10)
         self.total_routes = 0
         self.changed_routes = 0
 
     def update_fulfilled_demand(self, company_id, fulfilled_demand):
-        self.fulfilled_demand[str(company_id)] += fulfilled_demand
+        self.fulfilled_demand[company_id] += fulfilled_demand
         pass
 
     def update_lost_demand(self, company_id, lost_demand):
-        self.lost_demand[str(company_id)] += lost_demand
+        self.lost_demand[company_id] += lost_demand
         pass
 
     def define_cost(self, company_id, cost):
-        self.cost[str(company_id)] = cost
+        self.cost[company_id] = cost
         pass
 
     def define_total_routes(self, total_routes):
@@ -32,7 +33,7 @@ class StatisticsManager:
         self.changed_routes += 1
 
     def define_cost_after_disruption(self, company_id, cost):
-        self.cost_after_disruption[str(company_id)] = cost
+        self.cost_after_disruption[company_id] = cost
 
     def calculate_loss(self):
         #TODO

@@ -7,7 +7,7 @@ import networkx as nx
 import osmnx as ox
 import json
 
-from simulation_graph import SimulationGraph
+from network.simulation_graph import SimulationGraph
 
 
 class GraphManager():
@@ -23,15 +23,14 @@ class GraphManager():
 
         path = Path(__file__).parent.parent
         json_file_name = pickle_file_name.split(".")[0] + ".json"
-        print(sys.path)
-        with open(f"../{self.folder}/{json_file_name}", "r") as json_file:
+        with open(f"{path}/{self.folder}/{json_file_name}", "r") as json_file:
             attributes = json.load(json_file)
         if attributes is None:
             attributes = {
                 "default_capacity" : 1000,
                 "default_price" : 0.5
             }
-        with open(f"../{self.folder}/{pickle_file_name}", "rb") as pickle_file:
+        with open(f"{path}/{self.folder}/{pickle_file_name}", "rb") as pickle_file:
             graph = pickle.load(pickle_file)
             simulation_graph = SimulationGraph(incoming_graph_data = graph, 
                                                default_capacity=attributes["default_capacity"], 

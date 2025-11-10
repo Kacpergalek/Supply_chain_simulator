@@ -1,17 +1,16 @@
 import pickle
 import time
+import logging
 from pathlib import Path
-
-import numpy as np
-from numpy.ma.core import minimum
 
 from models.agents import ExporterAgent, BaseAgent
 from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
-import logging
 
-from models.simluation_engine.utils import find_delivery_by_agent, find_exporter_by_node_id
+from utils.find_delivery import find_delivery_by_agent
+from utils.find_exporter import  find_exporter_by_node_id
+
 from network.simulation_graph import SimulationGraph
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,6 @@ class Simulation:
         self.time_manager = TimeManager(time_resolution)
         self.statistics_manager = StatisticsManager()
 
-
     def run(self):
 
         print("Starting simulation")
@@ -38,7 +36,9 @@ class Simulation:
         try:
             self.initialize()
             print(f"Simulation initialized\nExporters:\n{self.exporters}\n"
-                  f"Importers:\n{self.importers}\nDeliveries:{self.deliveries}")
+                  f"Importers:\n{self.importers}")
+            for delivery in self.deliveries:
+                print(f"Delivery {delivery.to_dict()}")
 
             while self.should_continue():
                 self.execute_time_step()
@@ -55,7 +55,6 @@ class Simulation:
 
     def initialize(self):
         path = Path(__file__).parent.parent.parent
-        print(f"Path: {path}")
 
         with open(f"{path}/network_data/paths.pkl", 'rb') as f:
             paths = pickle.load(f)
@@ -78,7 +77,7 @@ class Simulation:
 
         self.statistics_manager.define_total_routes(len(self.deliveries))
         for exporter in self.exporters:
-            cost = find_delivery_by_agent(self.deliveries, exporter.agent_id).cost
+            cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
 
     def should_continue(self) -> bool:
@@ -89,8 +88,7 @@ class Simulation:
     def finalize(self):
         """ Saving statistics to a csv file and displaying a KPI panel"""
         self.statistics_manager.calculate_loss()
-        df = self.statistics_manager.create_dataframe()
-        self.statistics_manager.save_to_csv(df)
+        self.statistics_manager.save_to_csv()
 
         self.statistics_manager.show_kpi_panel()
 
@@ -114,27 +112,24 @@ class Simulation:
 
         """ What happens regardless of a disruption"""
         for exporter in self.exporters:
+            #TODO
             exporter.produce()
-            exporter.sell()
+            exporter.sell(90)
             pass
 
         """ What happens when there is no disruption"""
         if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for exporter in self.exporters:
-                delivery = find_delivery_by_agent(self.deliveries, exporter.agent_id)
+                delivery = find_delivery_by_agent(self.deliveries, exporter)
                 fulfilled_demand = delivery.capacity
                 self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for exporter in self.exporters:
-                # TODO capacity skąz wziąć
+                # TODO jak liczymy lost demand
                 lost_demand = 0
                 # self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
-
-        for agent in self.exporters:
-            print(f'{agent.to_dict()}\n')
-        print('\n')
 
     def execute_disruption(self):
         """ Disabling the node or the edge where disruption happens"""
