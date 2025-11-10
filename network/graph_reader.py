@@ -6,8 +6,11 @@ from pathlib import Path
 import networkx as nx
 import osmnx as ox
 import json
+import sys 
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from simulation_graph import SimulationGraph
+from network.simulation_graph import SimulationGraph
 
 
 class GraphManager():
