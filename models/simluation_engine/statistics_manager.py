@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import time
 import datetime
+import os
 
 class StatisticsManager:
     def __init__(self):
-        # list index = agent id
+        # lists index = agent id
         self.lost_demand = np.zeros(10)
         self.fulfilled_demand = np.zeros(10)
         self.cost = np.zeros(10)
@@ -13,6 +14,7 @@ class StatisticsManager:
         self.loss = np.zeros(10)
         self.total_routes = 0
         self.changed_routes = 0
+        self.dataframes = []
 
     def update_fulfilled_demand(self, company_id, fulfilled_demand):
         self.fulfilled_demand[company_id] += fulfilled_demand
@@ -39,24 +41,36 @@ class StatisticsManager:
         #TODO
         # loss = cost_after_disruption - cost
         pass
-
-    def create_dataframe(self):
+    
+    # option: b - before disruption, a - after disruption
+    def add_dataframe(self, option : str, current_time : int):
         data = {
-            "lost_demand" : self.lost_demand,
-            "fullfilled_demand" : self.fulfilled_demand,
-            "cost" : self.cost,
-            "cost_after_disruption" : self.cost_after_disruption,
-            "loss" : self.loss
+            f"{current_time}{option.lower()}_lost_demand" : self.lost_demand,
+            f"{current_time}{option.lower()}_fullfilled_demand" : self.fulfilled_demand,
+            f"{current_time}{option.lower()}_cost" : self.cost,
+            f"{current_time}{option.lower()}_cost_after_disruption" : self.cost_after_disruption,
+            f"{current_time}{option.lower()}_loss" : self.loss
         }
         df = pd.DataFrame(data=data)
-        return df
-    
+        self.dataframes.append(df)
+
+
     def save_to_csv(self):
-        df = self.create_dataframe()
-        time = time.time()
-        dt = datetime.fromtimestamp(time)
-        formated_time = dt.strftime("%H_%M_%S")
-        df.to_csv(f'../../saved_statistics/stats_{formated_time}.csv', index=True)
+        if len(self.dataframes) > 0:
+            final_df = pd.concat(self.dataframes, axis=1, ignore_index=False)
+            time = time.time()
+            dt = datetime.fromtimestamp(time)
+            formated_time = dt.strftime("%H_%M_%S")
+
+            path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\.."))
+            file_path = os.path.join(path, "saved_statistics", f"stats_{formated_time}.csv")
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+            final_df.to_csv(file_path, index=True)
+            self.dataframes.clear()
+        else:
+            print("Disruption did not occur.")
+
 
 
     def show_kpi_panel(self):

@@ -4,3 +4,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+
+.ipynb_checkpoints/

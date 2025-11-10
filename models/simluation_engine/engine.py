@@ -57,6 +57,8 @@ class Simulation:
             raise
         finally:
             print(f"Simulation completed after {self.current_time} time steps")
+            self.statistics_manager.save_to_csv()
+
 
     def initialize(self):
         path = Path(__file__).parent.parent.parent
@@ -107,12 +109,15 @@ class Simulation:
             self.execute_disruption()
             self.find_disrupted_routes()
             self.update_disrupted_routes()
+            self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
             print(f"Disruption started at {t}\n{self.disruption}")
+            
 
         """ End a disruption"""
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
             self.end_disruption()
             self.default_routes()
+            self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
             print("Disruption ended")
 
         """ What happens regardless of a disruption"""
@@ -177,5 +182,5 @@ class Simulation:
 if __name__ == "__main__":
     graph_manager = GraphManager()
     graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl") 
-    simulation = Simulation(max_time= 10, time_resolution="day", network=graph)    
+    simulation = Simulation(max_time= 3, time_resolution="day", network=graph)    
     simulation.run()
