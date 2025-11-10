@@ -12,11 +12,12 @@ from models.simluation_engine.time_manager import TimeManager
 import logging
 
 from models.simluation_engine.utils import find_delivery_by_agent, find_exporter_by_node_id
+from network.simulation_graph import SimulationGraph
 
 logger = logging.getLogger(__name__)
 
 class Simulation:
-    def __init__(self, max_time, time_resolution, network):
+    def __init__(self, max_time: int, time_resolution: str, network: SimulationGraph):
         self.current_time = 0
         self.max_time = max_time
         self.network = network
@@ -112,23 +113,24 @@ class Simulation:
             print("Disruption ended")
 
         """ What happens regardless of a disruption"""
-        for company in self.exporters:
-            # TODO company.produce() + company.sell() ???
+        for exporter in self.exporters:
+            exporter.produce()
+            exporter.sell()
             pass
 
         """ What happens when there is no disruption"""
         if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
-            for company in self.exporters:
-                delivery = find_delivery_by_agent(self.deliveries, company.agent_id)
+            for exporter in self.exporters:
+                delivery = find_delivery_by_agent(self.deliveries, exporter.agent_id)
                 fulfilled_demand = delivery.capacity
-                self.statistics_manager.update_fulfilled_demand(company.agent_id, fulfilled_demand)
+                self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
-            for company in self.exporters:
+            for exporter in self.exporters:
                 # TODO capacity skąz wziąć
                 lost_demand = 0
-                # self.statistics_manager.update_lost_demand(company.agent_id, lost_demand)
+                # self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
 
         for agent in self.exporters:
             print(f'{agent.to_dict()}\n')

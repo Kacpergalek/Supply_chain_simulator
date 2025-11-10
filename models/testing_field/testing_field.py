@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import numpy as np
 
@@ -22,7 +23,10 @@ for node in graph.nodes:
     i += 1
     if i > 10:
         break
+
+path = Path(__file__).parent.parent.parent
+print(f"Path: {path}")
 # with open('data.json', 'w') as f:
 #     json.dump(nodes_for_disruption, f, indent=4)
 
-print(graph.edges[nodes_for_disruption[0], nodes_for_disruption[1], 0])
+# print(graph.edges[nodes_for_disruption[0], nodes_for_disruption[1], 0])
