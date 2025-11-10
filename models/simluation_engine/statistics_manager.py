@@ -1,14 +1,15 @@
 import pandas as pd
 import time
+import datetime
 
 class StatisticsManager:
     def __init__(self):
-        #TODO change dicts to lists probably
-        self.lost_demand = {} # Dict: {'str(company_id)' : number}
-        self.fulfilled_demand = {} # Dict: {'str(company_id)' : number}
-        self.cost = {} # Dict: {'str(company_id)' : float}
-        self.cost_after_disruption = {} # Dict: {'str(company_id)' : float}
-        self.loss = {}
+        # list index = agent id
+        self.lost_demand = []
+        self.fulfilled_demand = []
+        self.cost = []
+        self.cost_after_disruption = []
+        self.loss = []
         self.total_routes = 0
         self.changed_routes = 0
 
@@ -39,18 +40,26 @@ class StatisticsManager:
         pass
 
     def create_dataframe(self):
-        #TODO
-        # add all stats to dataframe
-        df = pd.DataFrame()
+        data = {
+            "lost_demand" : self.lost_demand,
+            "fullfilled_demand" : self.fulfilled_demand,
+            "cost" : self.cost,
+            "cost_after_disruption" : self.cost_after_disruption,
+            "loss" : self.loss
+        }
+        df = pd.DataFrame(data=data)
         return df
+    
+    def save_to_csv(self):
+        df = self.create_dataframe()
+        time = time.time()
+        dt = datetime.fromtimestamp(time)
+        formated_time = dt.strftime("%H_%M_%S")
+        df.to_csv(f'../../saved_statistics/stats_{formated_time}.csv', index=True)
+
 
     def show_kpi_panel(self):
         #TODO
         # 1) create a panel in HTML / CSS
         # 2) pull it up with the updated stats
-        pass
-
-    def save_to_csv(self, df):
-        timestamp = time.strftime("%H_%M_%S")
-        df.to_csv(f'../../saved_statistics/stats_{timestamp}.csv', index=False)
         pass
