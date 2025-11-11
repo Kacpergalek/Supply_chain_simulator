@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-import time
-import datetime
+from datetime import datetime
 import os
 
 class StatisticsManager:
@@ -58,8 +57,7 @@ class StatisticsManager:
     def save_to_csv(self):
         if len(self.dataframes) > 0:
             final_df = pd.concat(self.dataframes, axis=1, ignore_index=False)
-            time = time.time()
-            dt = datetime.fromtimestamp(time)
+            dt = datetime.now()
             formated_time = dt.strftime("%d_%m_%Y__%H_%M_%S")
 
             path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\.."))
