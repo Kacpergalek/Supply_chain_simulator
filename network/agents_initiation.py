@@ -1,7 +1,8 @@
 import sys, os, math
 import networkx as nx
 import pandas as pd
-
+from pathlib import Path
+import pickle
 
 
 project_root = os.path.abspath("..")
@@ -123,6 +124,16 @@ def initiation(graph):
             #print(f"✅ Agent {i}: {exp_node} → {imp_node} | dystans: {result['total_distance_km']:.2f} km | koszt: {result['estimated_cost']:.2f}")
         except Exception as e:
             print(f"❌ {exp_node} → {imp_node} | błąd: {e}")
+    
+    data = {
+        "exporter_node": [r["exporter_node"] for r in results],
+        "importer_node": [r["importer_node"] for r in results],
+        "results": results
+    }
+
+    path = Path(__file__).parent.parent / "network_data" / "paths.pkl"
+    with open(path, "wb") as f:
+        pickle.dump(data, f)
 
     return results
 

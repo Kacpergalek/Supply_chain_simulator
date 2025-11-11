@@ -5,6 +5,7 @@ from pathlib import Path
 import sys 
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
+from network.visualization import plot_agent_routes
 
 
 from models.agents import ExporterAgent, BaseAgent
@@ -87,6 +88,8 @@ class Simulation:
         for exporter in self.exporters:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
+        
+        self.save_current_map()
 
     def should_continue(self) -> bool:
         if self.current_time >= self.max_time:
@@ -99,6 +102,28 @@ class Simulation:
         self.statistics_manager.save_to_csv()
 
         self.statistics_manager.show_kpi_panel()
+    
+    def save_current_map(self, filename="latest_map.png"):
+        """Zapisuje aktualny stan sieci i tras do pliku PNG."""
+        try:
+            routes = [d.route for d in self.deliveries]
+            exporter_nodes = [e.node_id for e in self.exporters]
+            importer_nodes = [i.node_id for i in self.importers]
+            disrupted_nodes = [
+                n for n in self.network.nodes if hasattr(n, "active") and not n.active
+            ]
+
+            #save_path = Path(__file__).parent.parent.parent / "assets/maps" / filename
+            plot_agent_routes(
+                self.network,
+                routes,
+                exporter_nodes,
+                importer_nodes,
+                disrupted_nodes,
+            )
+            print(f"✅ Mapa zapisana")
+        except Exception as e:
+            print(f"❌ Błąd podczas zapisu mapy: {e}")
 
     def execute_time_step(self):
 
@@ -113,6 +138,7 @@ class Simulation:
             # self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
             print(f"Disruption started at {t}\n{self.disruption}")
             
+            self.save_current_map("during_disruption.png")
 
         """ End a disruption"""
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
@@ -120,6 +146,7 @@ class Simulation:
             self.default_routes()
             # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
             print("Disruption ended")
+            self.save_current_map("after_disruption.png")
 
         """ What happens regardless of a disruption"""
         for exporter in self.exporters:

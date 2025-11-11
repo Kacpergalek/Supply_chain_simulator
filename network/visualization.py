@@ -42,7 +42,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
         "Częstochowa": (50.81, 19.12),
     }
 
-    save_path = Path(__file__).parent.parent / "assets/latest_map.png"
+    save_path = Path(__file__).parent.parent / "assets/latest_map2.png"
 
     if disrupted_nodes is None:
         disrupted_nodes = []
@@ -155,4 +155,4 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
 
 
 
-    plt.show()
+    #plt.show()

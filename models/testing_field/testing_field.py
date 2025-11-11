@@ -10,11 +10,11 @@ from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 from dashboard.dashboards_manager import DashboardsManager
 
 reader = GraphManager()
-dash = DashboardsManager()
-#graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-# print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))
-# simulation = Simulation(10, 'day', graph)
-# simulation.run()
+#dash = DashboardsManager()
+graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
+#print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))
+simulation = Simulation(10, 'day', graph)
+simulation.run()
 
 #find_nodes_to_disrupt(graph)
-dash.get_stats()
+#dash.get_stats()
