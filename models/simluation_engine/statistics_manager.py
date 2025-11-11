@@ -42,14 +42,14 @@ class StatisticsManager:
         # loss = cost_after_disruption - cost
         pass
     
-    # option: b - before disruption, a - after disruption
-    def add_dataframe(self, option : str, current_time : int):
+    
+    def add_dataframe(self, current_time : int):
         data = {
-            f"{current_time}{option.lower()}_lost_demand" : self.lost_demand,
-            f"{current_time}{option.lower()}_fullfilled_demand" : self.fulfilled_demand,
-            f"{current_time}{option.lower()}_cost" : self.cost,
-            f"{current_time}{option.lower()}_cost_after_disruption" : self.cost_after_disruption,
-            f"{current_time}{option.lower()}_loss" : self.loss
+            f"{current_time}_lost_demand" : self.lost_demand,
+            f"{current_time}_fulfilled_demand" : self.fulfilled_demand,
+            f"{current_time}_cost" : self.cost,
+            f"{current_time}_cost_after_disruption" : self.cost_after_disruption,
+            f"{current_time}_loss" : self.loss
         }
         df = pd.DataFrame(data=data)
         self.dataframes.append(df)
@@ -60,7 +60,7 @@ class StatisticsManager:
             final_df = pd.concat(self.dataframes, axis=1, ignore_index=False)
             time = time.time()
             dt = datetime.fromtimestamp(time)
-            formated_time = dt.strftime("%H_%M_%S")
+            formated_time = dt.strftime("%d_%m_%Y__%H_%M_%S")
 
             path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\.."))
             file_path = os.path.join(path, "saved_statistics", f"stats_{formated_time}.csv")

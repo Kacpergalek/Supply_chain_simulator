@@ -5,8 +5,10 @@ from pathlib import Path
 import json
 import plotly.io as pio
 import plotly.graph_objs as go
+from dashboard.dashboards_manager import DashboardsManager
 
 app = Flask(__name__)
+dash_manager = DashboardsManager()
 
 RESULTS_PATH = Path('form_data')
 
@@ -50,6 +52,7 @@ def process():
 
     return jsonify(data)
 
+
 @app.route("/category/dashboard/api/process", methods=["POST"])
 def dashboard_process():
     data = request.get_json()
@@ -65,6 +68,7 @@ def dashboard_process():
                              name='Sales'))
     
     return jsonify(fig.to_dict())
+
 
 if __name__ == "__main__":
     app.run(debug=True)

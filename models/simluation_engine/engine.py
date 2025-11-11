@@ -47,6 +47,7 @@ class Simulation:
 
             while self.should_continue():
                 self.execute_time_step()
+                self.statistics_manager.add_dataframe(current_time=self.current_time)
                 self.current_time += 1
                 time.sleep(5)
 
@@ -109,7 +110,7 @@ class Simulation:
             self.execute_disruption()
             self.find_disrupted_routes()
             self.update_disrupted_routes()
-            self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
+            # self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
             print(f"Disruption started at {t}\n{self.disruption}")
             
 
@@ -117,7 +118,7 @@ class Simulation:
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
             self.end_disruption()
             self.default_routes()
-            self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
+            # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
             print("Disruption ended")
 
         """ What happens regardless of a disruption"""
