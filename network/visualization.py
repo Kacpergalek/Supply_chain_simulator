@@ -4,10 +4,13 @@ import networkx as nx
 from shapely.geometry import LineString
 import matplotlib.colors as mcolors
 import random
+from pathlib import Path
 
 def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
-                      major_cities=None, node_type_attr="type", capacity_attr="capacity",
-                      disrupted_nodes=None):
+                      #major_cities=None, 
+                      node_type_attr="type", capacity_attr="capacity",
+                      disrupted_nodes=None
+                      ):
     """
     graph : SimulationGraph (nx.MultiDiGraph)
     routes : list of lists of nodes (ścieżki od find_shortest_path)
@@ -16,14 +19,53 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
     major_cities : dict {city_name: (lat, lon)} dla podpisów przy punktach
     disrupted_nodes : lista węzłów, które są wyłączone (np. z powodu zakłócenia)
     """
+    major_cities = {
+        "Warszawa": (52.23, 21.01),
+        "Kraków": (50.06, 19.94),
+        "Łódź": (51.77, 19.46),
+        "Wrocław": (51.11, 17.03),
+        "Poznań": (52.41, 16.93),
+        "Gdańsk": (54.35, 18.65),
+        "Szczecin": (53.43, 14.55),
+        "Lublin": (51.25, 22.57),
+        "Katowice": (50.26, 19.03),
+        "Białystok": (53.13, 23.15),
+        "Rzeszów": (50.04, 22.00),
+        "Olsztyn": (53.78, 20.49),
+        "Toruń": (53.01, 18.60),
+        "Bydgoszcz": (53.12, 18.01),
+        "Kielce": (50.87, 20.63),
+        "Zielona Góra": (51.94, 15.50),
+        "Opole": (50.67, 17.93),
+        "Gorzów Wielkopolski": (52.73, 15.24),
+        "Radom": (51.40, 21.15),
+        "Częstochowa": (50.81, 19.12),
+    }
+
+    save_path = Path(__file__).parent.parent / "assets/latest_map.png"
+
     if disrupted_nodes is None:
         disrupted_nodes = []
 
     fig, ax = plt.subplots(figsize=(15, 15))
 
     # Lista kolorów dla tras
-    colors = list(mcolors.TABLEAU_COLORS.values())
-    random.shuffle(colors)
+    # Stała paleta: jasne, dobrze widoczne, powtarzalne kolory
+    BRIGHT_COLORS = [
+        '#1f77b4',  # niebieski
+        '#ff7f0e',  # pomarańczowy
+        '#2ca02c',  # zielony
+        '#d62728',  # czerwony
+        '#9467bd',  # fioletowy
+        '#8c564b',  # brązowy
+        '#e377c2',  # różowy
+        '#7f7f7f',  # szary
+        '#bcbd22',  # żółto-zielony
+        '#17becf'   # turkusowy
+    ]
+
+    # Powtarzaj paletę cyklicznie (zawsze ten sam kolor dla tej samej trasy)
+    colors = [BRIGHT_COLORS[i % len(BRIGHT_COLORS)] for i in range(len(routes))]
 
     # Maksymalna przepustowość dla skalowania grubości
     max_capacity = max([data.get(capacity_attr, 1) for u, v, k, data in graph.edges(data=True, keys=True)] + [1])
@@ -57,23 +99,12 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
         ax.scatter(*coords_shifted[0], color='green', s=80, zorder=5)
         ax.scatter(*coords_shifted[-1], color='red', s=80, zorder=5)
 
-        # Strzałki na trasie – co 5 węzłów (duże odstępy)
-        arrow_interval = 5
-        for idx in range(arrow_interval - 1, len(path) - 1, arrow_interval):
-            start_idx = idx
-            end_idx = idx + 1
-            if end_idx >= len(coords_shifted):
-                break
-            x1, y1 = coords_shifted[start_idx]
-            x2, y2 = coords_shifted[end_idx]
-            dx = x2 - x1
-            dy = y2 - y1
-            # Strzałka w środku odcinka
-            mid_x = (x1 + x2) / 2
-            mid_y = (y1 + y2) / 2
-            ax.annotate('', xy=(mid_x, mid_y), xytext=(mid_x - dx * 0.3, mid_y - dy * 0.3),
-                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=2),
-                        zorder=10)
+        
+        for idx in range(19, len(coords)-1, 20):
+            x1, y1 = coords[idx]
+            x2, y2 = coords[idx+1]
+            ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
+                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=2.5, alpha=1))
 
     # Węzły eksportera i importera + podpisy
     for n in exporter_nodes:
@@ -83,7 +114,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
             for city, (lat, lon) in major_cities.items():
                 dist = ((lat - graph.nodes[n].get("y",0))**2 + (lon - graph.nodes[n].get("x",0))**2)**0.5
                 if dist < 0.05:
-                    ax.text(x, y, city, fontsize=10, color="green", zorder=7, ha='right', va='bottom')
+                    ax.text(x+0.1, y+0.1, city, fontsize=10, color="green", zorder=7, ha='right', va='bottom')
 
     for n in importer_nodes:
         x, y = graph.nodes[n].get("x", 0), graph.nodes[n].get("y", 0)
@@ -92,7 +123,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
             for city, (lat, lon) in major_cities.items():
                 dist = ((lat - graph.nodes[n].get("y",0))**2 + (lon - graph.nodes[n].get("x",0))**2)**0.5
                 if dist < 0.05:
-                    ax.text(x, y, city, fontsize=10, color="red", zorder=7, ha='left', va='top')
+                    ax.text(x, y-0.1, city, fontsize=10, color="red", zorder=7, ha='left', va='top')
 
     # Wyłączone węzły – czarne X
     for n in disrupted_nodes:
@@ -115,4 +146,13 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     plt.tight_layout()
+
+    if save_path:
+        save_path = Path(save_path)               # upewnij się, że to Path
+        save_path.parent.mkdir(parents=True, exist_ok=True)  # utwórz katalog
+        fig.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Wykres zapisany: {save_path.resolve()}")
+
+
+
     plt.show()
