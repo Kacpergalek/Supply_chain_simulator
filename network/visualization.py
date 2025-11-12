@@ -42,7 +42,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
         "Częstochowa": (50.81, 19.12),
     }
 
-    save_path = Path(__file__).parent.parent / "assets/latest_map2.png"
+    save_path = Path(__file__).parent.parent / "assets/latest_map.png"
 
     if disrupted_nodes is None:
         disrupted_nodes = []
@@ -93,7 +93,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
             y_vals = [coords_shifted[j][1], coords_shifted[j+1][1]]
             cap = graph[u][v][0].get(capacity_attr, 1)
             lw = 0.5 + (cap / max_capacity) * 3
-            ax.plot(x_vals, y_vals, color=colors[i % len(colors)], lw=lw, alpha=0.8)
+            ax.plot(x_vals, y_vals, color=colors[i % len(colors)], lw=lw, alpha=0.5)
 
         # Początek i koniec trasy
         ax.scatter(*coords_shifted[0], color='green', s=80, zorder=5)
@@ -104,7 +104,7 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
             x1, y1 = coords[idx]
             x2, y2 = coords[idx+1]
             ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=2.5, alpha=1))
+                        arrowprops=dict(arrowstyle='->', color=colors[i % len(colors)], lw=3.5, alpha=1))
 
     # Węzły eksportera i importera + podpisy
     for n in exporter_nodes:
