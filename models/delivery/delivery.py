@@ -2,13 +2,14 @@ import numpy as np
 
 
 class Delivery:
-    def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int):
+    def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int, route: list[int]):
         self.delivery_id = delivery_id
         self.start_node_id = start_node_id
         self.end_node_id = end_node_id
-        self.route = []
+        self.route = route
         self.length = 0
         self.cost = 0
+        self.lead_time = 0
         self.capacity = 0
         self.disrupted = False
 
@@ -41,8 +42,9 @@ class Delivery:
         minimum_capacity = np.inf
 
         for i in range(len(self.route) - 1):
-            self.length += network.edges[self.route[i], self.route[i + 1], 0]['length']
-            self.cost += network.edges[self.route[i], self.route[i + 1], 0]['cost']
             if network.edges[self.route[i], self.route[i + 1], 0]['capacity'] < minimum_capacity:
                 minimum_capacity = network.edges[self.route[i], self.route[i + 1], 0]['capacity']
         self.capacity = minimum_capacity
+        self.length = path['total_distance_km']
+        self.cost = path['estimated_cost']
+        self.lead_time = path['estimated_lead_time_days']

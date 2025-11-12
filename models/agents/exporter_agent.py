@@ -35,6 +35,7 @@ class ExporterAgent(BaseAgent):
     def produce(self):
         """Proste wytwarzanie: przyrost zapasu o 'quantity'."""
         self.inventory += self.quantity
+        self.finances -= (self.price*0.75) * self.quantity
         return self.inventory
 
     def create_offer(self, qty=None):
@@ -110,7 +111,7 @@ class ExporterAgent(BaseAgent):
         delta = float(params.get("time_weight", 1.0)) 
         coords_map = params.get("coords_map", None)
         avg_speed = float(params.get("avg_speed_km_per_day", 60.0))
-        driving_hours_per_day = float(params.get("driving_hours_per_day", 24.0)) 
+        driving_hours_per_day = float(params.get("driving_hours_per_day", 8.0))
         default_speed_kmh = float(params.get("default_speed_kmh", max(60.0, avg_speed / driving_hours_per_day)))
 
         def parse_maxspeed(ms):

@@ -121,7 +121,7 @@ def initiation(graph):
                 "importer_node": imp_node,
                 **result
             })
-            #print(f"✅ Agent {i}: {exp_node} → {imp_node} | dystans: {result['total_distance_km']:.2f} km | koszt: {result['estimated_cost']:.2f}")
+            print(f"✅ Agent {i}: {exp_node} → {imp_node} | dystans: {result['total_distance_km']:.2f} km | koszt: {result['estimated_cost']:.2f}")
         except Exception as e:
             print(f"❌ {exp_node} → {imp_node} | błąd: {e}")
     

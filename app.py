@@ -1,3 +1,4 @@
+import os
 import pickle
 
 from flask import Flask, render_template, jsonify, send_from_directory, request
@@ -20,6 +21,14 @@ def index():
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/map")
+def map():
+    # full_filename = os.path.join(app.config['assets'], 'lastest_map2.png')
+    path = Path(__file__).parent
+    file_path = f'{path}\\assets\\latest_map2.png'
+    print(file_path)
+    return render_template("map.html", image=file_path)
+
 
 @app.route("/api/disruption_type")
 def jsonify_types():
@@ -30,7 +39,7 @@ def jsonify_severity():
     return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
 
 @app.route("/api/duration")
-def jsonify_nduration():
+def jsonify_duration():
     return jsonify(json.loads((RESULTS_PATH / "duration.json").read_text()))
 
 @app.route("/api/day_of_start")
