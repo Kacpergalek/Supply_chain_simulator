@@ -7,6 +7,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 from network.visualization import plot_agent_routes
 
+from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 
 from models.agents import ExporterAgent, BaseAgent
 from models.delivery.delivery import Delivery
@@ -88,7 +89,8 @@ class Simulation:
         for exporter in self.exporters:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
-        
+        #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
+        find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_current_map()
 
     def should_continue(self) -> bool:
@@ -102,7 +104,7 @@ class Simulation:
         self.statistics_manager.save_to_csv()
 
         self.statistics_manager.show_kpi_panel()
-    
+    #NOWE: funkcja pomocniczna do zapisywania aktualnego stanu mapy
     def save_current_map(self, filename="latest_map.png"):
         """Zapisuje aktualny stan sieci i tras do pliku PNG."""
         try:
@@ -138,7 +140,8 @@ class Simulation:
             # self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
             print(f"Disruption started at {t}\n{self.disruption}")
             
-            self.save_current_map("during_disruption.png")
+            #NOWE: zaktualizowanie mapy podczas zaklocenia
+            self.save_current_map()
 
         """ End a disruption"""
         if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
@@ -146,7 +149,9 @@ class Simulation:
             self.default_routes()
             # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
             print("Disruption ended")
-            self.save_current_map("after_disruption.png")
+
+            #NOWE: zaktulizowanie mapy po zakloceniu
+            self.save_current_map()
 
         """ What happens regardless of a disruption"""
         for exporter in self.exporters:

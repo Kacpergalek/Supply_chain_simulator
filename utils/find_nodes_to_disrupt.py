@@ -1,18 +1,49 @@
 import json
 from pathlib import Path
+from collections import Counter
 
 
-def find_nodes_to_disrupt(graph):
-    #TODO find reasonable nodes to disrupt
-    i = 0
-    nodes_for_disruption = []
-    for node in graph.nodes:
-        nodes_for_disruption.append(node)
-        i += 1
-        if i > 10:
-            break
+def find_nodes_to_disrupt(graph, deliveries):
+    """
+    Wybiera sensowne węzły do zakłóceń:
+      - są częścią tras (delivery.route)
+      - pojawiają się często w różnych trasach (duże znaczenie)
+      - mają wysoki degree w grafie (dużo połączeń)
+    """
+    # 1️⃣ Zbierz wszystkie węzły z tras
+    route_nodes = []
+    for delivery in deliveries:
+        if delivery.route:
+            route_nodes.extend(delivery.route)
 
+    if not route_nodes:
+        print("⚠️ Brak tras w dostawach — nie można wybrać węzłów do zakłóceń.")
+        return
+
+    # 2️⃣ Policz częstość występowania każdego węzła w trasach
+    frequency = Counter(route_nodes)
+
+    # 3️⃣ Policz degree (liczbę połączeń) każdego węzła
+    node_degrees = {n: graph.degree(n) for n in route_nodes}
+
+    # 4️⃣ Połącz wagę: częstość + połączenia → sortuj malejąco
+    node_scores = {
+        n: frequency[n] * 0.7 + node_degrees.get(n, 0) * 0.3
+        for n in route_nodes
+    }
+
+    # 5️⃣ Wybierz 10 najważniejszych węzłów
+    important_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:10]
+
+    # 6️⃣ Zapisz do JSON (dla formularza)
     path = Path(__file__).parent.parent
-    print(f"Path: {path}\\form_data\\place_of_disruption.json")
-    with open(f'{path}\\form_data\\place_of_disruption.json', 'w') as f:
-        json.dump(nodes_for_disruption, f, indent=4)
+    output_path = path / "form_data" / "place_of_disruption.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w") as f:
+        json.dump(important_nodes, f, indent=4)
+
+    print(f"✅ Zapisano {len(important_nodes)} węzłów do zakłóceń w {output_path}")
+    print(f"🔹 Najważniejsze węzły: {important_nodes}")
+
+    return important_nodes
