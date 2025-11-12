@@ -38,6 +38,9 @@ function sendData() {
         contentType: 'application/json',
         data: JSON.stringify(dict),
         success: function (response) {
+            document.getElementById('output').innerHTML =
+                JSON.stringify("Data submitted successfully", null, 2);
+
             Plotly.newPlot('chart-container', response.data, response.layout);
             console.log("Chart rendered.")
         },

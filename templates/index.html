@@ -12,61 +12,34 @@
             integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
             crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='main-script.js') }}" defer></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
 </head>
 <body>
-    <nav class="menu-container">
-        <ul class="menu-list">
-            <li><a href="/category/dashboard">Dashboard</a> </li>
-            <li><a href="/category/graph">Network Graph</a></li>
-            <li><a href="/category/scenario">Scenario Comparison</a></li>
-            <li><a href="/category/cost">Cost vs Resilience</a> </li>
-            <li><a href="/map">Map</a> </li>
+<main class="wrapper">
+    <header>
+        <h1>Supply Chain Disruption Simulation</h1>
+    </header>
+    <nav class="nav-bar-container">
+        <ul class="nav-bar-list">
+            <li>
+                <button><span><a href="/category/dashboard">Dashboard</a></span>
+                </button>
+            </li>
+            <li>
+                <button><span><a href="/category/graph">Network Graph</a></span>
+                </button>
+            </li>
+            <li>
+                <button><span><a href="/category/scenario">Scenario Comparison</a></span>
+                </button>
+            </li>
+            <li>
+                <button><span><a href="/category/cost">Cost vs Resilience</a></span>
+                </button>
+            </li>
         </ul>
     </nav>
-<div class="form-container">
-    <h1>Supply Chain Disruption Simulation</h1>
-    <form id="disruptionForm">
-        <div class="form-group">
-            <label for="disruptionType">Disruption Type:</label>
-            <select id="disruptionType" name="disruptionType" required>
-
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="severity">Disruption Severity:</label>
-            <select id="severity" name="severity" required>
-
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="duration">Duration:</label>
-            <select id="duration" name="duration" required>
-
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="dayOfStart">Day of Start:</label>
-            <select id="dayOfStart" name="dayOfStart" required>
-
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="placeOfDisruption">Place of Disruption (Node ID):</label>
-            <select id="placeOfDisruption" name="placeOfDisruption" required>
-
-            </select>
-        </div>
-    </form>
-
-    <button onclick="sendData()">Submit</button>
-    <div id="output"></div>
-    <div id="message" class="message"></div>
-</div>
+</main>
 </body>
 </html>

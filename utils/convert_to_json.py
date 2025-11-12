@@ -16,4 +16,3 @@ if __name__ == "__main__":
     convert_csv_to_json(f'{path}\\disruption_severity')
     convert_csv_to_json(f'{path}\\duration')
     convert_csv_to_json(f'{path}\\day_of_start')
-    convert_csv_to_json(f'{path}\\place_of_disruption')

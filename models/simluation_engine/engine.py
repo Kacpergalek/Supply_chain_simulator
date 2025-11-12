@@ -52,17 +52,16 @@ class Simulation:
     def run(self):
 
         print("Starting simulation")
-        time.sleep(2)
+        time.sleep(1)
 
         try:
             self.initialize()
 
             while self.should_continue():
+                self.current_time += 1
                 self.execute_time_step()
                 self.statistics_manager.add_dataframe(current_time=self.current_time)
-                self.current_time += 1
-                print(self.exporters)
-                time.sleep(5)
+                time.sleep(1)
 
             self.finalize()
 
@@ -83,7 +82,10 @@ class Simulation:
             importer = BaseAgent(i + 10, self.agent_paths[i]['importer_node'])
             self.importers.append(importer)
         for i in range(len(self.agent_paths)):
-            delivery = Delivery(i, self.exporters[i].node_id, self.importers[i].node_id, self.agent_paths[i]['path'])
+            delivery = Delivery(i, self.exporters[i].node_id, self.importers[i].node_id, self.agent_paths[i]['path'],
+                                self.agent_paths[i]['total_distance_km'], self.agent_paths[i]['estimated_cost'],
+                                self.agent_paths[i]['estimated_lead_time_days'])
+            delivery.capacity = delivery.find_minimum_capacity(self.network)
             self.deliveries.append(delivery)
 
         self.statistics_manager.define_total_routes(len(self.agent_paths))
@@ -123,7 +125,7 @@ class Simulation:
                 importer_nodes,
                 disrupted_nodes,
             )
-            print(f"✅ Mapa zapisana")
+            # print(f"✅ Mapa zapisana")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
 
@@ -135,8 +137,8 @@ class Simulation:
         # TODO exporters need to pay according to the path cost, not only the production fee
 
         """ Start a disruption """
-        if self.disruption['dayOfStart'] == t:
-            places_of_disruption = [node for node in self.network.nodes if node == self.disruption['placeOfDisruption']]
+        if int(self.disruption['dayOfStart']) == t:
+            places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
             self.network.deactivate_nodes(places_of_disruption)
             self.find_disrupted_routes()
             self.update_disrupted_routes()
@@ -147,12 +149,12 @@ class Simulation:
             self.save_current_map()
 
         """ End a disruption"""
-        if self.disruption['dayOfStart'] + self.disruption['duration'] == t:
-            places_of_disruption = [node for node in self.network.nodes if node == self.disruption['placeOfDisruption']]
+        if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
+            places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
             self.network.activate_nodes(places_of_disruption)
             self.default_routes()
             # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
-            print("Disruption ended")
+            print(f"Disruption ended at {t}")
 
             #NOWE: zaktulizowanie mapy po zakloceniu
             self.save_current_map()
@@ -162,6 +164,8 @@ class Simulation:
             #TODO
             exporter.produce()
             exporter.sell(90)
+            delivery = find_delivery_by_agent(self.deliveries, exporter)
+            exporter.finances -= delivery.cost / delivery.lead_time
             pass
 
         """ What happens when there is no disruption"""
@@ -183,7 +187,7 @@ class Simulation:
         """ Mark all routes that contain disrupted nodes as disrupted"""
         for delivery in self.deliveries:
             for node in delivery.route:
-                if not node.active:
+                if not self.network.nodes[node].get('active'):
                     self.statistics_manager.increment_changed_routes()
                     delivery.disrupted = True
 
@@ -205,8 +209,8 @@ class Simulation:
                 delivery.update_delivery(self.exporters, self.network)
 
 
-if __name__ == "__main__":
-    # graph_manager = GraphManager()
-    # graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-    simulation = Simulation(max_time= 3, time_resolution="day")
-    simulation.run()
+# if __name__ == "__main__":
+#     # graph_manager = GraphManager()
+#     # graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
+#     simulation = Simulation(max_time= 30, time_resolution="day")
+#     simulation.run()
