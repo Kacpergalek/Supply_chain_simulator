@@ -17,6 +17,7 @@ from network.graph_reader import GraphManager
 
 from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
+from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
 
 from network.simulation_graph import SimulationGraph
 from network.agents_initiation import initiation
@@ -71,7 +72,6 @@ class Simulation:
             raise
         finally:
             print(f"Simulation completed after {self.current_time} time steps")
-            self.statistics_manager.save_to_csv()
 
 
     def initialize(self):
@@ -94,7 +94,8 @@ class Simulation:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
-        #find_nodes_to_disrupt(self.network, self.deliveries)
+        # find_nodes_to_disrupt(self.network, self.deliveries)
+        find_random_nodes_to_disrupt(graph)
         self.save_current_map()
 
     def should_continue(self) -> bool:
@@ -107,6 +108,8 @@ class Simulation:
         self.statistics_manager.calculate_loss()
         self.statistics_manager.save_to_csv()
         self.statistics_manager.show_kpi_panel()
+        # usuwanie starych plików ze statystykami
+        # self.statistics_manager.delete_old_csv(days_ago=2)
 
     #NOWE: funkcja pomocniczna do zapisywania aktualnego stanu mapy
     def save_current_map(self, filename="latest_map.png"):
@@ -221,7 +224,7 @@ class Simulation:
 
 
 # if __name__ == "__main__":
-#     # graph_manager = GraphManager()
-#     # graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-#     simulation = Simulation(max_time= 30, time_resolution="day")
+#     graph_manager = GraphManager()
+#     graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
+#     simulation = Simulation(max_time= 3, time_resolution="day")
 #     simulation.run()

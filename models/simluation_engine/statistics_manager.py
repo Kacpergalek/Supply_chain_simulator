@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
+from utils.stats_paths import get_old_csvs
 
 class StatisticsManager:
     def __init__(self):
@@ -66,9 +70,19 @@ class StatisticsManager:
 
             final_df.to_csv(file_path, index=True)
             self.dataframes.clear()
+            print("Stats have been saved.")
         else:
             print("Disruption did not occur.")
 
+
+    def delete_old_csv(self, days_ago=5):
+        file_paths = get_old_csvs(days_ago=days_ago)
+        for file_path in file_paths:
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"File cannot be removed: {str(e)}")
 
 
     def show_kpi_panel(self):
