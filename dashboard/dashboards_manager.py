@@ -9,31 +9,38 @@ class DashboardsManager():
         pass
 
 
-    def get_stats(self):
+    def get_stats_path(self):
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         path = os.path.join(path, "saved_statistics")
         files = [file for file in os.listdir(path) if os.path.isfile(os.path.join(path, file))]
+        if not files:
+            raise FileNotFoundError("Files do not exist.")
+
         dt_now = datetime.now()
 
         min_time = float("inf")
         full_path = ""
         for file in files:
-            str_time = file[6:26]
-            file_dt = datetime.strptime(str_time, "%d_%m_%Y__%H_%M_%S")
+            try:
+                str_time = file[6:26]
+                file_dt = datetime.strptime(str_time, "%d_%m_%Y__%H_%M_%S")
+            except:
+                # pominięcie plików z innym formatem 
+                continue
             diff = abs((dt_now - file_dt).total_seconds())
             if min_time > diff:
                 min_time = diff
                 full_path = os.path.join(path, file)
         if full_path == "":
-            raise Exception("There is no data")
-        df = pd.read_csv(full_path)
-        return df
+            raise FileNotFoundError("No data with correct file names.")
+        return full_path
 
             
 
 
     def fulfilled_loss_demand(self):
-        df = self.get_stats()
+        path = self.get_stats_path()
+        df = pd.read_csv(path)
         fulfilled_demand = []
         loss_demand = []
         for col in df.columns:
