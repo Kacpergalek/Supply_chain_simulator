@@ -113,7 +113,7 @@ def events():
 
 @app.route("/category/graph")
 def graph():
-    image_url = url_for('assets', filename='latest_map2.png')
+    image_url = url_for('assets', filename='latest_map.png')
     return render_template("graph.html", image=image_url)
 
 
@@ -122,9 +122,9 @@ def jsonify_types():
     return jsonify(json.loads((RESULTS_PATH / "disruption_type.json").read_text()))
 
 
-@app.route("/api/disruption_severity")
-def jsonify_severity():
-    return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
+# @app.route("/api/disruption_severity")
+# def jsonify_severity():
+#     return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
 
 
 @app.route("/api/duration")
@@ -177,7 +177,7 @@ def simulation():
     if isinstance(data, dict):
         start_flag = bool(data.get("start", False))
 
-    app.logger.info("Start simulation? %s", start_flag)
+    # app.logger.info("Start simulation? %s", start_flag)
 
     if start_flag:
         def run_simulation():
@@ -200,7 +200,7 @@ def simulation():
 
         thread = threading.Thread(target=run_simulation, daemon=True)
         thread.start()
-        return jsonify({"message": "Simulation started successfully"}), 200
+        return jsonify({"message": "Simulation started successfully. Please wait."}), 200
 
     return jsonify({"message": "No action taken"}), 400
 

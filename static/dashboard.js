@@ -24,7 +24,7 @@ const baseUrl = window.location.pathname;
 function sendData() {
     var text = "";
     var dict = {}
-    var listOfForms = ["disruptionType", "severity", "duration", "dayOfStart", "placeOfDisruption"];
+    var listOfForms = ["disruptionType", "duration", "dayOfStart", "placeOfDisruption"];
     for (index in listOfForms) {
 
         var e = document.getElementById(listOfForms[index]);
@@ -38,8 +38,8 @@ function sendData() {
         contentType: 'application/json',
         data: JSON.stringify(dict),
         success: function (response) {
-            document.getElementById('output').innerHTML =
-                JSON.stringify("Data submitted successfully", null, 2);
+            alert("Data submitted successfully.")
+            window.location.href = '/category/graph';
 
             Plotly.newPlot('chart-container', response.data, response.layout);
             console.log("Chart rendered.")

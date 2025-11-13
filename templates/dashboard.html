@@ -42,7 +42,7 @@
     <section class="form-wrapper">
         <h1>Choose simulation parameters</h1>
         <div class="form-container">
-            <form id="disruptionForm">
+            <form id="disruptionForm" action="/category/graph" method="POST">
                 <div class="form-group">
                     <label for="disruptionType">Disruption Type:</label>
                     <select id="disruptionType" name="disruptionType" required>
@@ -50,12 +50,12 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label for="severity">Disruption Severity:</label>
-                    <select id="severity" name="severity" required>
-
-                    </select>
-                </div>
+{#                <div class="form-group">#}
+{#                    <label for="severity">Disruption Severity:</label>#}
+{#                    <select id="severity" name="severity" required>#}
+{##}
+{#                    </select>#}
+{#                </div>#}
 
                 <div class="form-group">
                     <label for="duration">Duration:</label>

@@ -7,8 +7,9 @@ function startSimulation() {
         .then(response => response.json().then(body => ({status: response.status, body})))
         .then(({status, body}) => {
             const msg = body.message || JSON.stringify(body)
-            const el = document.getElementById('response')
-            el.innerText = msg
+            // const el = document.getElementById('response')
+            // el.innerText = msg
+            alert(msg);
         })
         .catch(err => {
             document.getElementById('response').innerText = 'Error starting simulation'

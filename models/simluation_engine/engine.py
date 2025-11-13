@@ -61,6 +61,7 @@ class Simulation:
                 self.current_time += 1
                 self.execute_time_step()
                 self.statistics_manager.add_dataframe(current_time=self.current_time)
+                self.display_info()
                 time.sleep(1)
 
             self.finalize()
@@ -106,6 +107,7 @@ class Simulation:
         self.statistics_manager.calculate_loss()
         self.statistics_manager.save_to_csv()
         self.statistics_manager.show_kpi_panel()
+
     #NOWE: funkcja pomocniczna do zapisywania aktualnego stanu mapy
     def save_current_map(self, filename="latest_map.png"):
         """Zapisuje aktualny stan sieci i tras do pliku PNG."""
@@ -143,7 +145,6 @@ class Simulation:
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             # self.statistics_manager.add_dataframe(option="b", current_time=self.current_time)
-            print(f"Disruption started at {t}\n{self.disruption}")
             
             #NOWE: zaktualizowanie mapy podczas zaklocenia
             self.save_current_map()
@@ -154,7 +155,6 @@ class Simulation:
             self.network.activate_nodes(places_of_disruption)
             self.default_routes()
             # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
-            print(f"Disruption ended at {t}")
 
             #NOWE: zaktulizowanie mapy po zakloceniu
             self.save_current_map()
@@ -207,6 +207,17 @@ class Simulation:
                 delivery.disrupted = False
                 delivery.reset_delivery()
                 delivery.update_delivery(self.exporters, self.network)
+
+    def display_info(self):
+        t = self.current_time
+        print("Exporters:")
+        for exporter in self.exporters:
+            print(f"Agent {exporter.agent_id}'s finances: {exporter.finances:.2f}, inventory: {exporter.inventory}")
+        if int(self.disruption['dayOfStart']) == t:
+            print(f"Disruption started at day {t}\n{self.disruption}."
+                  f"It'll last for {self.disruption['duration']} days")
+        if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
+            print(f"Disruption ended at day {t}")
 
 
 # if __name__ == "__main__":
