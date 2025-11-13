@@ -38,3 +38,14 @@ evtSource.onerror = function (e) {
     appendLog('Connection to log stream lost');
     evtSource.close();
 };
+
+// 🔹 Odświeżanie obrazu mapy co 5 sekund
+function refreshMap() {
+    const img = document.querySelector('.map-section img');
+    if (!img) return;
+    const timestamp = new Date().getTime();  // cache-buster
+    img.src = `/assets/latest_map.png?${timestamp}`;
+}
+
+// odświeżanie co 5 sekund
+setInterval(refreshMap, 5000);
