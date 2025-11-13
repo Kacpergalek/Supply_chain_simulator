@@ -95,7 +95,7 @@ class Simulation:
             self.statistics_manager.define_cost(exporter.agent_id, cost)
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         # find_nodes_to_disrupt(self.network, self.deliveries)
-        find_random_nodes_to_disrupt(graph)
+        find_random_nodes_to_disrupt(self.network)
         self.save_current_map()
 
     def should_continue(self) -> bool:
