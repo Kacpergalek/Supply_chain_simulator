@@ -36,10 +36,10 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth=20):
 
     # 5️⃣ Wybierz 10 najważniejszych węzłów
     important_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:10]
-    disruption_nodes = set()
-    for node in important_nodes:
-        disruption_nodes.update(bfs_limited(graph, node, max_depth=max_depth)) 
-    disruption_nodes = list(disruption_nodes)
+    # disruption_nodes = set()
+    # for node in important_nodes:
+    #     disruption_nodes.update(bfs_limited(graph, node, max_depth=max_depth)) 
+    # disruption_nodes = list(disruption_nodes)
 
     # 6️⃣ Zapisz do JSON (dla formularza)
     path = Path(__file__).parent.parent
@@ -47,9 +47,9 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth=20):
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:
-        json.dump(disruption_nodes, f, indent=4)
+        json.dump(important_nodes, f, indent=4)
 
-    print(f"✅ Zapisano {len(disruption_nodes)} węzłów do zakłóceń w {output_path}")
+    print(f"✅ Zapisano {len(important_nodes)} węzłów do zakłóceń w {output_path}")
     # print(f"🔹 Najważniejsze węzły: {disruption_nodes}")
 
 

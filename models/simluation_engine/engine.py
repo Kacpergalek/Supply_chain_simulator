@@ -18,6 +18,7 @@ from network.graph_reader import GraphManager
 from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
 from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
+from utils.find_nodes_to_disrupt import bfs_limited
 
 from network.simulation_graph import SimulationGraph
 from network.agents_initiation import initiation
@@ -94,8 +95,8 @@ class Simulation:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
+        # find_random_nodes_to_disrupt(self.network, max_depth=20)
         # find_nodes_to_disrupt(self.network, self.deliveries)
-        find_random_nodes_to_disrupt(self.network)
         self.save_current_map()
 
     def should_continue(self) -> bool:
@@ -143,7 +144,9 @@ class Simulation:
 
         """ Start a disruption """
         if int(self.disruption['dayOfStart']) == t:
-            places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
+            # places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
+            disruption_place = int(self.disruption["placeOfDisruption"])
+            places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
             self.network.deactivate_nodes(places_of_disruption)
             self.find_disrupted_routes()
             self.update_disrupted_routes()
@@ -154,7 +157,9 @@ class Simulation:
 
         """ End a disruption"""
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
-            places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
+            # places_of_disruption = [node for node in self.network.nodes if node == int(self.disruption['placeOfDisruption'])]
+            disruption_place = int(self.disruption["placeOfDisruption"])
+            places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
             self.network.activate_nodes(places_of_disruption)
             self.default_routes()
             # self.statistics_manager.add_dataframe(option="a", current_time=self.current_time)
