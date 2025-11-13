@@ -1,11 +1,11 @@
 import pickle
 import time
 import logging
-from pathlib import Path
+import random
 import sys 
 import os
+from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
-from network.visualization import plot_agent_routes
 
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 
@@ -13,13 +13,14 @@ from models.agents import ExporterAgent, BaseAgent
 from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
-from network.graph_reader import GraphManager
 
 from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
 
 from network.simulation_graph import SimulationGraph
 from network.agents_initiation import initiation
+from network.visualization import plot_agent_routes
+from network.graph_reader import GraphManager
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +60,9 @@ class Simulation:
 
             while self.should_continue():
                 self.current_time += 1
+                self.display_info()
                 self.execute_time_step()
                 self.statistics_manager.add_dataframe(current_time=self.current_time)
-                self.display_info()
                 time.sleep(1)
 
             self.finalize()
@@ -71,28 +72,38 @@ class Simulation:
             raise
         finally:
             print(f"Simulation completed after {self.current_time} time steps")
-            self.statistics_manager.save_to_csv()
+            self.statistics_manager.save_statistics()
 
 
     def initialize(self):
 
         for i in range(len(self.agent_paths)):
-            exporter = ExporterAgent(i, self.agent_paths[i]['exporter_node'])
+            delivery = Delivery(i, self.agent_paths[i]['exporter_node'], self.agent_paths[i]['importer_node'],
+                                self.agent_paths[i]['path'], self.agent_paths[i]['total_distance_km'],
+                                self.agent_paths[i]['estimated_cost'], self.agent_paths[i]['estimated_lead_time_days'])
+            delivery.capacity = delivery.find_minimum_capacity(self.network)
+            self.deliveries.append(delivery)
+
+        for i in range(len(self.agent_paths)):
+            delivery = self.deliveries[i]
+            finances = random.randrange(1000, 5000)
+            quantity = random.randrange(int(delivery.capacity*0.4), delivery.capacity)
+            price = random.randrange(int(delivery.cost / delivery.lead_time / quantity),
+                                     int(delivery.cost / delivery.lead_time / delivery.capacity * 100))
+
+            exporter = ExporterAgent(agent_id=i, node_id=self.agent_paths[i]['exporter_node'],
+                                     quantity=quantity, price=price, finances=finances)
             self.exporters.append(exporter)
         for i in range(len(self.agent_paths)):
             importer = BaseAgent(i + 10, self.agent_paths[i]['importer_node'])
             self.importers.append(importer)
-        for i in range(len(self.agent_paths)):
-            delivery = Delivery(i, self.exporters[i].node_id, self.importers[i].node_id, self.agent_paths[i]['path'],
-                                self.agent_paths[i]['total_distance_km'], self.agent_paths[i]['estimated_cost'],
-                                self.agent_paths[i]['estimated_lead_time_days'])
-            delivery.capacity = delivery.find_minimum_capacity(self.network)
-            self.deliveries.append(delivery)
+
 
         self.statistics_manager.define_total_routes(len(self.agent_paths))
         for exporter in self.exporters:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
+            #TODO
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         #find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_current_map()
@@ -104,9 +115,8 @@ class Simulation:
 
     def finalize(self):
         """ Saving statistics to a csv file and displaying a KPI panel"""
-        self.statistics_manager.calculate_loss()
-        self.statistics_manager.save_to_csv()
-        self.statistics_manager.show_kpi_panel()
+        self.statistics_manager.create_final_snapshot()
+        self.statistics_manager.save_statistics()
 
     #NOWE: funkcja pomocniczna do zapisywania aktualnego stanu mapy
     def save_current_map(self, filename="latest_map.png"):
@@ -163,7 +173,7 @@ class Simulation:
         for exporter in self.exporters:
             #TODO
             exporter.produce()
-            exporter.sell(90)
+            exporter.sell(exporter.quantity)
             delivery = find_delivery_by_agent(self.deliveries, exporter)
             exporter.finances -= delivery.cost / delivery.lead_time
             pass
@@ -171,9 +181,7 @@ class Simulation:
         """ What happens when there is no disruption"""
         if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
             for exporter in self.exporters:
-                delivery = find_delivery_by_agent(self.deliveries, exporter)
-                fulfilled_demand = delivery.capacity
-                self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
+                self.statistics_manager.update_fulfilled_demand(exporter.agent_id, exporter.quantity)
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
@@ -190,6 +198,7 @@ class Simulation:
                 if not self.network.nodes[node].get('active'):
                     self.statistics_manager.increment_changed_routes()
                     delivery.disrupted = True
+                    print(f"Agent affected: {find_exporter_by_node_id(self.exporters, delivery.start_node_id)}")
 
     def update_disrupted_routes(self):
         """ Updating routes, lengths and costs of disrupted deliveries"""
@@ -212,9 +221,11 @@ class Simulation:
         t = self.current_time
         print("Exporters:")
         for exporter in self.exporters:
-            print(f"Agent {exporter.agent_id}'s finances: {exporter.finances:.2f}, inventory: {exporter.inventory}")
+            print(f"Agent {exporter.agent_id}'s finances: {exporter.finances:.2f}")
+        for i in range(len(self.statistics_manager.fulfilled_demand)):
+            print(f"Agent {i}'s fulfilled demand: {self.statistics_manager.fulfilled_demand[i]}")
         if int(self.disruption['dayOfStart']) == t:
-            print(f"Disruption started at day {t}\n{self.disruption}."
+            print(f"Disruption started at day {t}\n."
                   f"It'll last for {self.disruption['duration']} days")
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
             print(f"Disruption ended at day {t}")

@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 import os
 
+
 class StatisticsManager:
     def __init__(self):
         # lists index = agent id
@@ -13,19 +14,18 @@ class StatisticsManager:
         self.loss = np.zeros(10)
         self.total_routes = 0
         self.changed_routes = 0
-        self.dataframes = []
+        self.demand_df = pd.DataFrame(columns=[f"Agent {i}" for i in range(10)])
+        self.final_df = pd.DataFrame(columns=[f"Agent {i}" for i in range(10)])
+        self.routes_df = pd.DataFrame(columns=['total routes', 'changed routes'])
 
     def update_fulfilled_demand(self, company_id, fulfilled_demand):
         self.fulfilled_demand[company_id] += fulfilled_demand
-        pass
 
     def update_lost_demand(self, company_id, lost_demand):
         self.lost_demand[company_id] += lost_demand
-        pass
 
     def define_cost(self, company_id, cost):
         self.cost[company_id] = cost
-        pass
 
     def define_total_routes(self, total_routes):
         self.total_routes = total_routes
@@ -36,43 +36,52 @@ class StatisticsManager:
     def define_cost_after_disruption(self, company_id, cost):
         self.cost_after_disruption[company_id] = cost
 
-    def calculate_loss(self):
-        #TODO
-        # loss = cost_after_disruption - cost
-        pass
-    
-    
     def add_dataframe(self, current_time : int):
-        data = {
-            f"{current_time}_lost_demand" : self.lost_demand,
-            f"{current_time}_fulfilled_demand" : self.fulfilled_demand,
-            f"{current_time}_cost" : self.cost,
-            f"{current_time}_cost_after_disruption" : self.cost_after_disruption,
-            f"{current_time}_loss" : self.loss
-        }
-        df = pd.DataFrame(data=data)
-        self.dataframes.append(df)
+        columns = [f"Agent {i}" for i in range(10)]
+        demand_df = pd.DataFrame(np.array([self.fulfilled_demand, self.lost_demand]),
+                     columns=columns, index=[f"{current_time}_fulfilled_demand", f"{current_time}_lost_demand"])
 
+        self.demand_df = pd.concat([self.demand_df, demand_df], axis=0, ignore_index=False)
 
-    def save_to_csv(self):
-        if len(self.dataframes) > 0:
-            final_df = pd.concat(self.dataframes, axis=1, ignore_index=False)
+    def create_final_snapshot(self):
+        self.loss = self.cost_after_disruption - self.cost
+        columns = [f"Agent {i}" for i in range(10)]
+        self.final_df = pd.DataFrame(np.array([self.fulfilled_demand, self.lost_demand, self.cost,
+                                          self.cost_after_disruption, self.loss]), columns=columns,
+                                index=["fulfilled_demand", "lost_demand", "cost", "cost_after_disruption", "loss"])
+
+        routes_df = pd.DataFrame([[self.total_routes, self.changed_routes]], columns=['total routes', 'changed routes'])
+        self.routes_df = pd.concat([self.routes_df, routes_df], axis=0, ignore_index=True)
+
+    def save_statistics(self):
+        self.save_to_csv(self.demand_df, 'demand')
+        self.save_to_csv(self.final_df, 'stats')
+        self.save_to_csv(self.routes_df, 'routes')
+
+    def save_to_csv(self, df: pd.DataFrame, filename: str):
+        if len(df.columns) > 0 and len(df.index) > 0:
+            # dataframe already contains the rows we need — just use a copy
+            final_df = df.copy()
             dt = datetime.now()
             formated_time = dt.strftime("%d_%m_%Y__%H_%M_%S")
 
             path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..\\.."))
-            file_path = os.path.join(path, "saved_statistics", f"stats_{formated_time}.csv")
+            file_path = os.path.join(path, "saved_statistics", f"{filename}_{formated_time}.csv")
+            file_path_json = os.path.join(path, "saved_statistics", f"{filename}_{formated_time}.json")
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
             final_df.to_csv(file_path, index=True)
-            self.dataframes.clear()
-        else:
-            print("Disruption did not occur.")
+            final_df.to_json(file_path_json, orient='columns', index=True)
+            # reset dataframe to empty with same columns
+            df = pd.DataFrame(columns=[f"Agent {i}" for i in range(10)])
 
 
-
-    def show_kpi_panel(self):
-        #TODO
-        # 1) create a panel in HTML / CSS
-        # 2) pull it up with the updated stats
-        pass
+# if __name__ == "__main__":
+#     sm = StatisticsManager()
+#     sm.add_dataframe(0)
+#     sm.add_dataframe(1)
+#     sm.add_dataframe(2)
+#     sm.create_final_snapshot()
+#     print(sm.demand_df)
+#     print(sm.routes_df)
+#     sm.save_statistics()

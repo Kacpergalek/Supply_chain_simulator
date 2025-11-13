@@ -1,3 +1,4 @@
+import datetime
 import os
 import pickle
 import sys
@@ -17,6 +18,7 @@ app = Flask(__name__)
 dash_manager = DashboardsManager()
 
 RESULTS_PATH = Path('form_data')
+STATS_PATH = Path('saved_statistics')
 ASSETS_DIR = Path(__file__).parent / "assets"
 
 # --- Logging queue + SSE setup ---
@@ -116,15 +118,19 @@ def graph():
     image_url = url_for('assets', filename='latest_map.png')
     return render_template("graph.html", image=image_url)
 
+@app.route("/category/comparison")
+def comparison():
+    return render_template("comparison.html")
+
 
 @app.route("/api/disruption_type")
 def jsonify_types():
     return jsonify(json.loads((RESULTS_PATH / "disruption_type.json").read_text()))
 
 
-# @app.route("/api/disruption_severity")
-# def jsonify_severity():
-#     return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
+@app.route("/api/disruption_severity")
+def jsonify_severity():
+    return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
 
 
 @app.route("/api/duration")
@@ -141,12 +147,48 @@ def jsonify_start_day():
 def jsonify_place():
     return jsonify(json.loads((RESULTS_PATH / "place_of_disruption.json").read_text()))
 
+@app.route("/api/stats")
+def jsonify_stats():
+    # find the latest JSON file in the saved_statistics folder by parsing timestamp in filename
+    data = None
+    for file in os.listdir(STATS_PATH):
+        if file.endswith('.json') and file.startswith('stats_'):
+            data = json.loads((STATS_PATH / file).read_text())
+
+    if data is None:
+        return jsonify({}), 404
+
+    return jsonify(data)
+
+
+@app.route('/api/stats/download')
+def download_latest_stats():
+    # return the latest JSON file as an attachment for download
+    latest_file = None
+    latest_dt = None
+    for file in os.listdir(STATS_PATH):
+        if not file.endswith('.json'):
+            continue
+        name = file.replace('.json', '')
+        try:
+            ts = name.split('stats_')[-1]
+            dt = datetime.strptime(ts, "%d_%m_%Y__%H_%M_%S")
+        except Exception:
+            continue
+        if latest_dt is None or dt > latest_dt:
+            latest_dt = dt
+            latest_file = file
+
+    if latest_file is None:
+        return jsonify({}), 404
+
+    return send_from_directory(STATS_PATH, latest_file, as_attachment=True)
+
 
 @app.route('/api/process', methods=['POST'])
 def process():
     data = request.get_json()
 
-    print("Received disruption data:\n", data)
     with open('parameters/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
 
@@ -157,7 +199,7 @@ def process():
 def dashboard_process():
     data = request.get_json()
 
-    print("Received disruption data from dashboard:\n", data)
+    # print("Received disruption data from dashboard:\n", data)
     with open('parameters/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
 
@@ -189,7 +231,7 @@ def simulation():
             sys.stdout = StreamToLogger(sim_logger, level=logging.INFO)
             sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
             try:
-                sim = Simulation(max_time=30, time_resolution="day")
+                sim = Simulation(max_time=15, time_resolution="day")
                 sim.run()
             except Exception as e:
                 app.logger.exception("Simulation failed: %s", e)

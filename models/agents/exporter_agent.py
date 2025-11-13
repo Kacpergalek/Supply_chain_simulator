@@ -35,7 +35,7 @@ class ExporterAgent(BaseAgent):
     def produce(self):
         """Proste wytwarzanie: przyrost zapasu o 'quantity'."""
         self.inventory += self.quantity
-        self.finances -= (self.price*0.75) * self.quantity
+        self.finances -= (self.price*0.5) * self.quantity
         return self.inventory
 
     def create_offer(self, qty=None):

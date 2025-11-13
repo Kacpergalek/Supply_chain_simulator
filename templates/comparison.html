@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="{{ url_for('static', filename='comparison.js') }}" defer></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='comparison.css') }}">
+</head>
+<body>
+<main class="wrapper">
+    <nav class="nav-bar-container"><h2>Supply Chain Disruption Simulation</h2>
+        <ul class="nav-bar-list">
+            <li>
+                <a href="/category/dashboard"><button class="nav-button"><span>Dashboard</span>
+                </button></a>
+            </li>
+            <li>
+                <a href="/category/graph"><button class="nav-button"><span>Network Graph</span>
+                </button></a>
+            </li>
+            <li>
+                <a href="/category/comparison"><button class="nav-button"><span>Scenario Comparison</span>
+                </button></a>
+            </li>
+            <li>
+                <a href="/category/cost"><button class="nav-button"><span>Cost vs Resilience</span>
+                </button>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <div class="panel-container">
+        <button id="save-btn">Download results</button>
+        <section class="dashboard-section">
+            <button class="activate-btn">Render graph</button>
+            <div class="dashboard-container">
+                <div id="chart-container" class="dashboard d1">
+
+                </div>
+                <div class="dashboard d2">
+
+                </div>
+            </div>
+        </section>
+        <div id="stats">
+
+        </div>
+    </div>
+
+</main>
+
+</body>
+</html>

@@ -12,7 +12,7 @@
             integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
             crossorigin="anonymous"></script>
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
-    <!-- <script src="{{ url_for('static', filename='main-script.js') }}" defer></script> -->
+    <!-- <script src="{{ url_for('static', filename='index.js') }}" defer></script> -->
     <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
@@ -30,7 +30,7 @@
                 </button></a>
             </li>
             <li>
-                <a href="/category/scenario"><button class="nav-button"><span>Scenario Comparison</span>
+                <a href="/category/comparison"><button class="nav-button"><span>Scenario Comparison</span>
                 </button></a>
             </li>
             <li>
@@ -42,7 +42,7 @@
     <section class="form-wrapper">
         <h1>Choose simulation parameters</h1>
         <div class="form-container">
-            <form id="disruptionForm" action="/category/graph" method="POST">
+            <form id="disruptionForm">
                 <div class="form-group">
                     <label for="disruptionType">Disruption Type:</label>
                     <select id="disruptionType" name="disruptionType" required>
@@ -83,16 +83,6 @@
             <div id="output"></div>
             <div id="message" class="message"></div>
         </div>
-{#        <section class="dashboard-section">#}
-{#            <div class="dashboard-container">#}
-{#                <div id="chart-container" class="dashboard d1">#}
-{##}
-{#                </div>#}
-{#                <div class="dashboard d2">#}
-{##}
-{#                </div>#}
-{#            </div>#}
-{#        </section>#}
     </section>
 </main>
 </body>
