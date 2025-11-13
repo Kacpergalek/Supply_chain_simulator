@@ -12,10 +12,11 @@ import plotly.graph_objs as go
 from dashboard.dashboards_manager import DashboardsManager
 from models.simluation_engine.engine import Simulation
 import threading
+from network.empty_visualization import plot_empty_map
 
 app = Flask(__name__)
 dash_manager = DashboardsManager()
-
+plot_empty_map()
 RESULTS_PATH = Path('form_data')
 ASSETS_DIR = Path(__file__).parent / "assets"
 

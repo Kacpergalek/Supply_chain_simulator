@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from shapely.geometry import LineString
 from pathlib import Path
+from network.graph_reader import GraphManager
 
-def plot_empty_map(graph):
+def plot_empty_map():
     """
     Rysuje pustą mapę sieci (szare drogi bez eksporterów/importerów)
     i zapisuje do assets/latest_map.png
     """
+    reader = GraphManager()
+    graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
     save_path = Path(__file__).parent.parent / "assets/latest_map.png"
 
     fig, ax = plt.subplots(figsize=(15, 15))
