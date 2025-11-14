@@ -1,4 +1,4 @@
-from models.agents import ExporterAgent
+from models.agents.exporter_agent import ExporterAgent
 
 
 def find_exporter_by_node_id(agents: list[ExporterAgent], node_id: int) -> ExporterAgent | None:

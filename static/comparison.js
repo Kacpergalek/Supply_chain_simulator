@@ -27,33 +27,43 @@ async function readJSON(appRoute, query) {
     return data;
 }
 
-readJSON("/api/stats", "#stats");
+function getDemandStats() {
+    readJSON("/api/demand_stats", "#stats");
+}
 
-document.getElementById("save-btn").addEventListener("click", () => {
+function getCostStats() {
+    readJSON("/api/cost_stats", "#stats");
+}
+
+function getRouteStats() {
+    readJSON("/api/route_stats", "#stats");
+}
+
+function downloadJSONFile(route) {
     (async () => {
         // prefer data already loaded by readJSON
         let data = window.latestStats;
-        if (!data) {
-            try {
-                const resp = await fetch('/api/stats');
-                if (!resp.ok) {
-                    alert('No stats available to download.');
-                    return;
-                }
-                data = await resp.json();
-            } catch (err) {
-                console.error('Failed to fetch latest stats', err);
-                alert('Failed to fetch latest stats.');
-                return;
-            }
-        }
+        // if (!data) {
+        //     try {
+        //         const resp = await fetch('/api/' + route);
+        //         if (!resp.ok) {
+        //             alert('No stats available to download.');
+        //             return;
+        //         }
+        //         data = await resp.json();
+        //     } catch (err) {
+        //         console.error('Failed to fetch latest stats', err);
+        //         alert('Failed to fetch latest stats.');
+        //         return;
+        //     }
+        // }
 
         const jsonText = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonText], { type: 'application/json' });
+        const blob = new Blob([jsonText], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'results.json';
+        a.download = route + '.json';
         document.body.appendChild(a);
         a.click();
         // Revoke after a short delay so download starts reliably
@@ -62,6 +72,10 @@ document.getElementById("save-btn").addEventListener("click", () => {
             a.remove();
         }, 1000);
     })();
+}
+
+document.getElementById("download-stats").addEventListener("click", () => {
+    downloadJSONFile('stats');
 });
 
 document.getElementById("activate-btn").addEventListener("click", () => {
@@ -81,9 +95,9 @@ document.getElementById("activate-btn").addEventListener("click", () => {
         lost.push(stats.lost_demand || 0);
     });
 
-    const trace1 = { x: agents, y: fulfilled, name: 'Fulfilled Demand', type: 'bar' };
-    const trace2 = { x: agents, y: lost, name: 'Lost Demand', type: 'bar' };
-    const layout = { barmode: 'group', title: 'Fulfilled vs Lost Demand by Agent' };
+    const trace1 = {x: agents, y: fulfilled, name: 'Fulfilled Demand', type: 'bar'};
+    const trace2 = {x: agents, y: lost, name: 'Lost Demand', type: 'bar'};
+    const layout = {barmode: 'group', title: 'Fulfilled vs Lost Demand by Agent'};
     Plotly.newPlot('chart-container', [trace1, trace2], layout);
     console.log('Chart rendered.');
 });

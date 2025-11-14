@@ -1,4 +1,4 @@
-from .. import ExporterAgent
+from models.agents.exporter_agent import ExporterAgent
 
 
 def test_exporter():

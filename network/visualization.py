@@ -151,8 +151,4 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
         save_path = Path(save_path)               # upewnij się, że to Path
         save_path.parent.mkdir(parents=True, exist_ok=True)  # utwórz katalog
         fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Wykres zapisany: {save_path.resolve()}")
-
-
-
-    #plt.show()
+        # print(f"Wykres zapisany: {save_path.resolve()}")

@@ -1,4 +1,3 @@
-# network/empty_visualization.py
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import networkx as nx

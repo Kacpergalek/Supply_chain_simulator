@@ -1,5 +1,5 @@
 import pandas as pd
-import os 
+import os
 from datetime import datetime
 import plotly.io as pio
 import plotly.graph_objs as go
@@ -8,13 +8,13 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.stats_paths import get_newest_stats_path
 
+
 class DashboardsManager():
     def __init__(self):
         pass
-            
 
     def fulfilled_loss_demand(self):
-        path = self.get_newest_stats_path()
+        path = get_newest_stats_path()
         df = pd.read_csv(path)
         fulfilled_demand = []
         loss_demand = []
@@ -27,7 +27,6 @@ class DashboardsManager():
                 loss_demand.append(total)
 
         return fulfilled_demand, loss_demand
-
 
     def demand_scatter(self):
         fulfilled_demand, loss_demand = self.fulfilled_loss_demand()
@@ -59,11 +58,11 @@ class DashboardsManager():
         )
 
         return fig
-    
+
     def demand_bar_graph(self):
         fulfilled_demand, loss_demand = self.fulfilled_loss_demand()
         timesteps = list(range(1, len(fulfilled_demand) + 1))
-        
+
         fig = go.Figure()
 
         fig.add_trace(go.Bar(
@@ -79,7 +78,6 @@ class DashboardsManager():
             name="Loss Demand",
             marker_color="red"
         ))
-
 
         fig.update_layout(
             title="Fulfilled vs Loss Demand per Timestep",

@@ -1,4 +1,4 @@
-from models.agents import ExporterAgent
+from models.agents.exporter_agent import ExporterAgent
 from models.delivery.delivery import Delivery
 
 

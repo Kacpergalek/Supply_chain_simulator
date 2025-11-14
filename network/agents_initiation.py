@@ -10,19 +10,10 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 from network.graph_reader import GraphManager
 import models.agents.exporter_agent as exp_mod
-# print("ExporterAgent module file:", exp_mod.__file__)
-# print("ExporterAgent ma metodę find_cheapest_path:", hasattr(exp_mod.ExporterAgent, "find_cheapest_path"))
 
 from network.simulation_graph import SimulationGraph
-'''
-reader = GraphManager()
-try:
-    graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-    # print("✅ Załadowano SimulationGraph z pliku poland_motorway_trunk_primary.pkl")
-except Exception as e:
-    # print("❌ Błąd wczytywania grafu:", e)
-    graph = None
-'''
+
+
 def initiation(graph):
 
 
@@ -59,7 +50,7 @@ def initiation(graph):
         return 6371 * c
 
 
-
+    """ Initializing exporters """
     exporter_cities = [
         "Warszawa", "Kraków", "Poznań", "Gdańsk", "Wrocław",
         "Szczecin", "Lublin", "Katowice", "Białystok", "Łódź"
@@ -74,10 +65,8 @@ def initiation(graph):
         )
         exporter_nodes.append(closest_node)
 
-    # print(f"✅ Wybrano {len(exporter_nodes)} eksporterów: {exporter_nodes}")
 
-
-
+    """ Initializing importers """
     importer_cities = [
         "Rzeszów", "Olsztyn", "Bydgoszcz", "Toruń", "Kielce",
         "Zielona Góra", "Opole", "Gorzów Wielkopolski", "Radom", "Częstochowa"
@@ -92,9 +81,6 @@ def initiation(graph):
         )
         if closest_node not in exporter_nodes:
             importer_nodes.append(closest_node)
-
-    # print(f"✅ Wybrano {len(importer_nodes)} importerów: {importer_nodes}")
-
 
 
     params = {
@@ -136,10 +122,3 @@ def initiation(graph):
         pickle.dump(data, f)
 
     return results
-
-
-
-
-    #df_paths = pd.DataFrame(results)
-    ## print(df_paths)
-    #display(df_paths[["exporter_node", "importer_node", "total_distance_km", "estimated_cost", "estimated_lead_time_days", "method"]])

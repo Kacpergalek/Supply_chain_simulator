@@ -26,6 +26,10 @@ class StatisticsManager:
 
     def define_cost(self, company_id, cost):
         self.cost[company_id] = cost
+        self.cost_after_disruption[company_id] = cost
+
+    def define_cost_after_disruption(self, company_id, cost):
+        self.cost_after_disruption[company_id] = cost
 
     def define_total_routes(self, total_routes):
         self.total_routes = total_routes
@@ -33,22 +37,27 @@ class StatisticsManager:
     def increment_changed_routes(self):
         self.changed_routes += 1
 
-    def define_cost_after_disruption(self, company_id, cost):
-        self.cost_after_disruption[company_id] = cost
+    def calculate_loss(self, deliveries):
+        for delivery in [d for d in deliveries if d.disrupted]:
+            self.loss[delivery.delivery_id] +=\
+                ((self.cost_after_disruption[delivery.delivery_id] - self.cost[delivery.delivery_id])
+                 / delivery.lead_time)
 
-    def add_dataframe(self, current_time : int):
+    def add_dataframe(self, current_time: int):
         columns = [f"Agent {i}" for i in range(10)]
+        if current_time < 10:
+            current_time = f"0{current_time}"
         demand_df = pd.DataFrame(np.array([self.fulfilled_demand, self.lost_demand]),
-                     columns=columns, index=[f"{current_time}_fulfilled_demand", f"{current_time}_lost_demand"])
+                                 columns=columns,
+                                 index=[f"{current_time}_fulfilled_demand", f"{current_time}_lost_demand"])
 
         self.demand_df = pd.concat([self.demand_df, demand_df], axis=0, ignore_index=False)
 
     def create_final_snapshot(self):
-        self.loss = self.cost_after_disruption - self.cost
         columns = [f"Agent {i}" for i in range(10)]
         self.final_df = pd.DataFrame(np.array([self.fulfilled_demand, self.lost_demand, self.cost,
-                                          self.cost_after_disruption, self.loss]), columns=columns,
-                                index=["fulfilled_demand", "lost_demand", "cost", "cost_after_disruption", "loss"])
+                                               self.cost_after_disruption, self.loss]), columns=columns,
+                                     index=["fulfilled_demand", "lost_demand", "cost", "cost_after_disruption", "loss"])
 
         routes_df = pd.DataFrame([[self.total_routes, self.changed_routes]], columns=['total routes', 'changed routes'])
         self.routes_df = pd.concat([self.routes_df, routes_df], axis=0, ignore_index=True)
@@ -75,13 +84,17 @@ class StatisticsManager:
             # reset dataframe to empty with same columns
             df = pd.DataFrame(columns=[f"Agent {i}" for i in range(10)])
 
-
 # if __name__ == "__main__":
 #     sm = StatisticsManager()
+#     sm.define_cost(0, 10)
+#     sm.define_cost_after_disruption(0, 15)
+#     sm.update_fulfilled_demand(0, 10)
+#     sm.update_lost_demand(0, 5)
+#     sm.increment_changed_routes()
 #     sm.add_dataframe(0)
 #     sm.add_dataframe(1)
 #     sm.add_dataframe(2)
 #     sm.create_final_snapshot()
-#     print(sm.demand_df)
+#     print(sm.final_df)
 #     print(sm.routes_df)
-#     sm.save_statistics()
+#     # sm.save_statistics()

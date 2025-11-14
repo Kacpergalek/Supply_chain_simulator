@@ -148,12 +148,35 @@ def jsonify_start_day():
 def jsonify_place():
     return jsonify(json.loads((RESULTS_PATH / "place_of_disruption.json").read_text()))
 
-@app.route("/api/stats")
-def jsonify_stats():
-    # find the latest JSON file in the saved_statistics folder by parsing timestamp in filename
+@app.route("/api/cost_stats")
+def jsonify_cost_stats():
     data = None
     for file in os.listdir(STATS_PATH):
-        if file.endswith('.json') and file.startswith('stats_'):
+        if file.endswith('.json') and file.startswith('stats'):
+            data = json.loads((STATS_PATH / file).read_text())
+
+    if data is None:
+        return jsonify({}), 404
+
+    return jsonify(data)
+
+@app.route("/api/demand_stats")
+def jsonify_demand_stats():
+    data = None
+    for file in os.listdir(STATS_PATH):
+        if file.endswith('.json') and file.startswith('demand'):
+            data = json.loads((STATS_PATH / file).read_text())
+
+    if data is None:
+        return jsonify({}), 404
+
+    return jsonify(data)
+
+@app.route("/api/route_stats")
+def jsonify_route_stats():
+    data = None
+    for file in os.listdir(STATS_PATH):
+        if file.endswith('.json') and file.startswith('route'):
             data = json.loads((STATS_PATH / file).read_text())
 
     if data is None:
