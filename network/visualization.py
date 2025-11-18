@@ -126,10 +126,26 @@ def plot_agent_routes(graph, routes, exporter_nodes, importer_nodes,
                     ax.text(x, y-0.1, city, fontsize=10, color="red", zorder=7, ha='left', va='top')
 
     # Wyłączone węzły – czarne X
+    # Wyłączone węzły – czarne X + podpis z ID
+    # Wyłączone węzły – bardzo duże czarne X
     for n in disrupted_nodes:
         if n in graph.nodes:
             x, y = graph.nodes[n].get("x", 0), graph.nodes[n].get("y", 0)
-            ax.scatter(x, y, marker='X', color='black', s=120, zorder=10, linewidths=2)
+            
+            ax.scatter(
+                    x, y,
+                    marker='X',
+                    color='black',
+                    s=200,          # 🔧 mniejszy rozmiar
+                    zorder=100,
+                    linewidths=2    # 🔧 cieńsze linie
+            )
+                # 🔧 grubsze linie X-a
+            # 🔧 dodaj podpis obok X-a, żeby było jasne który to węzeł
+            ax.text(x + 0.05, y + 0.05, f"X {n}", fontsize=12, color="black", weight="bold", zorder=51)
+
+            
+            
 
     # Legenda
     from matplotlib.lines import Line2D

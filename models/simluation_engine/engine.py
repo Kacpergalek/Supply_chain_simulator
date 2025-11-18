@@ -118,15 +118,14 @@ class Simulation:
         self.statistics_manager.create_final_snapshot()
         self.statistics_manager.save_statistics()
 
-    def save_current_map(self, filename="latest_map.png"):
+    def save_current_map(self, filename="latest_map.png", disrupted_nodes =None):
         """Zapisuje aktualny stan sieci i tras do pliku PNG."""
         try:
             routes = [d.route for d in self.deliveries]
             exporter_nodes = [e.node_id for e in self.exporters]
             importer_nodes = [i.node_id for i in self.importers]
-            disrupted_nodes = [
-                n for n in self.network.nodes if hasattr(n, "active") and not n.active
-            ]
+            #disrupted_nodes = [int(self.disruption["placeOfDisruption"])]
+
 
             #save_path = Path(__file__).parent.parent.parent / "assets/maps" / filename
             plot_agent_routes(
@@ -134,7 +133,7 @@ class Simulation:
                 routes,
                 exporter_nodes,
                 importer_nodes,
-                disrupted_nodes,
+                disrupted_nodes = disrupted_nodes,
             )
             # print(f"✅ Mapa zapisana")
         except Exception as e:
@@ -153,7 +152,7 @@ class Simulation:
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
-            self.save_current_map()
+            self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
             time.sleep(2)
 
         """ End a disruption"""
