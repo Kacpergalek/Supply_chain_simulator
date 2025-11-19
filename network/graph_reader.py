@@ -25,19 +25,24 @@ class GraphManager():
 
         path = Path(__file__).parent.parent
         json_file_name = pickle_file_name.split(".")[0] + ".json"
-        with open(f"{path}/{self.folder}/{json_file_name}", "r") as json_file:
-            attributes = json.load(json_file)
-        if attributes is None:
-            attributes = {
-                "default_capacity" : 1000,
-                "default_price" : 0.5
-            }
-        with open(f"{path}/{self.folder}/{pickle_file_name}", "rb") as pickle_file:
-            graph = pickle.load(pickle_file)
-            simulation_graph = SimulationGraph(incoming_graph_data = graph, 
-                                               default_capacity=attributes["default_capacity"], 
-                                               default_price=attributes["default_price"])
-        return simulation_graph
+        try:
+            with open(f"{path}/{self.folder}/{json_file_name}", "r") as json_file:
+                attributes = json.load(json_file)
+            if attributes is None:
+                attributes = {
+                    "default_capacity" : 1000,
+                    "default_price" : 0.5
+                }
+            with open(f"{path}/{self.folder}/{pickle_file_name}", "rb") as pickle_file:
+                graph = pickle.load(pickle_file)
+                simulation_graph = SimulationGraph(incoming_graph_data = graph, 
+                                                default_capacity=attributes["default_capacity"], 
+                                                default_price=attributes["default_price"])
+            return simulation_graph
+        except Exception as e:
+            print(f"Error loading pickle: {e}")
+            return None
+        
     
 
     def save_pickle_file(self, file_name, graph):
