@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
+from network.countries import europe_countries
 from utils.find_nodes_to_disrupt import bfs_limited
 
 from models.agents.base_agent import BaseAgent
@@ -26,30 +27,50 @@ from network.graph_reader import GraphManager
 logger = logging.getLogger(__name__)
 
 class Simulation:
-    def __init__(self, max_time: int, time_resolution: str):
+    def __init__(self):
         self.current_time = 0
-        self.max_time = max_time
+        # self.max_time = max_time
         self.exporters = []
         self.importers = []
         self.deliveries = []
 
-        self.time_manager = TimeManager(time_resolution)
+        # self.time_manager = TimeManager(time_resolution)
         self.statistics_manager = StatisticsManager()
 
         """ Network initialization"""
-        graph_manager = GraphManager()
-        graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-        self.network = SimulationGraph(default_capacity=graph.default_capacity,
-                                           default_price=graph.default_price,
-                                           incoming_graph_data=graph)
+        time_start = time.time()
+        reader = GraphManager()
+
+        map = {}
+        europe_countries = ["Polska", "Niemcy", "Ukraina", "poland_motorway_trunk_primary"]
+        for country in europe_countries:
+            if country == "poland_motorway_trunk_primary":
+                graph = reader.load_pickle_graph(f"{country}.pkl")
+            else:
+                graph = reader.load_pickle_graph(f"{country}_motorway.pkl")
+            if graph:
+                map[country] = graph
+        print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
+        print(map.keys())
+        self.network = map["poland_motorway_trunk_primary"]
 
         """ Agents initialization """
+        time_start = time.time()
         self.agent_paths = initiation(self.network)
+        print(f"Czas inicjalizowania agentów: {time.time() - time_start}")
 
         """ Disruption initialization """
         path = Path(__file__).parent.parent.parent
         with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
             self.disruption = pickle.load(f)
+
+        self.initialize()
+
+
+    def inject_parameters(self, max_time: int, time_resolution: str):
+        self.max_time = max_time
+        self.time_manager = TimeManager(time_resolution)
+
 
     def run(self):
 
@@ -57,8 +78,6 @@ class Simulation:
         time.sleep(1)
 
         try:
-            self.initialize()
-
             while self.should_continue():
                 self.current_time += 1
                 self.display_info()

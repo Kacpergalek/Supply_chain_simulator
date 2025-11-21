@@ -1,6 +1,6 @@
 europe_countries = [
     "Albania",
-    "Andorra",
+    # "Andorra",
     "Austria",
     "Belgia",
     "Białoruś",
@@ -10,7 +10,7 @@ europe_countries = [
     "Cypr",
     "Czechy",
     "Dania",
-    "Estonia",
+    # "Estonia",
     "Finlandia",
     "Francja",
     "Grecja",
