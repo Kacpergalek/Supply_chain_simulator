@@ -106,7 +106,7 @@ class Simulation:
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         #find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_current_map()
-        time.sleep(2)
+        #time.sleep(2)
 
     def should_continue(self) -> bool:
         if self.current_time >= self.max_time:
@@ -135,6 +135,7 @@ class Simulation:
                 importer_nodes,
                 disrupted_nodes = disrupted_nodes,
             )
+            print("MAP_UPDATE") 
             # print(f"✅ Mapa zapisana")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
@@ -193,6 +194,7 @@ class Simulation:
         #         delivery = find_delivery_by_agent(self.deliveries, exporter)
         #         lost_demand = int(exporter.quantity / delivery.lead_time)
         #         self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
+        #self.save_current_map()
 
 
     def find_disrupted_routes(self):
