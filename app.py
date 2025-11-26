@@ -21,7 +21,7 @@ app = Flask(__name__)
 dash_manager = DashboardsManager()
 plot_empty_map()
 RESULTS_PATH = Path('form_data')
-STATS_PATH = Path('saved_statistics')
+OUTPUT_PATH = Path('output')
 ASSETS_DIR = Path(__file__).parent / "assets"
 # reader = GraphManager()
 # map = []
@@ -98,9 +98,9 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/category/dashboard")
-def dashboard():
-    return render_template("dashboard.html")
+@app.route("/category/parameters")
+def parameters():
+    return render_template("parameters.html")
 
 
 @app.route('/assets/<path:filename>')
@@ -123,14 +123,20 @@ def events():
     return Response(stream_with_context(stream()), mimetype='text/event-stream')
 
 
-@app.route("/category/graph")
-def graph():
+@app.route("/category/simulation")
+def simulation():
     image_url = url_for('assets', filename='latest_map.png')
-    return render_template("graph.html", image=image_url)
+    return render_template("simulation.html", image=image_url)
 
-@app.route("/category/comparison")
-def comparison():
-    return render_template("comparison.html")
+
+@app.route("/category/statistics")
+def statistics():
+    return render_template("statistics.html")
+
+
+@app.route("/category/panel")
+def panel():
+    return render_template("panel.html")
 
 
 @app.route("/api/disruption_type")
@@ -157,65 +163,77 @@ def jsonify_start_day():
 def jsonify_place():
     return jsonify(json.loads((RESULTS_PATH / "place_of_disruption.json").read_text()))
 
+
+@app.route("/api/fulfilled_demand_stats")
+def jsonify_fulfilled_demand_stats():
+    file_path = OUTPUT_PATH / 'fulfilled_timeseries.json'
+    print(json.loads(file_path.read_text()))
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
+        return jsonify({}), 404
+
+@app.route("/api/lost_demand_stats")
+def jsonify_lost_demand_stats():
+    file_path = OUTPUT_PATH / 'lost_timeseries.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
+        return jsonify({}), 404
+
 @app.route("/api/cost_stats")
 def jsonify_cost_stats():
-    data = None
-    for file in os.listdir(STATS_PATH):
-        if file.endswith('.json') and file.startswith('stats'):
-            data = json.loads((STATS_PATH / file).read_text())
-
-    if data is None:
+    file_path = OUTPUT_PATH / 'cost_timeseries.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
         return jsonify({}), 404
 
-    return jsonify(data)
-
-@app.route("/api/demand_stats")
-def jsonify_demand_stats():
-    data = None
-    for file in os.listdir(STATS_PATH):
-        if file.endswith('.json') and file.startswith('demand'):
-            data = json.loads((STATS_PATH / file).read_text())
-
-    if data is None:
+@app.route("/api/loss_stats")
+def jsonify_loss_stats():
+    file_path = OUTPUT_PATH / 'loss_timeseries.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
         return jsonify({}), 404
 
-    return jsonify(data)
-
-@app.route("/api/route_stats")
-def jsonify_route_stats():
-    data = None
-    for file in os.listdir(STATS_PATH):
-        if file.endswith('.json') and file.startswith('route'):
-            data = json.loads((STATS_PATH / file).read_text())
-
-    if data is None:
+@app.route("/api/average_stats")
+def jsonify_average_stats():
+    file_path = OUTPUT_PATH / 'average.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
         return jsonify({}), 404
 
-    return jsonify(data)
+@app.route("/api/sum_stats")
+def jsonify_sum_stats():
+    file_path = OUTPUT_PATH / 'sum.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
+        return jsonify({}), 404
+
+@app.route("/api/final_stats")
+def jsonify_final_stats():
+    file_path = OUTPUT_PATH / 'final_snapshot.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
+        return jsonify({}), 404
 
 
 @app.route('/api/stats/download')
 def download_latest_stats():
     # return the latest JSON file as an attachment for download
     latest_file = None
-    latest_dt = None
-    for file in os.listdir(STATS_PATH):
-        if not file.endswith('.json'):
-            continue
-        name = file.replace('.json', '')
-        try:
-            ts = name.split('stats_')[-1]
-            dt = datetime.strptime(ts, "%d_%m_%Y__%H_%M_%S")
-        except Exception:
-            continue
-        if latest_dt is None or dt > latest_dt:
-            latest_dt = dt
+    for file in os.listdir(OUTPUT_PATH):
+        if file.endswith('.json'):
             latest_file = file
 
     if latest_file is None:
         return jsonify({}), 404
 
-    return send_from_directory(STATS_PATH, latest_file, as_attachment=True)
+    return send_from_directory(OUTPUT_PATH, latest_file, as_attachment=True)
 
 
 @app.route('/api/process', methods=['POST'])
@@ -228,8 +246,8 @@ def process():
     return jsonify(data)
 
 
-@app.route("/category/dashboard/api/process", methods=["POST"])
-def dashboard_process():
+@app.route("/category/parameters/api/process", methods=["POST"])
+def parameters_process():
     data = request.get_json()
 
     # print("Received disruption data from dashboard:\n", data)
@@ -246,7 +264,7 @@ def dashboard_process():
 
 
 @app.route('/api/graph', methods=['POST'])
-def simulation():
+def start_simulation():
     data = request.get_json()
     start_flag = False
     if isinstance(data, dict):

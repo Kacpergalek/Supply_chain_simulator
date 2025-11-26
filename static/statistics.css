@@ -52,11 +52,11 @@ a {
     color: #ffffff;
 }
 
-button.nav-button:hover a {
+.nav-button:hover a {
     color: #000000;
 }
 
-button.nav-button {
+.nav-button {
     outline: none;
     cursor: pointer;
     border: none;
@@ -74,18 +74,18 @@ button.nav-button {
     color: ghostwhite;
 }
 
-button.nav-button span {
+.nav-button span {
     position: relative;
     z-index: 10;
     transition: color 0.4s;
 }
 
-button.nav-button:hover span {
+.nav-button:hover span {
     color: black;
 }
 
-button.nav-button::before,
-button.nav-button::after {
+.nav-button::before,
+.nav-button::after {
     position: absolute;
     top: 0;
     left: 0;
@@ -94,7 +94,7 @@ button.nav-button::after {
     z-index: 0;
 }
 
-button.nav-button::before {
+.nav-button::before {
     content: "";
     background: #000;
     width: 120%;
@@ -103,7 +103,7 @@ button.nav-button::before {
     transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
 }
 
-button.nav-button:hover::before {
+.nav-button:hover::before {
     transform: translate3d(100%, 0, 0);
 }
 
@@ -118,9 +118,6 @@ h4 {
     padding: 0.25rem 0 0.5rem 1rem;
     margin: 0;
     list-style: none;
-
-    flex-wrap: wrap;
-    height: auto;
 }
 
 /* make stats scrollable and readable, avoid overlap with buttons */
@@ -139,6 +136,28 @@ h4 {
     box-shadow: 3px 3px 8px rgb(89, 89, 89);
 }
 
+/* Charts container: push down below navbar and center charts */
+#chartsContainer {
+    width: 100%;
+    margin-top: 6rem;
+    /* move down to avoid navbar overlap */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    background: transparent;
+    box-sizing: border-box;
+    padding-bottom: 2rem;
+}
+
+.chart-wrapper {
+    width: 90%;
+    max-width: 1000px;
+    min-height: 360px;
+    background: transparent;
+    border-radius: 8px;
+}
+
 /* ensure action buttons have space and don't overlap */
 .panel-container>button,
 #stats,
@@ -151,4 +170,45 @@ h4 {
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* ======================= Dataset Select ======================= */
+
+/* Style dataset select to match primary button */
+#dataset-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #66ff66;
+    color: #000000;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: Inter, -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: rgba(39, 174, 96, .15) 0 4px 9px;
+    cursor: pointer;
+    outline: none;
+    text-align: left;
+    /* remove native arrow on some browsers */
+    background-image: none;
+}
+
+#dataset-select::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+/* Remove dropdown arrow for IE/Edge */
+#dataset-select::-ms-expand {
+    display: none;
+}
+
+/* Hover/active: keep same appearance as base for accessibility */
+#dataset-select:hover,
+#dataset-select:active {
+    background-color: #66ff66;
+    color: #000000;
+    box-shadow: rgba(39, 174, 96, .15) 0 4px 9px;
+    transform: none;
 }

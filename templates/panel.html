@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='panel.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
+    <script src="{{ url_for('static', filename='panel.js') }}"></script>
+    <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
+</head>
+
+<body>
+<main class="wrapper">
+    <nav class="nav-bar-container">
+        <h2>Supply Chain Disruption Simulation</h2>
+        <ul class="nav-bar-list">
+            <li>
+                <a href="/category/parameters">
+                    <button class="nav-button"><span>Parameters</span></button>
+                </a>
+            </li>
+            <li>
+                <a href="/category/simulation">
+                    <button class="nav-button"><span>Simulation</span></button>
+                </a>
+            </li>
+            <li>
+                <a href="/category/statistics">
+                    <button class="nav-button"><span>Statistics</span></button>
+                </a>
+            </li>
+            <li>
+                <a href="/category/panel">
+                    <button class="nav-button"><span>KPI panel</span></button>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+
+    <div id="chartsContainer">
+        <label for="format-toggle-btn"></label>
+        <button id="format-toggle-btn" class="secondary-btn" type="button">Sum</button>
+
+        <div id="average"></div>
+        <div id="sum"></div>
+    </div>
+
+</main>
+
+</body>
+
+</html>

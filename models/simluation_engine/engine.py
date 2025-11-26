@@ -34,7 +34,7 @@ class Simulation:
         self.deliveries = []
 
         self.time_manager = TimeManager(time_resolution)
-        self.statistics_manager = StatisticsManager()
+        self.statistics_manager = None
 
         """ Network initialization"""
         graph_manager = GraphManager()
@@ -63,7 +63,7 @@ class Simulation:
                 self.current_time += 1
                 self.display_info()
                 self.execute_time_step()
-                self.statistics_manager.add_dataframe(current_time=self.current_time)
+                self.statistics_manager.add_snapshot(current_time=self.current_time)
                 time.sleep(1)
 
             self.finalize()
@@ -98,10 +98,11 @@ class Simulation:
             importer = BaseAgent(i + 10, self.agent_paths[i]['importer_node'])
             self.importers.append(importer)
 
-        self.statistics_manager.define_total_routes(len(self.agent_paths))
+        self.statistics_manager = StatisticsManager(len(self.exporters), max_time=self.max_time)
+        self.statistics_manager.total_routes = len(self.agent_paths)
         for exporter in self.exporters:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
-            self.statistics_manager.define_cost(exporter.agent_id, cost)
+            self.statistics_manager.cost[exporter.agent_id] = cost
             #TODO
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         #find_nodes_to_disrupt(self.network, self.deliveries)
@@ -115,7 +116,6 @@ class Simulation:
 
     def finalize(self):
         """ Saving statistics to a csv file and displaying a KPI panel"""
-        self.statistics_manager.create_final_snapshot()
         self.statistics_manager.save_statistics()
 
     def save_current_map(self, filename="latest_map.png", disrupted_nodes =None):
@@ -177,8 +177,7 @@ class Simulation:
             """ Updating fulfilled demand """
             delivery = find_delivery_by_agent(self.deliveries, exporter)
             fulfilled_demand = int(exporter.quantity / delivery.lead_time)
-            self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
-            pass
+            self.statistics_manager.fulfilled_demand[exporter.agent_id] = fulfilled_demand
 
         # """ What happens when there is no disruption"""
         # if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
@@ -189,7 +188,7 @@ class Simulation:
 
         """ What happens during a disruption"""
         if int(self.disruption['dayOfStart']) <= t <= int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
-            self.statistics_manager.calculate_loss(self.deliveries)
+            self.statistics_manager.calculate_loss()
         #     for exporter in self.exporters:
         #         delivery = find_delivery_by_agent(self.deliveries, exporter)
         #         lost_demand = int(exporter.quantity / delivery.lead_time)
@@ -202,7 +201,7 @@ class Simulation:
         for delivery in self.deliveries:
             for node in delivery.route:
                 if not self.network.nodes[node].get('active'):
-                    self.statistics_manager.increment_changed_routes()
+                    self.statistics_manager.changed_routes += 1
                     delivery.disrupted = True
                     break
 
@@ -214,14 +213,14 @@ class Simulation:
             delivery.reset_delivery()
             delivery.update_delivery(self.exporters, self.network)
             agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-            self.statistics_manager.define_cost_after_disruption(agent.agent_id, delivery.cost)
+            self.statistics_manager.cost[agent.agent_id] = delivery.cost
 
     def update_lost_demand(self):
         for exporter in self.exporters:
             delivery = find_delivery_by_agent(self.deliveries, exporter)
             if delivery.disrupted:
                 lost_demand = int(exporter.quantity / delivery.lead_time)
-                self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
+                self.statistics_manager.lost_demand[exporter.agent_id] = lost_demand
 
     def default_routes(self):
         """ Resetting routes and lengths of disrupted deliveries"""
