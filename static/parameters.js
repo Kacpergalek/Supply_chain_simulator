@@ -39,7 +39,7 @@ function sendData() {
         data: JSON.stringify(dict),
         success: function (response) {
             alert("Data submitted successfully.")
-            window.location.href = '/category/graph';
+            window.location.href = '/category/simulation';
 
             // Plotly.newPlot('chart-container', response.data, response.layout);
             // console.log("Chart rendered.")

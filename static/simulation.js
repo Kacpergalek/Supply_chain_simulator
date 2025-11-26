@@ -40,7 +40,21 @@ async function manageLogs() {
     const evtSource = new EventSource('/events');
     evtSource.onmessage = function (e) {
         // e.data contains one log line
-        appendLog(e.data);
+        //appendLog(e.data);
+        const msg = e.data;
+        appendLog(msg);
+
+        // >>> DODANE: jeśli backend wysłał MAP_UPDATE, odśwież iframe
+        if (msg.includes("MAP_UPDATE")) {
+            const iframe = document.querySelector('.map-section iframe');
+            if (iframe) {
+                const timestamp = new Date().getTime();
+                iframe.src = `/static/latest_map.html?t=${timestamp}`;
+            }
+        }
+
+        if (!firstLogReceived) firstLogReceived = true;
+
     };
     evtSource.onerror = function (e) {
         appendLog('Connection to log stream lost');
@@ -51,6 +65,7 @@ async function manageLogs() {
 manageLogs();
 
 //  Odświeżanie obrazu mapy co 5 sekund
+/*
 function refreshMap() {
     const img = document.querySelector('.map-section img');
     if (!img) return;
@@ -60,7 +75,7 @@ function refreshMap() {
 
 // odświeżanie co 5 sekund
 setInterval(refreshMap, 5000);
-
+*/
 // document.getElementById('statistics-btn').addEventListener('click', function (event) {
 //     window.location.href = '/category/statistics';
 // });
