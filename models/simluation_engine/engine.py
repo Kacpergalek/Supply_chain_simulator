@@ -47,11 +47,6 @@ class Simulation:
         self.agent_paths = initiation(self.network)
         print(f"Czas inicjalizowania agentów: {time.time() - time_start}")
 
-        """ Disruption initialization """
-        path = Path(__file__).parent.parent.parent
-        with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
-            self.disruption = pickle.load(f)
-
         self.initialize()
 
 
@@ -59,6 +54,10 @@ class Simulation:
     def inject_parameters(self, max_time: int, time_resolution: str):
         self.max_time = max_time
         self.time_manager = TimeManager(time_resolution)
+        project_path = Path(__file__).parent.parent.parent
+        full_path = os.path.join(project_path, "parameters", "disruption_parameters.pkl")
+        with open(full_path, 'rb') as f:
+            self.disruption = pickle.load(f)
 
 
     def run(self):
@@ -258,9 +257,6 @@ class Simulation:
         self.importers = []
         self.deliveries = []
         self.statistics_manager = StatisticsManager()
-        path = Path(__file__).parent.parent.parent
-        with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
-            self.disruption = pickle.load(f)
 
         self.initialize()
 

@@ -223,6 +223,7 @@ def download_latest_stats():
 
 @app.route('/api/process', methods=['POST'])
 def process():
+    # sim.reset()
     data = request.get_json()
 
     with open('parameters/disruption_parameters.pkl', 'wb') as f:
