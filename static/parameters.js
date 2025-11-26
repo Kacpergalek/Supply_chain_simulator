@@ -14,7 +14,7 @@ async function readJSON(appRoute, query) {
 }
 
 readJSON("/api/disruption_type", "#disruptionType");
-// readJSON("/api/disruption_severity", "#severity");
+readJSON("/api/disruption_severity", "#severity");
 readJSON("/api/duration", "#duration");
 readJSON("/api/day_of_start", "#dayOfStart");
 readJSON("/api/place_of_disruption", "#placeOfDisruption");
