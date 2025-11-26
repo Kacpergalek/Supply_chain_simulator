@@ -42,7 +42,9 @@
     </nav>
     <div class="simulation">
         <section class="map-section">
-            <img src="{{ image }}" alt="Map">
+            <iframe src="{{ url_for('static', filename='latest_map.html') }}"
+                    width="100%" height="600"
+                    style="border:none;"></iframe>
         </section>
         <section class="simulation-section">
             <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start simulation</button>
