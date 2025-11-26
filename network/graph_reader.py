@@ -16,7 +16,7 @@ from network.simulation_graph import SimulationGraph
 class GraphManager():
     def __init__(self, folder="network_data"):
         self.folder = folder
-
+        self.graph = None
 
     def load_pickle_graph(self, pickle_file_name) -> SimulationGraph:
         # project_root = os.path.abspath("..")
@@ -57,7 +57,7 @@ class GraphManager():
             with open(f"../{self.folder}/{json_file_name}", "w") as json_file:
                 json.dump(attributes, json_file, indent=4)
             with open(f"../{self.folder}/{file_name}", "wb") as pickle_file:
-                pickle.dump(nx.MultiDiGraph(graph), pickle_file)
+                pickle.dump(nx.MultiGraph(graph), pickle_file)
         else:
             with open(f"../{self.folder}/{file_name}", "wb") as pickle_file:
                 pickle.dump(graph, pickle_file)
@@ -65,6 +65,6 @@ class GraphManager():
 
     def save_graphml_file(self, file_name, graph):
         if isinstance(graph, SimulationGraph):
-            ox.save_graphml(nx.MultiDiGraph(graph), f"../{self.folder}/{file_name}")
+            ox.save_graphml(nx.MultiGraph(graph), f"../{self.folder}/{file_name}")
         else: 
             ox.save_graphml(graph, f"../{self.folder}/{file_name}")

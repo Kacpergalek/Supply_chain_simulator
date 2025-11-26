@@ -1,7 +1,7 @@
 import networkx as nx
 import osmnx as ox
 
-class SimulationGraph(nx.MultiDiGraph):
+class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, **attr):
         super().__init__(incoming_graph_data, multigraph_input, **attr)
         self.default_capacity = default_capacity
@@ -72,14 +72,13 @@ class SimulationGraph(nx.MultiDiGraph):
                 data["active"] = True
 
 
-    def safe_shortest_path(self, start_node : int, end_node : int, weight="cost"):
-        mutlidigraf = nx.MultiDiGraph(self)
+    def safe_shortest_path(self, start_node : int, end_node : int, weight : str = "cost"):
+        mutlidigraf = nx.MultiGraph(self)
         sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
 
         deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
 
         sim_graph_cpy.remove_nodes_from(deactivated_nodes)
-        # sim_graph_cpy = sim_graph_cpy.to_undirected()
         return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weight)
 
 
@@ -113,4 +112,28 @@ class SimulationGraph(nx.MultiDiGraph):
             "default_price" : self.default_price
         }
     
-        
+    def compose(self, graph):
+        att1 = self.get_additional_attributes()
+        multigraph2 = nx.MultiGraph(graph)
+
+        self.add_nodes_from(multigraph2.nodes(data=True))
+        self.add_edges_from(multigraph2.edges(keys=True, data=True))
+
+        # mutligraph1 = nx.MultiGraph(self)
+        # composed_graph = nx.compose(mutligraph1, multigraph2)
+        # self = self.__class__(default_capacity = att1["default_capacity"], default_price = att1["default_price"], incoming_graph_data = composed_graph)
+        return self
+
+    def display(self):
+        graph = nx.MultiGraph(self)
+        ox.plot_graph(graph)
+
+
+    def safe_astar_path(self, start_node : int, end_node : int, weight : str = "length"):
+        mutlidigraf = nx.MultiGraph(self)
+        sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
+
+        deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
+
+        sim_graph_cpy.remove_nodes_from(deactivated_nodes)
+        return nx.astar_path(sim_graph_cpy, start_node, end_node, weight=weight)

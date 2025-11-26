@@ -205,7 +205,7 @@ class ExporterAgent(BaseAgent):
                 data["_tmp_time_days"] = time_days if time_days is not None else 0.0
            
             try:
-                path = sim_graph.safe_shortest_path(self.node_id, dest_node, weight=tmp_attr)
+                path = sim_graph.safe_astar_path(self.node_id, dest_node, weight=tmp_attr)
                
                 total_weight = 0.0
                 total_distance_km = 0.0

@@ -4,6 +4,7 @@ import logging
 import random
 import sys 
 import os
+import json
 from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
@@ -23,36 +24,23 @@ from network.simulation_graph import SimulationGraph
 from network.agents_initiation import initiation
 from network.visualization import plot_agent_routes
 from network.graph_reader import GraphManager
+from network.network import NetworkManager
 
 logger = logging.getLogger(__name__)
 
 class Simulation:
     def __init__(self):
         self.current_time = 0
-        # self.max_time = max_time
         self.exporters = []
         self.importers = []
         self.deliveries = []
-
-        # self.time_manager = TimeManager(time_resolution)
         self.statistics_manager = StatisticsManager()
 
         """ Network initialization"""
         time_start = time.time()
-        reader = GraphManager()
-
-        map = {}
-        europe_countries = ["Polska", "Niemcy", "Ukraina", "poland_motorway_trunk_primary"]
-        for country in europe_countries:
-            if country == "poland_motorway_trunk_primary":
-                graph = reader.load_pickle_graph(f"{country}.pkl")
-            else:
-                graph = reader.load_pickle_graph(f"{country}_motorway.pkl")
-            if graph:
-                map[country] = graph
+        network_manager = NetworkManager()
+        self.network = network_manager.create_graph()
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
-        print(map.keys())
-        self.network = map["poland_motorway_trunk_primary"]
 
         """ Agents initialization """
         time_start = time.time()
@@ -65,6 +53,7 @@ class Simulation:
             self.disruption = pickle.load(f)
 
         self.initialize()
+
 
 
     def inject_parameters(self, max_time: int, time_resolution: str):
@@ -124,6 +113,7 @@ class Simulation:
             #TODO
         #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         #find_nodes_to_disrupt(self.network, self.deliveries)
+        self.save_deliveries()
         self.save_current_map()
         time.sleep(2)
 
@@ -165,22 +155,27 @@ class Simulation:
 
         """ Start a disruption """
         if int(self.disruption['dayOfStart']) == t:
+            start_disruption_time = time.time()
             disruption_place = int(self.disruption["placeOfDisruption"])
+            place_of_disr_time = time.time()
             places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
+            print(f"Finding place of disruption: {time.time() - place_of_disr_time}")
             self.network.deactivate_nodes(places_of_disruption)
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
-            self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
-            time.sleep(2)
+            # self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
+            print(f"Start of disuption last: {time.time() - start_disruption_time}")
+            # time.sleep(2)
 
         """ End a disruption"""
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
             disruption_place = int(self.disruption["placeOfDisruption"])
             places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
             self.network.activate_nodes(places_of_disruption)
-            self.default_routes()
-            self.save_current_map()
+            # self.default_routes()
+            self.load_deliveries()
+            # self.save_current_map()
             time.sleep(2)
 
         """ What happens regardless of a disruption"""
@@ -190,11 +185,11 @@ class Simulation:
             exporter.produce()
             exporter.sell(exporter.quantity)
             delivery = find_delivery_by_agent(self.deliveries, exporter)
-            exporter.finances -= delivery.cost / delivery.lead_time
+            exporter.finances -= (delivery.cost / delivery.lead_time) if delivery.lead_time != 0 else (exporter.quantity / int(self.disruption['duration']))
 
             """ Updating fulfilled demand """
             delivery = find_delivery_by_agent(self.deliveries, exporter)
-            fulfilled_demand = int(exporter.quantity / delivery.lead_time)
+            fulfilled_demand = int(exporter.quantity / delivery.lead_time) if delivery.lead_time != 0 else int(exporter.quantity / int(self.disruption['duration']))
             self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
             pass
 
@@ -237,7 +232,7 @@ class Simulation:
         for exporter in self.exporters:
             delivery = find_delivery_by_agent(self.deliveries, exporter)
             if delivery.disrupted:
-                lost_demand = int(exporter.quantity / delivery.lead_time)
+                lost_demand = int(exporter.quantity / delivery.lead_time) if delivery.lead_time != 0 else int(exporter.quantity / int(self.disruption['duration']))
                 self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
 
     def default_routes(self):
@@ -256,8 +251,50 @@ class Simulation:
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
                 print(f"DISRUPTION ENDS (time step {t})")
 
-# if __name__ == "__main__":
-#     # graph_manager = GraphManager()
-#     # graph = graph_manager.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-#     simulation = Simulation(max_time=15, time_resolution="day")
-#     simulation.run()
+
+    def reset(self):
+        self.current_time = 0
+        self.exporters = []
+        self.importers = []
+        self.deliveries = []
+        self.statistics_manager = StatisticsManager()
+        path = Path(__file__).parent.parent.parent
+        with open(f"{path}/parameters/disruption_parameters.pkl", 'rb') as f:
+            self.disruption = pickle.load(f)
+
+        self.initialize()
+
+    def save_deliveries(self, folder : str = "delivery", file_name : str = "starting_deliveries.json"):
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "simulation_data")
+        folder_path = os.path.join(data_path, folder)
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        full_path = os.path.join(folder_path, file_name)
+        with open(full_path, "w", encoding="utf-8") as json_file:
+            json.dump([delivery.to_dict() for delivery in self.deliveries], json_file, indent=4, ensure_ascii=False)
+
+
+    def load_deliveries(self, folder : str = "delivery", file_name : str = "starting_deliveries.json"):
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "simulation_data")
+        folder_path = os.path.join(data_path, folder)
+        if not os.path.exists(folder_path):
+            raise FileNotFoundError(f"Folder: {folder_path} does not exist.")
+        
+        full_path = os.path.join(folder_path, file_name)
+        if not os.path.exists(full_path):
+            raise FileExistsError(f"File: {full_path} does not exist.")
+        
+        with open(full_path, "r", encoding="utf-8") as json_file:
+            try:
+                data = json.load(json_file)
+            except json.JSONDecodeError as e:
+                print(f"Json loading error: {str(e)}")
+                return
+            
+        for object in data:
+            try:
+                delivery = Delivery(**object)
+                self.deliveries.append(delivery)
+            except TypeError as e:
+                print(f"Error while deserializing delivery object: {str(e)}")

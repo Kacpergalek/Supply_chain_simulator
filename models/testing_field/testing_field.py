@@ -12,6 +12,7 @@ from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 from dashboard.dashboards_manager import DashboardsManager
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
+from network.network import NetworkManager
 
 # reader = GraphManager()
 #dash = DashboardsManager()
@@ -49,4 +50,12 @@ from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
 # print(list(map.keys()))
 
 sim = Simulation()
+sim.inject_parameters(15, "day")
+sim.run()
 
+# time_start = time.time()
+# network = NetworkManager()
+# graph = network.create_graph()
+# print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
+
+# print(len(list(graph.nodes())))
