@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 
 from models.agents.agent_manager import AgentManager
-from models.delivery.delivery_manager import DeliveryManager
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
@@ -25,7 +24,6 @@ from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
 
 from network.simulation_graph import SimulationGraph
-from network.agents_initiation import initiation
 from network.visualization import plot_agent_routes
 from network.graph_reader import GraphManager
 from network.network import NetworkManager
@@ -40,7 +38,6 @@ class Simulation:
         self.deliveries = []
 
         self.statistics_manager = None
-        self.delivery_manager = DeliveryManager()
 
         """ Network initialization"""
         time_start = time.time()
@@ -49,21 +46,18 @@ class Simulation:
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
         """ Agents initialization """
-<<<<<<< HEAD
-        time_start = time.time()
-        self.agent_paths = initiation(self.network)
-        print(f"Czas inicjalizowania agentów: {time.time() - time_start}")
-=======
-        agent_manager = AgentManager()
-        initialized = agent_manager.initialize_agents(self.network)
+        self.agent_manager = AgentManager()
+        initialized = self.agent_manager.initialize_agents(self.network)
         self.exporters = initialized["exporters"]
         self.importers = initialized["importers"]
         self.agent_paths = initialized["routes"]
         # self.agent_paths = initiation(self.network)
 
         """ Deliveries initialization """
+        self.deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network, self.exporters,
+                                                                                    self.agent_paths)
         self.deliveries = self.delivery_manager.initialize_deliveries(self.network, self.exporters, self.agent_paths)
->>>>>>> 57ce2d7 (for merging)
+
 
         self.initialize()
 
@@ -107,10 +101,8 @@ class Simulation:
 
     def initialize(self) -> None:
         for exporter in self.exporters:
-            delivery = find_delivery_by_agent(self.deliveries, exporter)
+            exporter.delivery = find_delivery_by_agent(self.deliveries, exporter)
             exporter.finances = random.randrange(1000, 5000)
-            exporter.production_price = delivery.find_production_cost()
-            exporter.retail_price = delivery.find_retail_price()
 
         # NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         # find_nodes_to_disrupt(self.network, self.deliveries)
@@ -144,7 +136,7 @@ class Simulation:
                 importer_nodes,
                 disrupted_nodes = disrupted_nodes,
             )
-            print("MAP_UPDATE") 
+            print("MAP_UPDATE")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
 
@@ -164,9 +156,8 @@ class Simulation:
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
-            # self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
-            print(f"Start of disuption last: {time.time() - start_disruption_time}")
-            # time.sleep(2)
+            self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
+            time.sleep(2)
 
         """ End a disruption"""
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
@@ -180,19 +171,12 @@ class Simulation:
 
         """ What happens regardless of a disruption"""
         for exporter in self.exporters:
-            #TODO
+            # TODO
             """ Updating finances """
-            exporter.produce()
-            exporter.sell(exporter.quantity)
-            delivery = find_delivery_by_agent(self.deliveries, exporter)
-            exporter.finances -= (delivery.cost / delivery.lead_time) if delivery.lead_time != 0 else (exporter.quantity / int(self.disruption['duration']))
+            exporter.send_parcel()
 
             """ Updating fulfilled demand """
-            delivery = find_delivery_by_agent(self.deliveries, exporter)
-            fulfilled_demand = int(exporter.quantity / delivery.lead_time) if delivery.lead_time != 0 else int(exporter.quantity / int(self.disruption['duration']))
-            # self.statistics_manager.update_fulfilled_demand(exporter.agent_id, fulfilled_demand)
-            # fulfilled_demand = int(exporter.quantity / delivery.lead_time)
-            self.statistics_manager.fulfilled_demand[exporter.agent_id] = fulfilled_demand
+            self.statistics_manager.fulfilled_demand[exporter.agent_id] = exporter.unit_demand
 
         # """ What happens when there is no disruption"""
         # if t < int(self.disruption['dayOfStart']) or t > int(self.disruption['dayOfStart']) + int(self.disruption['duration']):
@@ -234,10 +218,7 @@ class Simulation:
         for exporter in self.exporters:
             delivery = find_delivery_by_agent(self.deliveries, exporter)
             if delivery.disrupted:
-                lost_demand = int(exporter.quantity / delivery.lead_time) if delivery.lead_time != 0 else int(exporter.quantity / int(self.disruption['duration']))
-                # self.statistics_manager.update_lost_demand(exporter.agent_id, lost_demand)
-                # lost_demand = int(exporter.quantity / delivery.lead_time)
-                self.statistics_manager.lost_demand[exporter.agent_id] = lost_demand
+                self.statistics_manager.lost_demand[exporter.agent_id] = exporter.unit_demand
 
 
     def default_routes(self):
@@ -282,18 +263,18 @@ class Simulation:
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(folder_path):
             raise FileNotFoundError(f"Folder: {folder_path} does not exist.")
-        
+
         full_path = os.path.join(folder_path, file_name)
         if not os.path.exists(full_path):
             raise FileExistsError(f"File: {full_path} does not exist.")
-        
+
         with open(full_path, "r", encoding="utf-8") as json_file:
             try:
                 data = json.load(json_file)
             except json.JSONDecodeError as e:
                 print(f"Json loading error: {str(e)}")
                 return
-            
+
         for object in data:
             try:
                 delivery = Delivery(**object)

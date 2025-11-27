@@ -1,6 +1,9 @@
-from .base_agent import BaseAgent
+from models.agents.base_agent import BaseAgent
 from typing import Optional, Dict, Any, Union
 import networkx as nx
+
+from models.delivery.product import Product
+from utils.find_quantity_by_product import find_quantity_by_product
 
 
 class ExporterAgent(BaseAgent):
@@ -19,29 +22,33 @@ class ExporterAgent(BaseAgent):
     """
 
     def __init__(self, agent_id: int, node_id: int, store_name: str, store_category: str, city: str,
-                 courier_company: str, finances: float = 1000.0):
+                 courier_company: str, products: list[Product], finances: float = 1000.0):
         super().__init__(agent_id, node_id, city.split(",")[1])
         self.store_name = store_name
         self.store_category = store_category
         self.city = city
         self.courier_company = courier_company
 
-        self.production_price = 0
-        self.retail_price = 0
-        # self.quantity = int(quantity)
+        self.inventory = [(product, 1_000_000) for product in products]
+        self.delivery = None
+        self.unit_demand = 0
         self.finances = float(finances)
-        self.inventory = 0  # ile aktualnie ma w magazynie
 
-    def __repr__(self):
-        return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}"
-                f"retail_price={self.retail_price}, finances={self.finances}, inventory={self.inventory})")
+        # self.production_price = 0
+        # self.retail_price = 0
+        # # self.quantity = int(quantity)
 
-    # def produce(self):
-    #     """Proste wytwarzanie: przyrost zapasu o 'quantity'."""
-    #     self.inventory += self.quantity
-    #     self.finances -= (self.retail_price * 0.5) * self.quantity
-    #     return self.inventory
-    #
+        # self.inventory = 0  # ile aktualnie ma w magazynie
+
+    # def __repr__(self):
+    #     return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}"
+    #             f"retail_price={self.retail_price}, finances={self.finances}, inventory={self.inventory})")
+
+    # def produce(self, quantity: int = 1):
+    #     for product, inventory in self.inventory:
+    #         inventory += quantity
+    #         self.finances -= product.production_price * quantity
+
     # def create_offer(self, qty=None):
     #     """
     #     Tworzy ofertę sprzedaży. Jeśli qty nie podane -> proponuje max możliwy (min(inventory, quantity)).
@@ -57,27 +64,70 @@ class ExporterAgent(BaseAgent):
     #         "unit_price": self.retail_price
     #     }
     #
-    # def sell(self, qty):
-    #     """
-    #     Realizuje sprzedaż: zmniejsza inventory i zwiększa finances.
-    #     Zwraca revenue (float). Jeśli qty > inventory -> sprzedaje tyle ile ma.
-    #     """
-    #     qty = int(qty)
-    #     sold = min(qty, self.inventory)
-    #     revenue = sold * self.retail_price
-    #     self.inventory -= sold
-    #     self.finances += revenue
-    #     return sold, revenue
+    def products_to_dict(self):
+        product_dict = {}
+        for product, inventory in self.inventory:
+            product_dict[product.product_id] = inventory
+        return product_dict
 
-    def to_dict(self):
-        d = super().to_dict()
-        d.update({
-            # "quantity": self.quantity,
-            "price": self.retail_price,
-            "finances": self.finances,
-            "inventory": self.inventory
-        })
-        return d
+    def send_parcel(self):
+        # Defensive checks: ensure delivery exists and parcel is iterable
+        if self.delivery is None:
+            raise RuntimeError(f"Exporter {self.agent_id} has no delivery assigned")
+
+        demand = 0
+        new_inventory = []
+        parcel = getattr(self.delivery, "parcel", []) or []
+
+        for product, inv in self.inventory:
+            quantity = find_quantity_by_product(parcel, product)
+            # Ensure quantity is an int and clamp to available inventory
+            try:
+                quantity = int(quantity or 0)
+            except Exception:
+                quantity = 0
+
+            sold = min(inv, quantity)
+            inv = inv - sold
+            demand += sold
+            new_inventory.append((product, inv))
+
+        # Persist updated inventory
+        self.inventory = new_inventory
+
+        # Update finances defensively (guard if delivery methods/attrs missing)
+        try:
+            self.finances += self.delivery.find_retail_price()
+        except Exception:
+            pass
+
+        try:
+            parcel_cost = getattr(self.delivery, 'find_parcel_cost', lambda: 0)()
+            self.finances -= parcel_cost * getattr(self.delivery, 'cost', 0)
+        except Exception:
+            pass
+
+        self.unit_demand = demand
+        # """
+        # Realizuje sprzedaż: zmniejsza inventory i zwiększa finances.
+        # Zwraca revenue (float). Jeśli qty > inventory -> sprzedaje tyle ile ma.
+        # """
+        # qty = int(qty)
+        # sold = min(qty, self.inventory)
+        # revenue = sold * self.retail_price
+        # self.inventory -= sold
+        # self.finances += revenue
+        # return sold, revenue
+
+    # def to_dict(self):
+    #     d = super().to_dict()
+    #     d.update({
+    #         # "quantity": self.quantity,
+    #         "price": self.retail_price,
+    #         "finances": self.finances,
+    #         "inventory": self.inventory
+    #     })
+    #     return d
 
     @staticmethod
     def _parse_maxspeed(ms: Union[str, float, list, None]) -> Optional[float]:

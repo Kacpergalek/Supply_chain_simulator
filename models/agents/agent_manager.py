@@ -2,7 +2,6 @@ import math
 import pickle
 import random
 from pathlib import Path
-
 import osmnx as ox
 import pandas as pd
 import geopandas as gpd
@@ -13,9 +12,10 @@ from models.agents.importer_cities import importer_cities
 from models.agents.exporter_cities import exporter_cities
 from models.agents.europe_top_cities import europe_top_cities
 from models.agents.exporter_agent import ExporterAgent
+from models.delivery.delivery_manager import DeliveryManager
+from models.delivery.product import Product
 
 from network.simulation_graph import SimulationGraph
-from utils.find_delivery import find_delivery_by_agent
 
 
 class AgentManager:
@@ -42,6 +42,9 @@ class AgentManager:
 
         self.exporters = []
         self.importers = []
+
+        self.delivery_manager = DeliveryManager()
+        self.delivery_manager.sort_products()
 
 
     def initialize_stores(self) -> None:
@@ -87,12 +90,12 @@ class AgentManager:
             return pickle.load(f)
 
     def make_city_dict(self) -> None:
-        furniture_stores = self.load_from_pickle("furniture")
-        stores = furniture_stores[furniture_stores['geometry'].type == 'Point']
-        technology_stores = self.load_from_pickle("technology")
-        stores = pd.concat([stores, technology_stores[technology_stores['geometry'].type == 'Point']])
-        office_stores = self.load_from_pickle("office_supplies")
-        stores = pd.concat([stores, office_stores[office_stores['geometry'].type == 'Point']])
+        self.furniture_df = self.load_from_pickle("furniture")
+        stores = self.furniture_df[self.furniture_df['geometry'].type == 'Point']
+        self.technology_df = self.load_from_pickle("technology")
+        stores = pd.concat([stores, self.technology_df[self.technology_df['geometry'].type == 'Point']])
+        self.office_supplies_df = self.load_from_pickle("office_supplies")
+        stores = pd.concat([stores, self.office_supplies_df[self.office_supplies_df['geometry'].type == 'Point']])
 
         for city in stores['city'].unique():
             store = stores[stores['city'] == city].sample()
@@ -131,8 +134,10 @@ class AgentManager:
             closest_node = self.find_closest_node(graph, store)
             agent_id = len(self.exporters)
             courier_company = random.choice(list(courier_companies))
+            products = self.delivery_manager.initialize_products(store['store_category'])
             exporter = ExporterAgent(agent_id=agent_id, node_id=closest_node, store_name=store['store_name'],
-                                     store_category=store['store_category'], city=city, courier_company=courier_company)
+                                     store_category=store['store_category'], city=city, courier_company=courier_company,
+                                     products=products)
             self.exporters.append(exporter)
         return self.exporters
 
@@ -186,14 +191,7 @@ class AgentManager:
 
 
 # if __name__ == "__main__":
-    # am = AgentManager()
-    # am.initialize_stores()
-    # am.save_to_pickle()
-    # pd.set_option('display.max_columns', None)
-    # am = AgentManager()
-    # f = am.load_from_pickle("furniture")
-    # print(f)
-    # print(f[f['geometry'].type == 'Point'])
-    # am.make_city_dict()
-    # am = AgentManager()
-    # am.initialize_agents()
+#     am = AgentManager()
+#     am.make_city_dict()
+#     am.make_product_lists()
+#     print(am.technology)

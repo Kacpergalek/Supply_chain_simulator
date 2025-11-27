@@ -1,4 +1,3 @@
-import datetime
 import os
 import pickle
 import sys
@@ -9,12 +8,9 @@ import time
 from flask import Flask, render_template, jsonify, send_from_directory, request, url_for, Response, stream_with_context
 from pathlib import Path
 import json
-import plotly.io as pio
 import plotly.graph_objs as go
 from dashboard.dashboards_manager import DashboardsManager
 from models.simluation_engine.engine import Simulation
-from network.graph_reader import GraphManager
-from network.countries import europe_countries
 import threading
 from network.empty_visualization import plot_empty_map
 
