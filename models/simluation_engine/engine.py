@@ -111,12 +111,6 @@ class Simulation:
             importer = BaseAgent(i + 10, self.agent_paths[i]['importer_node'])
             self.importers.append(importer)
 
-        
-        # self.statistics_manager.total_routes = len(self.agent_paths)
-        # for exporter in self.exporters:
-        #     cost = find_delivery_by_agent(self.deliveries, exporter).cost
-        #     self.statistics_manager.cost[exporter.agent_id] = cost
-            #TODO
         # NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         # find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_deliveries()
@@ -150,7 +144,6 @@ class Simulation:
                 disrupted_nodes = disrupted_nodes,
             )
             print("MAP_UPDATE") 
-            # print(f"✅ Mapa zapisana")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
 
