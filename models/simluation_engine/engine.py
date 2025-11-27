@@ -110,8 +110,8 @@ class Simulation:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.define_cost(exporter.agent_id, cost)
             #TODO
-        #NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
-        #find_nodes_to_disrupt(self.network, self.deliveries)
+        # NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
+        # find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_deliveries()
         self.save_current_map()
         time.sleep(2)

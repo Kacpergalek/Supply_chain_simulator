@@ -58,4 +58,7 @@ sim.run()
 # graph = network.create_graph()
 # print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
-# print(len(list(graph.nodes())))
+# node1 = graph.get_nearest_node(47, 16)
+# node2 = graph.get_nearest_node(52, 6.5)
+# path = graph.astar(node1, node2)
+# print(len(path))
