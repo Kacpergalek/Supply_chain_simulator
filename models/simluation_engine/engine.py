@@ -6,6 +6,10 @@ import sys
 import os
 import json
 from pathlib import Path
+
+from models.agents.agent_manager import AgentManager
+from models.delivery.delivery_manager import DeliveryManager
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
 from network.countries import europe_countries
@@ -36,6 +40,7 @@ class Simulation:
         self.deliveries = []
 
         self.statistics_manager = None
+        self.delivery_manager = DeliveryManager()
 
         """ Network initialization"""
         time_start = time.time()
@@ -44,9 +49,21 @@ class Simulation:
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
         """ Agents initialization """
+<<<<<<< HEAD
         time_start = time.time()
         self.agent_paths = initiation(self.network)
         print(f"Czas inicjalizowania agentów: {time.time() - time_start}")
+=======
+        agent_manager = AgentManager()
+        initialized = agent_manager.initialize_agents(self.network)
+        self.exporters = initialized["exporters"]
+        self.importers = initialized["importers"]
+        self.agent_paths = initialized["routes"]
+        # self.agent_paths = initiation(self.network)
+
+        """ Deliveries initialization """
+        self.deliveries = self.delivery_manager.initialize_deliveries(self.network, self.exporters, self.agent_paths)
+>>>>>>> 57ce2d7 (for merging)
 
         self.initialize()
 
@@ -88,28 +105,12 @@ class Simulation:
             print(f"Simulation completed after {self.current_time} time steps")
 
 
-    def initialize(self):
-
-        for i in range(len(self.agent_paths)):
-            delivery = Delivery(i, self.agent_paths[i]['exporter_node'], self.agent_paths[i]['importer_node'],
-                                self.agent_paths[i]['path'], self.agent_paths[i]['total_distance_km'],
-                                self.agent_paths[i]['estimated_cost'], self.agent_paths[i]['estimated_lead_time_days'])
-            delivery.capacity = delivery.find_minimum_capacity(self.network)
-            self.deliveries.append(delivery)
-
-        for i in range(len(self.agent_paths)):
-            delivery = self.deliveries[i]
-            finances = random.randrange(1000, 5000)
-            quantity = random.randrange(int(delivery.capacity*0.4), delivery.capacity)
-            price = random.randrange(int(delivery.cost / delivery.lead_time / quantity),
-                                     int(delivery.cost / delivery.lead_time / delivery.capacity * 100))
-
-            exporter = ExporterAgent(agent_id=i, node_id=self.agent_paths[i]['exporter_node'],
-                                     quantity=quantity, price=price, finances=finances)
-            self.exporters.append(exporter)
-        for i in range(len(self.agent_paths)):
-            importer = BaseAgent(i + 10, self.agent_paths[i]['importer_node'])
-            self.importers.append(importer)
+    def initialize(self) -> None:
+        for exporter in self.exporters:
+            delivery = find_delivery_by_agent(self.deliveries, exporter)
+            exporter.finances = random.randrange(1000, 5000)
+            exporter.production_price = delivery.find_production_cost()
+            exporter.retail_price = delivery.find_retail_price()
 
         # NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
         # find_nodes_to_disrupt(self.network, self.deliveries)

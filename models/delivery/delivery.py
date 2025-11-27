@@ -6,21 +6,33 @@ from network.simulation_graph import SimulationGraph
 
 
 class Delivery:
+<<<<<<< HEAD
     def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int, route: list[int], length: float,
                  cost: float, lead_time: float, capacity : int = 0, disrupted : bool = False):
 
+=======
+    def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int, route: list[int],
+                 length: float, cost: float, lead_time: float, products: list[Product]):
+>>>>>>> 57ce2d7 (for merging)
         self.delivery_id = delivery_id
         self.start_node_id = start_node_id
         self.end_node_id = end_node_id
+
         self.route = route
-        self.products = []
         self.length = length
         self.cost = cost
         self.lead_time = lead_time
+<<<<<<< HEAD
         self.capacity = capacity
         self.disrupted = disrupted
+=======
 
-    def to_dict(self):
+        self.capacity = 0
+        self.disrupted = False
+        self.products = products
+>>>>>>> 57ce2d7 (for merging)
+
+    def to_dict(self) -> dict:
         return {
             "delivery_id": self.delivery_id,
             "start_node_id": self.start_node_id,
@@ -33,7 +45,13 @@ class Delivery:
             "disrupted": self.disrupted
         }
 
-    def find_products_cost(self):
+    def find_production_cost(self) -> float:
+        return sum([product.production_price * product.quantity for product in self.products])
+
+    def find_retail_price(self) -> float:
+        return self.find_production_cost() * 1.2
+
+    def find_parcel_cost(self) -> float:
         shipping_prices = {
             # --- HEAVY / BULKY (Furniture & Large Equipment) ---
             'Bookcases': 90.00,
@@ -58,26 +76,25 @@ class Delivery:
             'Envelopes': 4.00,
             'Fasteners': 3.50  # Paperclips, staples (very light)
         }
-        parcel_price = 0
+        parcel_price = self.find_production_cost()
         for product in self.products:
-            parcel_price += shipping_prices[product.name]*product.quantity
+            parcel_price += shipping_prices[product.name]
         return parcel_price
 
-
-    def find_minimum_capacity(self, network: SimulationGraph):
+    def find_minimum_capacity(self, network: SimulationGraph) -> float:
         minimum_capacity = np.inf
         for i in range(len(self.route) - 1):
             if network.edges[self.route[i], self.route[i + 1], 0]['capacity'] < minimum_capacity:
                 minimum_capacity = network.edges[self.route[i], self.route[i + 1], 0]['capacity']
         return minimum_capacity
 
-    def reset_delivery(self):
+    def reset_delivery(self) -> None:
         self.route = 0
         self.length = 0
         self.cost = 0
         self.lead_time = 0
 
-    def update_delivery(self, exporters: list[ExporterAgent], network: SimulationGraph):
+    def update_delivery(self, exporters: list[ExporterAgent], network: SimulationGraph) -> None:
         exporter = None
         for e in exporters:
             if e.node_id == self.start_node_id:
