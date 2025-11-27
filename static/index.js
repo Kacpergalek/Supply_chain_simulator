@@ -61,7 +61,7 @@ function sendData() {
         data: JSON.stringify(dict),
         success: function (response) {
             alert("Data submitted successfully.")
-            document.getElementById('output').innerHTML = JSON.stringify(response, null, 2);
+            // document.getElementById('output').innerHTML = JSON.stringify(response, null, 2);
         },
         error: function (error) {
             console.log(error);
