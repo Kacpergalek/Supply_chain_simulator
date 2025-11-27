@@ -6,8 +6,9 @@ from network.simulation_graph import SimulationGraph
 
 
 class Delivery:
-    def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int, route: list[int],
-                 length: float, cost: float, lead_time: float):
+    def __init__(self, delivery_id: int, start_node_id: int, end_node_id: int, route: list[int], length: float,
+                 cost: float, lead_time: float, capacity : int = 0, disrupted : bool = False):
+
         self.delivery_id = delivery_id
         self.start_node_id = start_node_id
         self.end_node_id = end_node_id
@@ -16,8 +17,8 @@ class Delivery:
         self.length = length
         self.cost = cost
         self.lead_time = lead_time
-        self.capacity = 0
-        self.disrupted = False
+        self.capacity = capacity
+        self.disrupted = disrupted
 
     def to_dict(self):
         return {

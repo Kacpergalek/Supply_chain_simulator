@@ -4,6 +4,7 @@ import pickle
 import sys
 import logging
 import queue
+import time
 
 from flask import Flask, render_template, jsonify, send_from_directory, request, url_for, Response, stream_with_context
 from pathlib import Path
@@ -24,11 +25,12 @@ RESULTS_PATH = Path('form_data')
 OUTPUT_PATH = Path('output')
 ASSETS_DIR = Path(__file__).parent / "assets"
 # reader = GraphManager()
-# map = []
+# map = {}
 # for country in europe_countries:
 #     graph = reader.load_pickle_graph(f"{country}_motorway.pkl")
 #     if graph:
-#         map.append(graph)
+#         map[country] = graph
+
 
 
 # --- Logging queue + SSE setup ---
@@ -52,6 +54,7 @@ handler.setFormatter(formatter)
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.INFO)
 root_logger.addHandler(handler)
+sim = Simulation()
 
 # Filter handler so only simulation-related records are queued
 
@@ -238,6 +241,7 @@ def download_latest_stats():
 
 @app.route('/api/process', methods=['POST'])
 def process():
+    # sim.reset()
     data = request.get_json()
 
     with open('parameters/disruption_parameters.pkl', 'wb') as f:
@@ -282,7 +286,8 @@ def start_simulation():
             sys.stdout = StreamToLogger(sim_logger, level=logging.INFO)
             sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
             try:
-                sim = Simulation(max_time=15, time_resolution="day")
+                # sim = Simulation(max_time=15, time_resolution="day")
+                sim.inject_parameters(max_time=15, time_resolution="day")
                 sim.run()
             except Exception as e:
                 app.logger.exception("Simulation failed: %s", e)
@@ -299,4 +304,4 @@ def start_simulation():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)

@@ -16,7 +16,6 @@ from network.simulation_graph import SimulationGraph
 
 def initiation(graph):
 
-
     major_cities = {
         "Warszawa": (52.23, 21.01),
         "Kraków": (50.06, 19.94),
@@ -92,15 +91,15 @@ def initiation(graph):
 
     results = []
 
-    graph_undirected = SimulationGraph(default_capacity=graph.default_capacity,
-                                    default_price=graph.default_price,
-                                    incoming_graph_data=graph)
+    # graph_undirected = SimulationGraph(default_capacity=graph.default_capacity,
+    #                                 default_price=graph.default_price,
+    #                                 incoming_graph_data=graph)
 
 
     for i, (exp_node, imp_node) in enumerate(zip(exporter_nodes, importer_nodes), start=1):
         agent = exp_mod.ExporterAgent(agent_id=i, node_id=exp_node)
         try:
-            result = agent.find_cheapest_path(graph_undirected, dest_node=imp_node, params=params)
+            result = agent.find_cheapest_path(graph, dest_node=imp_node, params=params)
             results.append({
                 "agent_id": i,
                 "exporter_node": exp_node,
