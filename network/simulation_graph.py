@@ -182,8 +182,8 @@ class SimulationGraph(nx.MultiGraph):
             if current_node == end_node:
                 return self.reconstruct_path(came_from, current_node)
 
-            if current_g > g_score.get(current_node, float('inf')):
-                continue
+            # if current_g > g_score.get(current_node, float('inf')):
+            #     continue
 
             for neighbour in self.neighbors(current_node):
                 neighbour_g = current_g + self.haversine_nodes(current_node, neighbour, metric)
@@ -197,6 +197,12 @@ class SimulationGraph(nx.MultiGraph):
                     
                     heapq.heappush(entry_queue, (neighbour_f, neighbour_g, neighbour))
         return None
+
+
+    def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
+        if metric == "length":
+            edges = list(self[node_start][node_end].values())
+            print(edges)
 
 
     def reconstruct_path(self, came_from, current):
