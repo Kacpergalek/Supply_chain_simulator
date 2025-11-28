@@ -73,7 +73,8 @@ class ExporterAgent(BaseAgent):
     def send_parcel(self):
         # Defensive checks: ensure delivery exists and parcel is iterable
         if self.delivery is None:
-            raise RuntimeError(f"Exporter {self.agent_id} has no delivery assigned")
+            raise RuntimeError(
+                f"Exporter {self.agent_id} has no delivery assigned")
 
         demand = 0
         new_inventory = []
@@ -102,7 +103,8 @@ class ExporterAgent(BaseAgent):
             pass
 
         try:
-            parcel_cost = getattr(self.delivery, 'find_parcel_cost', lambda: 0)()
+            parcel_cost = getattr(
+                self.delivery, 'find_parcel_cost', lambda: 0)()
             self.finances -= parcel_cost * getattr(self.delivery, 'cost', 0)
         except Exception:
             pass
@@ -148,7 +150,8 @@ class ExporterAgent(BaseAgent):
 
         if isinstance(ms, str):
             s = ms.strip().lower()
-            s = s.replace("[", "").replace("]", "").replace("(", "").replace(")", "").replace(" ", "")
+            s = s.replace("[", "").replace("]", "").replace(
+                "(", "").replace(")", "").replace(" ", "")
 
             # Helper to extract number from string
             def get_num(val_str):
@@ -224,27 +227,11 @@ class ExporterAgent(BaseAgent):
             # Default to land (highway, railway, etc.)
             return "land"
 
-<<<<<<< HEAD
-                data[tmp_attr] = (alpha * dist_km) * (beta * cost_attr) + gamma * risk_attr + (delta * (time_days if time_days is not None else 0.0))
-                data["_tmp_time_days"] = time_days if time_days is not None else 0.0
-           
-            try:
-                path = sim_graph.safe_astar_path(self.node_id, dest_node, weight=tmp_attr)
-               
-                total_weight = 0.0
-                total_distance_km = 0.0
-                total_cost = 0.0
-                total_risk = 0.0
-                total_time_days = 0.0
-            
-                for u, v in zip(path[:-1], path[1:]):
-=======
         # 2. Define Cost Function for Dijkstra
         # This function calculates weight dynamically without modifying the graph.
         def weight_function(u, v, d):
             length_m = d.get("length", 0.0)
             dist_km = length_m / 1000.0
->>>>>>> 57ce2d7 (for merging)
 
             # Get unit cost from edge (defaulting to 1.0 if missing)
             # You requested: Cost = Length * Unit Cost
@@ -262,8 +249,19 @@ class ExporterAgent(BaseAgent):
 
         try:
             # 3. Find Path (Minimizing Monetary Cost)
+            # Defensive checks: ensure source and target exist in the graph
+            if self.node_id not in sim_graph:
+                print(
+                    f"find_cheapest_path: source node {self.node_id} not in graph")
+                raise nx.NetworkXNoPath
+            if dest_node not in sim_graph:
+                print(
+                    f"find_cheapest_path: target node {dest_node} not in graph")
+                raise nx.NetworkXNoPath
+
             # shortest_path automatically handles MultiDiGraph by picking the edge minimizing the weight
-            path = nx.shortest_path(sim_graph, source=self.node_id, target=dest_node, weight=weight_function)
+            path = nx.shortest_path(
+                sim_graph, source=self.node_id, target=dest_node, weight=weight_function)
 
             # 4. Calculate Statistics for the found path
             total_distance_km = 0.0
@@ -309,7 +307,8 @@ class ExporterAgent(BaseAgent):
                         # Convert driving hours to "elapsed days" considering shifts
                         # e.g., if driving 8h/day, a 16h drive takes 2 days.
                         if driving_hours > 0:
-                            total_lead_time_days += (hours_driving / driving_hours)
+                            total_lead_time_days += (hours_driving /
+                                                     driving_hours)
                         else:
                             # Fallback if driving hours is 0 (continuous)
                             total_lead_time_days += (hours_driving / 24.0)
@@ -340,7 +339,18 @@ class ExporterAgent(BaseAgent):
             }
 
         except nx.NetworkXNoPath:
-            print(f"No path found for agent {self.agent_id} to {dest_node}")
+            # Provide diagnostics to help debugging disconnected graphs
+            try:
+                src_present = self.node_id in sim_graph
+                dst_present = dest_node in sim_graph
+                connected = False
+                if src_present and dst_present:
+                    connected = nx.has_path(sim_graph, self.node_id, dest_node)
+                print(
+                    f"No path found for agent {self.agent_id} to {dest_node}. src_in_graph={src_present}, dst_in_graph={dst_present}, has_path={connected}")
+            except Exception as de:
+                print(
+                    f"No path found for agent {self.agent_id} to {dest_node} (diagnostics failed): {de}")
             return {}
         except Exception as e:
             print(f"Error in pathfinding: {e}")

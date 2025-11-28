@@ -14,8 +14,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..'
 from network.countries import europe_countries
 from utils.find_nodes_to_disrupt import bfs_limited
 
-from models.agents.base_agent import BaseAgent
-from models.agents.exporter_agent import ExporterAgent
 from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
@@ -56,11 +54,8 @@ class Simulation:
         """ Deliveries initialization """
         self.deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network, self.exporters,
                                                                                     self.agent_paths)
-        self.deliveries = self.delivery_manager.initialize_deliveries(self.network, self.exporters, self.agent_paths)
-
-
+        self.inject_parameters(15, "day")
         self.initialize()
-
 
 
     def inject_parameters(self, max_time: int, time_resolution: str):
@@ -156,7 +151,7 @@ class Simulation:
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
-            self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
+            # self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
             time.sleep(2)
 
         """ End a disruption"""

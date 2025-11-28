@@ -1,4 +1,4 @@
 exporter_cities = [
-            "Berlin, Germany", "Malmö, Sweden", "London, United Kingdom", "Rome, Italy", "Madrid, Spain",
-            "Warsaw, Poland", "Kyiv, Ukraine", "Bucharest, Romania", "Amsterdam, Netherlands", "Brussels, Belgium"
+            "Berlin, Germany", "Hamburg, Germany", "Warsaw, Poland", "Milan, Italy", "Madrid, Spain",
+            "Vila Nova de Gaia, Portugal", "Kyiv, Ukraine", "Bucharest, Romania", "Amsterdam, Netherlands", "Brussels, Belgium"
         ]

@@ -13,7 +13,7 @@ def plot_empty_map():
     # Ładujemy graf tylko po to, żeby ewentualnie użyć środka Polski
     # (logiki grafu nie ruszamy, ale nie korzystamy z krawędzi)
     reader = GraphManager()
-    _ = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
+    _ = reader.load_pickle_graph("polska_motorway.pkl")
 
     # Bardzo szybka interaktywna mapa
     m = folium.Map(location=[52.23, 21.01], zoom_start=6)

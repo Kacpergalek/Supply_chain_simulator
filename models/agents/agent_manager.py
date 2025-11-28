@@ -46,27 +46,32 @@ class AgentManager:
         self.delivery_manager = DeliveryManager()
         self.delivery_manager.sort_products()
 
-
     def initialize_stores(self) -> None:
         for country in self.cities:
             for city in self.cities[country]:
                 print(f"Querying: {city}...")
 
                 try:
-                    gdf_f = ox.features.features_from_place(city, self.tags_furniture)
+                    gdf_f = ox.features.features_from_place(
+                        city, self.tags_furniture)
                     gdf_f = gdf_f[self.cols_of_interest].dropna()
                     gdf_f['city'] = city
-                    self.furniture_df = pd.concat([self.furniture_df, gdf_f], ignore_index=True)
+                    self.furniture_df = pd.concat(
+                        [self.furniture_df, gdf_f], ignore_index=True)
 
-                    gdf_t = ox.features.features_from_place(city, self.tags_technology)
+                    gdf_t = ox.features.features_from_place(
+                        city, self.tags_technology)
                     gdf_t = gdf_t[self.cols_of_interest].dropna()
                     gdf_t['city'] = city
-                    self.technology_df = pd.concat([self.technology_df, gdf_t], ignore_index=True)
+                    self.technology_df = pd.concat(
+                        [self.technology_df, gdf_t], ignore_index=True)
 
-                    gdf_o = ox.features.features_from_place(city, self.tags_office)
+                    gdf_o = ox.features.features_from_place(
+                        city, self.tags_office)
                     gdf_o = gdf_o[self.cols_of_interest].dropna()
                     gdf_o['city'] = city
-                    self.office_supplies_df = pd.concat([self.office_supplies_df, gdf_o], ignore_index=True)
+                    self.office_supplies_df = pd.concat(
+                        [self.office_supplies_df, gdf_o], ignore_index=True)
 
                 except Exception as e:
                     print(f"   > Polygon not found for '{city}'")
@@ -79,7 +84,8 @@ class AgentManager:
         elif filename == "technology":
             self.technology_df.to_pickle(f"{path}/stores_technology.pkl")
         elif filename == "office_supplies":
-            self.office_supplies_df.to_pickle(f"{path}/stores_office_supplies.pkl")
+            self.office_supplies_df.to_pickle(
+                f"{path}/stores_office_supplies.pkl")
 
     def load_from_pickle(self, filename: str) -> pd.DataFrame:
         path = Path(__file__).parent.parent.parent / "parameters"
@@ -93,14 +99,16 @@ class AgentManager:
         self.furniture_df = self.load_from_pickle("furniture")
         stores = self.furniture_df[self.furniture_df['geometry'].type == 'Point']
         self.technology_df = self.load_from_pickle("technology")
-        stores = pd.concat([stores, self.technology_df[self.technology_df['geometry'].type == 'Point']])
+        stores = pd.concat(
+            [stores, self.technology_df[self.technology_df['geometry'].type == 'Point']])
         self.office_supplies_df = self.load_from_pickle("office_supplies")
-        stores = pd.concat([stores, self.office_supplies_df[self.office_supplies_df['geometry'].type == 'Point']])
+        stores = pd.concat(
+            [stores, self.office_supplies_df[self.office_supplies_df['geometry'].type == 'Point']])
 
         for city in stores['city'].unique():
             store = stores[stores['city'] == city].sample()
             store_dict = {"geometry": store['geometry'].item(),
-                          "store_name" : store['name'].item(), "store_category" : store['shop'].item()}
+                          "store_name": store['name'].item(), "store_category": store['shop'].item()}
             self.stores[store['city'].item()] = store_dict
 
     def initialize_agents(self, graph: SimulationGraph) -> dict[str, list]:
@@ -109,36 +117,47 @@ class AgentManager:
         exporters = self.initialize_exporters(graph)
         importers = self.initialize_importers(graph)
         routes = self.initialize_routes(graph)
-        initialized = {"exporters": exporters, "importers": importers, "routes": routes}
+        initialized = {"exporters": exporters,
+                       "importers": importers, "routes": routes}
         return initialized
 
     def haversine_km(self, lat1, lon1, lat2, lon2) -> float:
         lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
         d_lon = lon2 - lon1
         d_lat = lat2 - lat1
-        a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(d_lon / 2) ** 2
+        a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * \
+            math.cos(lat2) * math.sin(d_lon / 2) ** 2
         c = 2 * math.asin(math.sqrt(a))
         return 6371 * c
 
-    def find_closest_node(self, graph:SimulationGraph, store: pd.Series):
-        lat_c = store['geometry'].x
-        lon_c = store['geometry'].y
+    def find_closest_node(self, graph: SimulationGraph, store: pd.Series):
+        # GeoPandas Point: .x is longitude, .y is latitude
+        lon_c = store['geometry'].x
+        lat_c = store['geometry'].y
         return min(
             graph.nodes,
-            key=lambda n: self.haversine_km(lat_c, lon_c, graph.nodes[n].get("y", 0), graph.nodes[n].get("x", 0))
+            key=lambda n: self.haversine_km(
+                lat_c, lon_c, graph.nodes[n].get("y", 0), graph.nodes[n].get("x", 0))
         )
 
-    def initialize_exporters(self, graph:SimulationGraph) -> list[ExporterAgent]:
+    def initialize_exporters(self, graph: SimulationGraph) -> list[ExporterAgent]:
         for city in exporter_cities:
             store = self.stores[city]
             closest_node = self.find_closest_node(graph, store)
             agent_id = len(self.exporters)
             courier_company = random.choice(list(courier_companies))
-            products = self.delivery_manager.initialize_products(store['store_category'])
+            products = self.delivery_manager.initialize_products(
+                store['store_category'])
             exporter = ExporterAgent(agent_id=agent_id, node_id=closest_node, store_name=store['store_name'],
                                      store_category=store['store_category'], city=city, courier_company=courier_company,
                                      products=products)
             self.exporters.append(exporter)
+        # Debug: show how many exporters were created and sample node ids
+        try:
+            print(
+                f"Initialized {len(self.exporters)} exporters. Sample nodes: {[e.node_id for e in self.exporters[:5]]}")
+        except Exception:
+            pass
         return self.exporters
 
     def initialize_importers(self, graph: SimulationGraph) -> list[BaseAgent]:
@@ -148,6 +167,12 @@ class AgentManager:
             agent_id = len(self.exporters) + len(self.importers)
             importer = BaseAgent(agent_id=agent_id, node_id=closest_node)
             self.importers.append(importer)
+        # Debug: show how many importers were created and sample node ids
+        try:
+            print(
+                f"Initialized {len(self.importers)} importers. Sample nodes: {[i.node_id for i in self.importers[:5]]}")
+        except Exception:
+            pass
         return self.importers
 
     def initialize_routes(self, graph: SimulationGraph) -> list[dict]:
@@ -160,8 +185,10 @@ class AgentManager:
         for i, (exp, imp) in enumerate(zip(self.exporters, self.importers), start=0):
             print(exp)
             try:
-                params = {"default_unit_cost": courier_companies[exp.courier_company]}
-                result = exp.find_cheapest_path(graph_undirected, dest_node=imp.node_id, params=params)
+                params = {
+                    "default_unit_cost": courier_companies[exp.courier_company]}
+                result = exp.find_cheapest_path(
+                    graph_undirected, dest_node=imp.node_id, params=params)
                 results.append({
                     "agent_id": i,
                     "exporter_node": exp.node_id,
@@ -178,7 +205,8 @@ class AgentManager:
             "results": results
         }
 
-        path = Path(__file__).parent.parent.parent / "network_data" / "paths.pkl"
+        path = Path(__file__).parent.parent.parent / \
+            "network_data" / "paths.pkl"
         with open(path, "wb") as f:
             pickle.dump(data, f)
 

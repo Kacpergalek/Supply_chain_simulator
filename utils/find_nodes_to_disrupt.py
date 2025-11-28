@@ -30,7 +30,8 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth=20):
         for n in route_nodes
     }
 
-    important_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:10]
+    important_nodes = sorted(
+        node_scores, key=node_scores.get, reverse=True)[:10]
 
     path = Path(__file__).parent.parent
     output_path = path / "form_data" / "place_of_disruption.json"
@@ -44,18 +45,43 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth=20):
 
 def bfs_limited(graph, start, max_depth):
     visited = set()
+
+    # Defensive: if start node is not present in graph, return empty set
+    try:
+        if start not in graph:
+            print(f"bfs_limited: start node {start} is not in the graph")
+            return visited
+    except Exception:
+        # In case 'graph' doesn't support 'in' membership test
+        pass
+
     queue = deque([(start, 0)])
 
     while queue:
         vertex, depth = queue.popleft()
-        if vertex not in visited:
-            visited.add(vertex)
+        # Skip vertices that are not in graph (defensive against inconsistent data)
+        if vertex in visited:
+            continue
 
-            if depth < max_depth:
+        try:
+            if vertex not in graph:
+                # Node disappeared or mismatch in types; skip it
+                continue
+        except Exception:
+            # If graph doesn't support membership test, proceed conservatively
+            pass
+
+        visited.add(vertex)
+
+        if depth < max_depth:
+            try:
                 for neighbor in graph.neighbors(vertex):
                     if neighbor not in visited:
                         queue.append((neighbor, depth + 1))
-    visited.add(start)
+            except Exception:
+                # If neighbors() fails for this vertex, skip it
+                continue
+
     return visited
 
 
@@ -67,7 +93,7 @@ def find_random_nodes_to_disrupt(graph, max_depth=20):
         rand_nodes.append(nodes[rand_index])
     disruption_nodes = set()
     for node in rand_nodes:
-        disruption_nodes.update(bfs_limited(graph, node, max_depth=max_depth)) 
+        disruption_nodes.update(bfs_limited(graph, node, max_depth=max_depth))
     disruption_nodes = list(disruption_nodes)
 
     path = Path(__file__).parent.parent
