@@ -13,6 +13,7 @@ from dashboard.dashboards_manager import DashboardsManager
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
 from network.network import NetworkManager
+from models.agents.exporter_agent import ExporterAgent
 
 # reader = GraphManager()
 #dash = DashboardsManager()
@@ -55,11 +56,33 @@ from network.network import NetworkManager
 
 time_start = time.time()
 network = NetworkManager()
-graph = network.create_graph()
+# graph = network.create_graph()
+graph = network.get_graph_from_file("consolidated_europe")  
+
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
-node1 = graph.get_nearest_node(47, 16)
-node2 = graph.get_nearest_node(52, 6.5)
-# path = graph.astar(node1, node2)
-# print(len(path))
-graph.get_road_length(node1, node2)
+consolidate_start_time = time.time()
+# graph.consolidate_roads(tolerance=15)
+
+reader = GraphManager()
+# reader.save_pickle_file("consolidated_europe_motorway.pkl", graph)
+
+
+empty_graph = graph.coherence(threshold=9000, diff_countries=True)
+reader.save_pickle_file("added_edges_motorway.pkl", empty_graph)
+
+reader.save_pickle_file("europe_motorway.pkl", graph)
+print(f"Consolidation time: {time.time() - consolidate_start_time}")
+
+
+
+graph = reader.load_pickle_graph("europe_motorway.pkl")
+node1 = graph.get_nearest_node(52, 21)
+node2 = graph.get_nearest_node(52.5, 13)
+path = graph.astar(node1, node2)
+print(len(path))
+# graph.get_road_length(node1, node2)
+# coords = (51.20, 51.10, 15.05, 14.90)
+# expo_agent = ExporterAgent(1, node1)
+# path = expo_agent.find_cheapest_path(graph, node2)
+

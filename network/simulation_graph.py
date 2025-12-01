@@ -1,8 +1,10 @@
 import networkx as nx
 import osmnx as ox
 from queue import PriorityQueue, Queue
+from scipy.spatial import cKDTree
 import heapq
 import math
+import numpy as np 
 
 class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, **attr):
@@ -127,9 +129,20 @@ class SimulationGraph(nx.MultiGraph):
         # self = self.__class__(default_capacity = att1["default_capacity"], default_price = att1["default_price"], incoming_graph_data = composed_graph)
         return self
 
-    def display(self):
+    def display(self, coordinates : tuple = None):
         graph = nx.MultiGraph(self)
-        ox.plot_graph(graph)
+
+        if coordinates == None:
+            ox.plot_graph(graph)
+        else:
+            north = coordinates[0]
+            south = coordinates[1]
+            east = coordinates[2]
+            west = coordinates[3] 
+            sub_graph = ox.truncate.truncate_graph_bbox(graph, (north, south, east, west))
+            ox.plot_graph(sub_graph)
+
+
 
 
     def safe_astar_path(self, start_node : int, end_node : int, weight : str = "length"):
@@ -223,10 +236,10 @@ class SimulationGraph(nx.MultiGraph):
 
     def haversine_nodes(self, node1 : int, node2 : int, metric : str):
         if metric == "length":
-            lat1 = self.nodes()[node1]["x"]
-            lon1 = self.nodes()[node1]["y"]
-            lat2 = self.nodes()[node2]["x"]
-            lon2 = self.nodes()[node2]["y"]
+            lon1 = self.nodes()[node1]["x"]
+            lat1 = self.nodes()[node1]["y"]
+            lon2 = self.nodes()[node2]["x"]
+            lat2 = self.nodes()[node2]["y"]
 
             R = 6371  # promień Ziemi
 
@@ -256,9 +269,12 @@ class SimulationGraph(nx.MultiGraph):
             return R * c * 1000
         
         
-    def get_nearest_node(self, lattitude : float, longitude : float):
+    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int = None):
         min_dist = float("inf")
         nearest_node = None
+        if longitude is None and lattitude is None and node is not None:
+            lattitude = self.nodes(data=True)[node]["y"]
+            longitude = self.nodes(data=True)[node]["x"]
 
         for node_id, data in self.nodes(data=True):
             node_lat = data.get('y', None)
@@ -272,3 +288,113 @@ class SimulationGraph(nx.MultiGraph):
                 nearest_node = node_id
 
         return nearest_node
+    
+
+    def consolidate_roads(self, tolerance : int = 15):
+        attributes = self.get_additional_attributes()
+        G_proj = ox.project_graph(nx.MultiGraph(self))
+
+        G_clean = ox.consolidate_intersections(
+            G_proj, 
+            tolerance=tolerance, 
+            rebuild_graph=True, 
+            dead_ends=False 
+        )
+
+        print(f"Liczba węzłów przed: {len(self.nodes)}")
+        print(f"Liczba węzłów po: {len(G_clean.nodes)}")
+        G_final = ox.project_graph(G_clean, to_crs="EPSG:4326")
+
+        self.clear()
+        self.graph.update(G_final.graph)
+        self.add_nodes_from(G_final.nodes(data=True))
+        self.add_edges_from(G_final.edges(data=True, keys=True))
+    
+
+    def coherence(self, threshold: float = 100, diff_countries : bool = True):
+        G_proj = ox.project_graph(nx.MultiGraph(self))
+
+
+        empty_graph = nx.MultiGraph()
+        empty_graph.graph = G_proj.graph.copy()
+        
+        end_nodes = [n for n, d in G_proj.degree() if d == 1]
+        all_nodes = list(G_proj.nodes())
+        
+        if not end_nodes:
+            print("Brak wiszących węzłów do naprawy.")
+            return
+
+        node_coords = np.array([[G_proj.nodes[n]['x'], G_proj.nodes[n]['y']] for n in all_nodes])
+        tree = cKDTree(node_coords)
+        
+        count_fixed = 0
+        for node in end_nodes:
+            node_pos = [G_proj.nodes[node]['x'], G_proj.nodes[node]['y']]
+        
+            # dists, idxs = tree.query(node_pos, k=2)
+            idxs = tree.query_ball_point(node_pos, threshold, workers=-1)
+            
+            # nearest_dist = dists[1]
+            # nearest_idx = idxs[1]
+            # nearest_node = all_nodes[nearest_idx]
+            # for idx in idxs:
+            #     nearest_node = all_nodes[idx]
+            #     data_node = G_proj.nodes(data=True)[node]
+            #     data_nearest_node = G_proj.nodes(data=True)[nearest_node]
+
+            #     country_a = data_node.get("country")
+            #     country_b = data_nearest_node.get("country")
+            #     if diff_countries and country_a and country_b and country_a != country_b:
+            #     node_distance = 
+            nearest_node, distance = self.get_nearest_index(G_proj, idxs, node)
+
+            if nearest_node is not None and not G_proj.has_edge(node, nearest_node):
+                
+                edges = list(G_proj.edges(node, data=True)) or list(G_proj.in_edges(node, data=True))
+                ref_data = edges[0][2] if edges else {}
+
+                new_edge_data = {
+                    'length': distance,
+                    'highway': ref_data.get('highway', 'motorway_link'),
+                    'oneway': False,
+                    'maxspeed': ref_data.get('maxspeed', '50')
+                }
+                
+                G_proj.add_edge(node, nearest_node, **new_edge_data)
+
+                empty_graph.add_node(node, **G_proj.nodes[node])
+                empty_graph.add_node(nearest_node, **G_proj.nodes[nearest_node])
+                empty_graph.add_edge(node, nearest_node, **new_edge_data)
+                
+                count_fixed += 1
+
+        print(f"Naprawiono (połączono) {count_fixed} przerwanych dróg.")
+
+        G_final = ox.project_graph(G_proj, to_crs="EPSG:4326")
+        self.clear()
+        self.add_nodes_from(G_final.nodes(data=True))
+        self.add_edges_from(G_final.edges(keys=True, data=True))
+        self.graph.update(G_final.graph)
+        final_empty = ox.project_graph(empty_graph, to_crs="EPSG:4326")
+        final_empty.graph.update(empty_graph.graph)
+        return final_empty
+    
+
+    def get_nearest_index(self, G_proj, indexes, node):
+        all_nodes = list(G_proj.nodes())
+        shortest_distance = float("inf")
+        closest_node = None
+        for idx in indexes:
+            nearest_node = all_nodes[idx]
+            data_node = G_proj.nodes(data=True)[node]
+            data_nearest_node = G_proj.nodes(data=True)[nearest_node]
+
+            country_a = data_node.get("country")
+            country_b = data_nearest_node.get("country")
+            node_dist = self.haversine_nodes(node, nearest_node, "length")
+            if country_a and country_b and country_a != country_b and shortest_distance > node_dist:
+                shortest_distance = node_dist
+                closest_node = all_nodes[idx]
+        
+        return (closest_node, shortest_distance)

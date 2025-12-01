@@ -19,12 +19,9 @@ class GraphManager():
         self.graph = None
 
     def load_pickle_graph(self, pickle_file_name) -> SimulationGraph:
-        # project_root = os.path.abspath("..")
-        # if project_root not in sys.path:
-        #     sys.path.append(project_root)
-
         path = Path(__file__).parent.parent
         json_file_name = pickle_file_name.split(".")[0] + ".json"
+        
         try:
             json_path = os.path.join(path, self.folder, json_file_name)
             with open(json_path, "r") as json_file:
@@ -51,20 +48,29 @@ class GraphManager():
     
 
     def save_pickle_file(self, file_name, graph):
+        path = Path(__file__).parent.parent
+        pickle_full_path = os.path.join(path, self.folder, file_name)
+
         if isinstance(graph, SimulationGraph):
             attributes = graph.get_additional_attributes()
             json_file_name = file_name.split(".")[0] + ".json"
-            with open(f"../{self.folder}/{json_file_name}", "w") as json_file:
+            json_full_path = os.path.join(path, self.folder, json_file_name)
+
+            with open(json_full_path, "w") as json_file:
                 json.dump(attributes, json_file, indent=4)
-            with open(f"../{self.folder}/{file_name}", "wb") as pickle_file:
+            
+            with open(pickle_full_path, "wb") as pickle_file:
                 pickle.dump(nx.MultiGraph(graph), pickle_file)
         else:
-            with open(f"../{self.folder}/{file_name}", "wb") as pickle_file:
+            with open(pickle_full_path, "wb") as pickle_file:
                 pickle.dump(graph, pickle_file)
 
 
     def save_graphml_file(self, file_name, graph):
+        path = Path(__file__).parent.parent
+        full_path = os.path.join(path, self.folder, file_name)
+
         if isinstance(graph, SimulationGraph):
-            ox.save_graphml(nx.MultiGraph(graph), f"../{self.folder}/{file_name}")
+            ox.save_graphml(nx.MultiGraph(graph), full_path)
         else: 
-            ox.save_graphml(graph, f"../{self.folder}/{file_name}")
+            ox.save_graphml(graph, full_path)

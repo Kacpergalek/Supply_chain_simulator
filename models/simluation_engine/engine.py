@@ -10,6 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..'
 
 from network.countries import europe_countries
 from utils.find_nodes_to_disrupt import bfs_limited
+from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 
 from models.agents.base_agent import BaseAgent
 from models.agents.exporter_agent import ExporterAgent
@@ -40,7 +41,8 @@ class Simulation:
         """ Network initialization"""
         time_start = time.time()
         network_manager = NetworkManager()
-        self.network = network_manager.create_graph()
+        # self.network = network_manager.create_graph()
+        self.network = network_manager.get_graph_from_file("europe")
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
         """ Agents initialization """
@@ -100,7 +102,7 @@ class Simulation:
         for i in range(len(self.agent_paths)):
             delivery = self.deliveries[i]
             finances = random.randrange(1000, 5000)
-            quantity = random.randrange(int(delivery.capacity*0.4), delivery.capacity)
+            quantity = random.randrange(int(delivery.capacity*0.4), int(delivery.capacity))
             price = random.randrange(int(delivery.cost / delivery.lead_time / quantity),
                                      int(delivery.cost / delivery.lead_time / delivery.capacity * 100))
 
@@ -112,7 +114,7 @@ class Simulation:
             self.importers.append(importer)
 
         # NOWE: wywolanie funkcji ktora szuka najlepszych wezlow do disruption i zapisuje w json i zapisanie wersji mapy na samym poczatku bez zadnych zaklocen
-        # find_nodes_to_disrupt(self.network, self.deliveries)
+        find_nodes_to_disrupt(self.network, self.deliveries)
         self.save_deliveries()
         self.save_current_map()
         #time.sleep(2)
