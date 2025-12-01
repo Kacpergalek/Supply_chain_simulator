@@ -16,14 +16,18 @@ class NetworkManager():
 
     def create_graph(self, region : str = "Europe", road_type : str = "motorway"):
         if region == "Europe":
-            full_graph = self.get_country_from_file(europe_countries[0], road_type=road_type)
+            full_graph = self.get_graph_from_file(europe_countries[0], road_type=road_type)
             for country in europe_countries[1:]:
-                graph = self.get_country_from_file(country, road_type=road_type)
+                graph = self.get_graph_from_file(country, road_type=road_type)
                 full_graph.compose(graph)
         return full_graph
 
 
-    def get_country_from_file(self, country : str, road_type : str = "motorway") -> SimulationGraph:
+    def get_graph_from_file(self, country : str, road_type : str = "motorway") -> SimulationGraph:
         file_path = f"{unidecode(country).lower().replace(" ", "_")}_{road_type}.pkl"
         sim_graph = self.graph_manager.load_pickle_graph(file_path)
+        if sim_graph is not None:
+            for node, data in sim_graph.nodes(data=True):
+                if "country" not in data:
+                    data["country"] = unidecode(country).lower().replace(" ", "_")
         return sim_graph
