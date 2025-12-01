@@ -56,15 +56,15 @@ from models.agents.exporter_agent import ExporterAgent
 
 time_start = time.time()
 network = NetworkManager()
+reader = GraphManager()
+""" 
+
 # graph = network.create_graph()
 graph = network.get_graph_from_file("consolidated_europe")  
-
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
-
 consolidate_start_time = time.time()
 # graph.consolidate_roads(tolerance=15)
 
-reader = GraphManager()
 # reader.save_pickle_file("consolidated_europe_motorway.pkl", graph)
 
 
@@ -74,13 +74,16 @@ reader.save_pickle_file("added_edges_motorway.pkl", empty_graph)
 reader.save_pickle_file("europe_motorway.pkl", graph)
 print(f"Consolidation time: {time.time() - consolidate_start_time}")
 
-
+ """
 
 graph = reader.load_pickle_graph("europe_motorway.pkl")
+print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 node1 = graph.get_nearest_node(52, 21)
 node2 = graph.get_nearest_node(52.5, 13)
+
+astar_time = time.time()
 path = graph.astar(node1, node2)
-print(len(path))
+print(f"Liczba nodów: {len(path)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
 # graph.get_road_length(node1, node2)
 # coords = (51.20, 51.10, 15.05, 14.90)
 # expo_agent = ExporterAgent(1, node1)

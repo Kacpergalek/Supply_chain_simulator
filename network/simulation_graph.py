@@ -78,13 +78,8 @@ class SimulationGraph(nx.MultiGraph):
 
 
     def safe_shortest_path(self, start_node : int, end_node : int, weight : str = "cost"):
-        mutlidigraf = nx.MultiGraph(self)
-        sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
-
-        deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
-
-        sim_graph_cpy.remove_nodes_from(deactivated_nodes)
-        return nx.shortest_path(sim_graph_cpy, start_node, end_node, weight=weight)
+        active_sim_graph = self.get_active_graph()
+        return nx.shortest_path(active_sim_graph, start_node, end_node, weight=weight)
 
 
     def send_goods(self, amount, path=None, osmids=None):
@@ -117,6 +112,7 @@ class SimulationGraph(nx.MultiGraph):
             "default_price" : self.default_price
         }
     
+    
     def compose(self, graph):
         att1 = self.get_additional_attributes()
         multigraph2 = nx.MultiGraph(graph)
@@ -143,42 +139,19 @@ class SimulationGraph(nx.MultiGraph):
             ox.plot_graph(sub_graph)
 
 
-
-
     def safe_astar_path(self, start_node : int, end_node : int, weight : str = "length"):
-        mutlidigraf = nx.MultiGraph(self)
-        sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutlidigraf)
+        active_sim_graph = self.get_active_graph()
+        return nx.astar_path(active_sim_graph, start_node, end_node, weight=weight)
+
+
+    def get_active_graph(self):
+        mutligraf = nx.MultiGraph(self)
+        sim_graph_cpy = self.__class__(default_capacity = self.default_capacity, default_price = self.default_price, incoming_graph_data = mutligraf)
 
         deactivated_nodes = [node for node, data in sim_graph_cpy.nodes(data=True) if data["active"] == False]
 
         sim_graph_cpy.remove_nodes_from(deactivated_nodes)
-        return nx.astar_path(sim_graph_cpy, start_node, end_node, weight=weight)
-
-
-    # def astar(self, start_node : int, end_node : int, metric : str = "length"):
-
-    #     entry_queue = []
-    #     closed_set = set()
-
-    #     heapq.heappush(entry_queue, (0.0, 0.0, start_node))
-    #     while len(entry_queue) > 0:
-    #         node_f, node_g, node = heapq.heappop(entry_queue)
-    #         for neighbour in self.neighbors(node):
-    #             if neighbour == end_node:
-    #                 return "success"
-    #             else:
-    #                 neighbour_g = node_g + self.haversine(node, neighbour, metric)
-    #                 neighbour_h = self.heuristic_distace(neighbour, end_node, metric)
-    #                 neighbour_f = neighbour_g + neighbour_h
-
-    #                 if neighbour_f > any([node[0] for node in entry_queue]):
-    #                     continue
-
-    #                 if neighbour_f > any([node[0] for node in closed_set]):
-    #                     continue
-    #                 else:
-    #                     heapq.heappush(entry_queue, (neighbour_f, neighbour_g, neighbour))
-    #         closed_set.add((node_f, node_g, node))
+        return sim_graph_cpy
 
 
     def astar(self, start_node: int, end_node: int, metric: str = "length"):
@@ -189,7 +162,7 @@ class SimulationGraph(nx.MultiGraph):
         g_score = {start_node: 0.0}
 
         while len(entry_queue) > 0:
-            print(g_score)
+            # print(g_score)
             _, current_g, current_node = heapq.heappop(entry_queue)
 
             if current_node == end_node:
@@ -291,7 +264,6 @@ class SimulationGraph(nx.MultiGraph):
     
 
     def consolidate_roads(self, tolerance : int = 15):
-        attributes = self.get_additional_attributes()
         G_proj = ox.project_graph(nx.MultiGraph(self))
 
         G_clean = ox.consolidate_intersections(
@@ -311,7 +283,7 @@ class SimulationGraph(nx.MultiGraph):
         self.add_edges_from(G_final.edges(data=True, keys=True))
     
 
-    def coherence(self, threshold: float = 100, diff_countries : bool = True):
+    def coherence(self, threshold: float = 100, type : str = "country"):
         G_proj = ox.project_graph(nx.MultiGraph(self))
 
 
@@ -331,23 +303,9 @@ class SimulationGraph(nx.MultiGraph):
         count_fixed = 0
         for node in end_nodes:
             node_pos = [G_proj.nodes[node]['x'], G_proj.nodes[node]['y']]
-        
-            # dists, idxs = tree.query(node_pos, k=2)
-            idxs = tree.query_ball_point(node_pos, threshold, workers=-1)
-            
-            # nearest_dist = dists[1]
-            # nearest_idx = idxs[1]
-            # nearest_node = all_nodes[nearest_idx]
-            # for idx in idxs:
-            #     nearest_node = all_nodes[idx]
-            #     data_node = G_proj.nodes(data=True)[node]
-            #     data_nearest_node = G_proj.nodes(data=True)[nearest_node]
 
-            #     country_a = data_node.get("country")
-            #     country_b = data_nearest_node.get("country")
-            #     if diff_countries and country_a and country_b and country_a != country_b:
-            #     node_distance = 
-            nearest_node, distance = self.get_nearest_index(G_proj, idxs, node)
+            idxs = tree.query_ball_point(node_pos, threshold, workers=-1)            
+            nearest_node, distance = self.get_nearest_index(G_proj, idxs, node, type)
 
             if nearest_node is not None and not G_proj.has_edge(node, nearest_node):
                 
@@ -381,7 +339,7 @@ class SimulationGraph(nx.MultiGraph):
         return final_empty
     
 
-    def get_nearest_index(self, G_proj, indexes, node):
+    def get_nearest_index(self, G_proj : nx.MultiGraph, indexes : list, node : int, type : str):
         all_nodes = list(G_proj.nodes())
         shortest_distance = float("inf")
         closest_node = None
@@ -390,8 +348,8 @@ class SimulationGraph(nx.MultiGraph):
             data_node = G_proj.nodes(data=True)[node]
             data_nearest_node = G_proj.nodes(data=True)[nearest_node]
 
-            country_a = data_node.get("country")
-            country_b = data_nearest_node.get("country")
+            country_a = data_node.get(type)
+            country_b = data_nearest_node.get(type)
             node_dist = self.haversine_nodes(node, nearest_node, "length")
             if country_a and country_b and country_a != country_b and shortest_distance > node_dist:
                 shortest_distance = node_dist
