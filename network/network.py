@@ -14,7 +14,7 @@ class NetworkManager():
         self.graph_manager = GraphManager(folder=folder)
 
 
-    def create_graph(self, region : str = "Europe", road_type : str = "motorway"):
+    def create_graph(self, region : str = "Europe", road_type : str = "motorway") -> SimulationGraph:
         if region == "Europe":
             full_graph = self.get_graph_from_file(europe_countries[0], road_type=road_type)
             for country in europe_countries[1:]:
@@ -31,3 +31,6 @@ class NetworkManager():
                 if "country" not in data:
                     data["country"] = unidecode(country).lower().replace(" ", "_")
         return sim_graph
+    
+    def add_infrastructure(self, graph : SimulationGraph, type : str):
+        pass

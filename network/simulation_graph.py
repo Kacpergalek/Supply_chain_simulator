@@ -286,7 +286,6 @@ class SimulationGraph(nx.MultiGraph):
     def coherence(self, threshold: float = 100, type : str = "country"):
         G_proj = ox.project_graph(nx.MultiGraph(self))
 
-
         empty_graph = nx.MultiGraph()
         empty_graph.graph = G_proj.graph.copy()
         
@@ -301,20 +300,21 @@ class SimulationGraph(nx.MultiGraph):
         tree = cKDTree(node_coords)
         
         count_fixed = 0
+        visited_nodes = set()
         for node in end_nodes:
             node_pos = [G_proj.nodes[node]['x'], G_proj.nodes[node]['y']]
 
             idxs = tree.query_ball_point(node_pos, threshold, workers=-1)            
             nearest_node, distance = self.get_nearest_index(G_proj, idxs, node, type)
 
-            if nearest_node is not None and not G_proj.has_edge(node, nearest_node):
+            if nearest_node is not None and not G_proj.has_edge(node, nearest_node) and node not in visited_nodes and nearest_node not in visited_nodes:
                 
                 edges = list(G_proj.edges(node, data=True)) or list(G_proj.in_edges(node, data=True))
                 ref_data = edges[0][2] if edges else {}
 
                 new_edge_data = {
                     'length': distance,
-                    'highway': ref_data.get('highway', 'motorway_link'),
+                    'highway': ref_data.get('highway', 'motorway'),
                     'oneway': False,
                     'maxspeed': ref_data.get('maxspeed', '50')
                 }
@@ -326,6 +326,9 @@ class SimulationGraph(nx.MultiGraph):
                 empty_graph.add_edge(node, nearest_node, **new_edge_data)
                 
                 count_fixed += 1
+                visited_nodes.add(nearest_node)
+
+            visited_nodes.add(node)
 
         print(f"Naprawiono (połączono) {count_fixed} przerwanych dróg.")
 

@@ -57,24 +57,24 @@ from models.agents.exporter_agent import ExporterAgent
 time_start = time.time()
 network = NetworkManager()
 reader = GraphManager()
-""" 
 
-# graph = network.create_graph()
-graph = network.get_graph_from_file("consolidated_europe")  
+""" 
+graph = network.create_graph()
+# graph = network.get_graph_from_file("consolidated_europe")  
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 consolidate_start_time = time.time()
-# graph.consolidate_roads(tolerance=15)
+graph.consolidate_roads(tolerance=15)
 
-# reader.save_pickle_file("consolidated_europe_motorway.pkl", graph)
+reader.save_pickle_file("consolidated_europe_motorway.pkl", graph)
 
 
-empty_graph = graph.coherence(threshold=9000, diff_countries=True)
+empty_graph = graph.coherence(threshold=10000)
 reader.save_pickle_file("added_edges_motorway.pkl", empty_graph)
 
 reader.save_pickle_file("europe_motorway.pkl", graph)
-print(f"Consolidation time: {time.time() - consolidate_start_time}")
+print(f"Consolidation time: {time.time() - consolidate_start_time}") """
 
- """
+
 
 graph = reader.load_pickle_graph("europe_motorway.pkl")
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
