@@ -18,7 +18,15 @@ def plot_agent_routes(
     m = folium.Map(location=[52.23, 21.01], zoom_start=6)
 
     # === 🔥 NIE rysujemy całej sieci dróg — TYLKO TRASY ===
-
+    for u, v, key, data in graph.edges(data=True, keys=True):
+        x1, y1 = graph.nodes[u]["y"], graph.nodes[u]["x"]  # lat, lon
+        x2, y2 = graph.nodes[v]["y"], graph.nodes[v]["x"]
+        folium.PolyLine(
+            [(x1, y1), (x2, y2)],
+            color="black",
+            weight=1,
+            opacity=0.4
+        ).add_to(m)
     # Draw routes
     colors = ['blue','orange','green','red','purple','brown','pink','gray','olive','cyan']
     for i, path in enumerate(routes):
