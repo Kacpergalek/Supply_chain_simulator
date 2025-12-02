@@ -1,3 +1,4 @@
+import json
 import math
 import pickle
 import random
@@ -75,6 +76,12 @@ class AgentManager:
 
                 except Exception as e:
                     print(f"   > Polygon not found for '{city}'")
+                    self.cities[country].remove(city)
+        with open('europe_top_cities_filtered.json', 'w') as fp:
+            json.dump(self.cities, fp)
+        self.save_to_pickle("furniture")
+        self.save_to_pickle("technology")
+        self.save_to_pickle("office_supplies")
 
     def save_to_pickle(self, filename: str) -> None:
         path = Path(__file__).parent.parent.parent / "parameters"
@@ -182,6 +189,25 @@ class AgentManager:
                                            default_price=graph.default_price,
                                            incoming_graph_data=graph)
 
+        # --- DEBUG: show connected components and where agents are  ---
+        import networkx as nx
+        components = list(nx.connected_components(graph_undirected))
+        print(f"Graph has {len(components)} connected components")
+        comp_index_by_node = {}
+        for idx, comp in enumerate(components):
+            for n in comp:
+                comp_index_by_node[n] = idx
+
+        for idx, exp in enumerate(self.exporters):
+            imp = self.importers[idx]
+            exp_comp = comp_index_by_node.get(exp.node_id, None)
+            imp_comp = comp_index_by_node.get(imp.node_id, None)
+            print(
+                f"Pair {idx}: exporter {exp.node_id} in comp {exp_comp}, "
+                f"importer {imp.node_id} in comp {imp_comp}"
+            )
+        # --- END DEBUG ---
+
         for i, (exp, imp) in enumerate(zip(self.exporters, self.importers), start=0):
             print(exp)
             try:
@@ -218,8 +244,6 @@ class AgentManager:
     #         exporter.production_price = exporter.delivery.calculate_production_price()
 
 
-# if __name__ == "__main__":
-#     am = AgentManager()
-#     am.make_city_dict()
-#     am.make_product_lists()
-#     print(am.technology)
+if __name__ == "__main__":
+    am = AgentManager()
+    am.initialize_stores()
