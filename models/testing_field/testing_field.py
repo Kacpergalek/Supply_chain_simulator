@@ -3,9 +3,10 @@ from pathlib import Path
 import sys
 import os
 import time
+import osmnx as ox
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
-from network.countries import europe_countries
+from network.europe import europe_countries
 from models.simluation_engine.engine import Simulation
 from network.graph_reader import GraphManager
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
@@ -76,7 +77,7 @@ print(f"Consolidation time: {time.time() - consolidate_start_time}") """
 
 
 
-graph = reader.load_pickle_graph("europe_motorway.pkl")
+""" graph = reader.load_pickle_graph("europe_motorway.pkl")
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 node1 = graph.get_nearest_node(52, 21)
 node2 = graph.get_nearest_node(52.5, 13)
@@ -88,4 +89,14 @@ print(f"Liczba nodów: {len(path)}, czas wykonywania astara: {round(time.time() 
 # coords = (51.20, 51.10, 15.05, 14.90)
 # expo_agent = ExporterAgent(1, node1)
 # path = expo_agent.find_cheapest_path(graph, node2)
+europe = graph.get_border_polygon()
+airports_graph = ox.graph_from_polygon(europe, custom_filter=filter)
+print(len(list(airports_graph.nodes()))) """
 
+
+graph = network.load_airports_graph(10, 100)
+for n, data in graph.nodes(data=True):
+    print(data) 
+
+for u, v, k, data in graph.edges(data=True, keys=True):
+    print(f"Start: {u}, end: {v}, key: {k}, data: {data}")

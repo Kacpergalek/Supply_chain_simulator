@@ -5,9 +5,14 @@ from scipy.spatial import cKDTree
 import heapq
 import math
 import numpy as np 
+from shapely import Polygon
+import os
+import sys
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.graph_helper import haversine_coordinates
 class SimulationGraph(nx.MultiGraph):
-    def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, **attr):
+    def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, type : str = "road", **attr):
         super().__init__(incoming_graph_data, multigraph_input, **attr)
         self.default_capacity = default_capacity
         self.default_price = default_price
@@ -23,7 +28,7 @@ class SimulationGraph(nx.MultiGraph):
             if "active" not in data:
                 data["active"] = True
             if "type" not in data:
-                data["type"] = "road" # będziemy dodawać firmy/dostawców
+                data["type"] = type # będziemy dodawać firmy/dostawców
             
 
 
@@ -152,9 +157,18 @@ class SimulationGraph(nx.MultiGraph):
 
         sim_graph_cpy.remove_nodes_from(deactivated_nodes)
         return sim_graph_cpy
+    
+
+    def reconstruct_path(self, came_from : dict, current : int):
+        total_path = [current]
+        while current in came_from:
+            current = came_from[current]
+            total_path.append(current)
+        return total_path[::-1] 
 
 
     def astar(self, start_node: int, end_node: int, metric: str = "length"):
+        active_sim_graph = self.get_active_graph()
         entry_queue = []
         heapq.heappush(entry_queue, (0.0, 0.0, start_node))
         
@@ -191,14 +205,6 @@ class SimulationGraph(nx.MultiGraph):
             print(edges)
 
 
-    def reconstruct_path(self, came_from, current):
-        total_path = [current]
-        while current in came_from:
-            current = came_from[current]
-            total_path.append(current)
-        return total_path[::-1] 
-
-
     def heuristic(self, start_node : int, end_node : int, metric : str, mode : str = "euclidean"):
         if mode == "euclidean":
             return self.haversine_nodes(start_node, end_node, metric)
@@ -226,21 +232,6 @@ class SimulationGraph(nx.MultiGraph):
 
             return R * c * 1000
         
-
-    def haversine_coordinates(self, lat1, lon1, lat2, lon2, metric : str):
-        if metric == "length":
-            R = 6371  # promień Ziemi
-
-            phi1 = math.radians(lat1)
-            phi2 = math.radians(lat2)
-            dphi = math.radians(lat2 - lat1)
-            dlambda = math.radians(lon2 - lon1)
-
-            a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-            return R * c * 1000
-        
         
     def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int = None):
         min_dist = float("inf")
@@ -255,7 +246,7 @@ class SimulationGraph(nx.MultiGraph):
             if node_lat is None or node_lon is None:
                 continue
 
-            dist = self.haversine_coordinates(lattitude, longitude, node_lat, node_lon, "length")
+            dist = haversine_coordinates(lattitude, longitude, node_lat, node_lon, "length")
             if dist < min_dist:
                 min_dist = dist
                 nearest_node = node_id
@@ -359,3 +350,11 @@ class SimulationGraph(nx.MultiGraph):
                 closest_node = all_nodes[idx]
         
         return (closest_node, shortest_distance)
+    
+
+    def get_border_polygon(self):
+        nodes_gdf = ox.graph_to_gdfs(nx.MultiGraph(self), edges=False)
+        min_x, min_y, max_x, max_y = nodes_gdf.total_bounds
+
+        graph_area = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y), (min_x, min_y)])
+        return graph_area

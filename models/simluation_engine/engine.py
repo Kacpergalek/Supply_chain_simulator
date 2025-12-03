@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
-from network.countries import europe_countries
+from network.europe import europe_countries
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 
@@ -43,6 +43,8 @@ class Simulation:
         network_manager = NetworkManager()
         # self.network = network_manager.create_graph()
         self.network = network_manager.get_graph_from_file("europe")
+        airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
+        self.network.compose(airplane_graph)
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
         """ Agents initialization """

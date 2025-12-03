@@ -43,3 +43,10 @@ europe_countries = [
     "Wielka Brytania",
     "Włochy"
 ]
+
+top_europe_airports_iata = [
+        "CDG", "AMS", "FRA", "MAD", "BCN", "IST", "MUC", "FCO", "LGW",
+        "DUB", "VIE", "ZRH", "CPH", "OSL", "MXP", "MAN", "BRU", "ARN",
+        "ATH", "DUS", "TXL", "GVA", "HAM", "HEL", "LIS", "WAW", "OTP", 
+        "PRG", "OSL", "ARN"
+    ]

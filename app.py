@@ -14,7 +14,6 @@ import plotly.graph_objs as go
 from dashboard.dashboards_manager import DashboardsManager
 from models.simluation_engine.engine import Simulation
 from network.graph_reader import GraphManager
-from network.countries import europe_countries
 import threading
 from network.empty_visualization import plot_empty_map
 
@@ -24,12 +23,6 @@ plot_empty_map()
 RESULTS_PATH = Path('form_data')
 OUTPUT_PATH = Path('output')
 ASSETS_DIR = Path(__file__).parent / "assets"
-# reader = GraphManager()
-# map = {}
-# for country in europe_countries:
-#     graph = reader.load_pickle_graph(f"{country}_motorway.pkl")
-#     if graph:
-#         map[country] = graph
 
 
 
