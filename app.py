@@ -24,8 +24,6 @@ RESULTS_PATH = Path('form_data')
 OUTPUT_PATH = Path('output')
 ASSETS_DIR = Path(__file__).parent / "assets"
 
-
-
 # --- Logging queue + SSE setup ---
 log_queue = queue.Queue()
 

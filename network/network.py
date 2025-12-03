@@ -5,17 +5,22 @@ import os
 from unidecode import unidecode
 import pandas as pd
 from pathlib import Path
+import searoute.searoute as sr
+from shapely import LineString
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from network.simulation_graph import SimulationGraph
 from network.graph_reader import GraphManager
 from network.europe import europe_countries
 from network.europe import top_europe_airports_iata
+from network.europe import europe_country_codes
+from network.europe import europe_seaports_un_locode
 from utils.graph_helper import haversine_coordinates
 
 class NetworkManager():
-    def __init__(self, folder : str = "network_data"):
+    def __init__(self, folder : str = "network_data", default_crs : str = "EPSG:4326"):
         self.graph_manager = GraphManager(folder=folder)
+        self.default_crs = default_crs
 
 
     def create_graph(self, region : str = "Europe", road_type : str = "motorway") -> SimulationGraph:
@@ -41,7 +46,6 @@ class NetworkManager():
 
 
     def load_airports_graph(self, default_capacity : int, default_price : float, airports_filename : str = "airports.dat", routes_filename : str = "routes.dat"):
-        crs="EPSG:4326"
         path = Path(__file__).parent.parent
         folder_path = os.path.join(path, "simulation_data", "airports")
         airports_path = os.path.join(folder_path, airports_filename)
@@ -52,7 +56,7 @@ class NetworkManager():
         df_top_airports = df_airports[df_airports["IATA"].isin(top_europe_airports_iata)].copy()
 
         graph = nx.MultiGraph()
-        graph.graph["crs"] = crs
+        graph.graph["crs"] = self.default_crs
         coords_map = {}
         for i, row in df_top_airports.iterrows():
             iata = row["IATA"]
@@ -99,3 +103,77 @@ class NetworkManager():
                 graph.add_edge(aita_source, aita_dest, **edge_data)
 
         return SimulationGraph(default_capacity, default_price, incoming_graph_data=graph)
+
+
+    def load_seaports_graph(self, default_capacity : int, default_price : float, seaports_filename : str = "UPPLY-SEAPORTS.csv"):
+        path = Path(__file__).parent.parent
+        folder_path = os.path.join(path, "simulation_data", "seaports")
+        seaports_path = os.path.join(folder_path, seaports_filename)
+
+        df_seaports = pd.read_csv(seaports_path, header=0, delimiter=";")
+        df_eu_seaports = df_seaports[df_seaports["country_code"].isin(europe_country_codes) & df_seaports["code"].isin(europe_seaports_un_locode)].copy()
+
+        hubs = ["NLROT", "BEANR", "DEHAM", "DEBRV", "ESALG", "GRPIR"]
+
+        graph = nx.MultiGraph()
+        graph.graph["crs"] = self.default_crs
+        coords_map = {}
+        for i, row in df_eu_seaports.iterrows():
+            node_id = row["code"]
+            node_data = {
+                "y" : row["latitude"],
+                "x" : row["longitude"],
+                "country" : row["country_code"],
+                "active" : True,
+                "type" : "seaport",
+                "hub" : (node_id in hubs) 
+            }
+            graph.add_node(node_id, **node_data)
+            coords_map[node_id] = (row["latitude"], row["longitude"])
+
+        hub_map = {}
+        for u, data_u in graph.nodes(data=True):
+            for v, data_v in graph.nodes(data=True):
+                if data_v.get("hub") and data_u.get("hub") and u != v and (u not in list(hub_map.keys()) or v not in list(hub_map.keys())):
+                    route_geojson = sr([data_u["x"], data_u["y"]], [data_v["x"], data_v["y"]])
+                    graph.add_edge(u, v, **self.get_edge_data(route_geojson, default_capacity, default_price))
+                    if not hub_map.get(v):
+                        hub_map[v] = (data_v["x"], data_v["y"])
+                    if not hub_map.get(u):
+                        hub_map[u] = (data_u["x"], data_u["y"])
+
+        for u, data_u in graph.nodes(data=True):
+            nearest_hub = None
+            nearest_geojson = None
+            if not data_u.get("hub"):
+                distance = float("inf")
+                for hub_key, hub_value in hub_map.items():
+                    geojson = sr([data_u["x"], data_u["y"]], [hub_value[0], hub_value[1]])
+                    length = geojson["properties"]["length"]
+                    if length < distance:
+                        distance = length 
+                        nearest_hub = hub_key
+                        nearest_geojson = geojson
+                if nearest_hub is not None and nearest_geojson is not None:
+                    graph.add_edge(u, nearest_hub, **self.get_edge_data(nearest_geojson, default_capacity, default_price))
+
+        return SimulationGraph(default_capacity=default_capacity, default_price=default_price, incoming_graph_data=graph)
+
+
+    def get_edge_data(self, route_geojson : dict, default_capacity, default_price):
+        length = route_geojson["properties"]["length"]
+        unit = route_geojson["properties"]["units"]
+        duration_hours = route_geojson["properties"]["duration_hours"]
+        linestring = LineString(route_geojson["geometry"]["coordinates"])
+        m = 1
+        if unit == "km":
+            m = 1000
+        edge_data = {
+            "length" : length * m,
+            "capacity" : default_capacity,
+            "cost" : length/m *default_price,
+            "flow" : 0,
+            "duration_hours" : duration_hours,
+            "linestring" : linestring
+        }
+        return edge_data

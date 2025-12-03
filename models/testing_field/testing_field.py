@@ -94,7 +94,7 @@ airports_graph = ox.graph_from_polygon(europe, custom_filter=filter)
 print(len(list(airports_graph.nodes()))) """
 
 
-graph = network.load_airports_graph(10, 100)
+graph = network.load_seaports_graph(10, 100)
 for n, data in graph.nodes(data=True):
     print(data) 
 
