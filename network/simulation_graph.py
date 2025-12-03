@@ -23,6 +23,8 @@ class SimulationGraph(nx.MultiGraph):
                 data["cost"] = data["length"]/1000 * self.default_price
             if "flow" not in data:
                 data["flow"] = 0
+            if "type" not in data:
+                data["type"] = type
         
         for node, data in self.nodes(data=True):
             if "active" not in data:
@@ -82,7 +84,7 @@ class SimulationGraph(nx.MultiGraph):
                 data["active"] = True
 
 
-    def safe_shortest_path(self, start_node : int, end_node : int, weight : str = "cost"):
+    def safe_shortest_path(self, start_node : int | str, end_node : int | str, weight : str = "cost"):
         active_sim_graph = self.get_active_graph()
         return nx.shortest_path(active_sim_graph, start_node, end_node, weight=weight)
 
@@ -144,7 +146,7 @@ class SimulationGraph(nx.MultiGraph):
             ox.plot_graph(sub_graph)
 
 
-    def safe_astar_path(self, start_node : int, end_node : int, weight : str = "length"):
+    def safe_astar_path(self, start_node : int | str, end_node : int | str, weight : str = "length"):
         active_sim_graph = self.get_active_graph()
         return nx.astar_path(active_sim_graph, start_node, end_node, weight=weight)
 
@@ -205,7 +207,7 @@ class SimulationGraph(nx.MultiGraph):
             print(edges)
 
 
-    def heuristic(self, start_node : int, end_node : int, metric : str, mode : str = "euclidean"):
+    def heuristic(self, start_node : int | str, end_node : int | str, metric : str, mode : str = "euclidean"):
         if mode == "euclidean":
             return self.haversine_nodes(start_node, end_node, metric)
         if mode == "manhattan":
@@ -233,7 +235,7 @@ class SimulationGraph(nx.MultiGraph):
             return R * c * 1000
         
         
-    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int = None):
+    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int | str = None):
         min_dist = float("inf")
         nearest_node = None
         if longitude is None and lattitude is None and node is not None:
@@ -243,7 +245,7 @@ class SimulationGraph(nx.MultiGraph):
         for node_id, data in self.nodes(data=True):
             node_lat = data.get('y', None)
             node_lon = data.get('x', None)
-            if node_lat is None or node_lon is None:
+            if node_lat is None or node_lon is None or node_id == node or data["type"] in ("airport", "seaport"):
                 continue
 
             dist = haversine_coordinates(lattitude, longitude, node_lat, node_lon, "length")
@@ -333,7 +335,7 @@ class SimulationGraph(nx.MultiGraph):
         return final_empty
     
 
-    def get_nearest_index(self, G_proj : nx.MultiGraph, indexes : list, node : int, type : str):
+    def get_nearest_index(self, G_proj : nx.MultiGraph, indexes : list, node : int | str, type : str):
         all_nodes = list(G_proj.nodes())
         shortest_distance = float("inf")
         closest_node = None
@@ -358,3 +360,20 @@ class SimulationGraph(nx.MultiGraph):
 
         graph_area = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y), (min_x, min_y)])
         return graph_area
+    
+
+    def connect_airports_seaports(self, default_capacity : int, default_price : float):
+        for source_node, source_data in self.nodes(data=True):
+            if source_data.get("type") in ("airport", "seaport"):
+                nearest_node = self.get_nearest_node(node=source_node)
+                length = self.haversine_nodes(source_node, nearest_node, "length")   
+                edge_data = {
+                    "length" : length,
+                    "capacity" : default_capacity,
+                    "cost" : default_price, 
+                    "added_artificially" : True,
+                    "flow" : 0,
+                    "type" : "road"
+                }
+
+                self.add_edge(source_node, nearest_node, **edge_data)

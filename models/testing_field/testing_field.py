@@ -59,8 +59,8 @@ time_start = time.time()
 network = NetworkManager()
 reader = GraphManager()
 
-""" 
-graph = network.create_graph()
+
+""" graph = network.create_graph()
 # graph = network.get_graph_from_file("consolidated_europe")  
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 consolidate_start_time = time.time()
@@ -94,9 +94,18 @@ airports_graph = ox.graph_from_polygon(europe, custom_filter=filter)
 print(len(list(airports_graph.nodes()))) """
 
 
-graph = network.load_seaports_graph(10, 100)
+""" graph = network.load_seaports_graph(10, 100)
 for n, data in graph.nodes(data=True):
     print(data) 
 
 for u, v, k, data in graph.edges(data=True, keys=True):
-    print(f"Start: {u}, end: {v}, key: {k}, data: {data}")
+    print(f"Start: {u}, end: {v}, key: {k}, data: {data}") """
+
+
+graph = network.get_graph_from_file("europe")
+airplane_graph = network.load_airports_graph(default_capacity=10, default_price=1000)
+graph.compose(airplane_graph)
+seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=500)
+graph.compose(seaport_graph)
+graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+

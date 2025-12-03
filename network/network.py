@@ -98,7 +98,8 @@ class NetworkManager():
                     "length" : length,
                     "capacity" : default_capacity,
                     "cost" : length/1000 * default_price,
-                    "flow" : 0
+                    "flow" : 0,
+                    "type" : "air_route"
                 }
                 graph.add_edge(aita_source, aita_dest, **edge_data)
 
@@ -174,6 +175,7 @@ class NetworkManager():
             "cost" : length/m *default_price,
             "flow" : 0,
             "duration_hours" : duration_hours,
+            "type" : "sea_route",
             "linestring" : linestring
         }
         return edge_data
