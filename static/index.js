@@ -1,10 +1,10 @@
 const nav = document.querySelector(".nav-bar-list");
 const navButtons = nav.querySelectorAll("button");
 const content = document.getElementById("content");
-const simulation = content.querySelector(".simulation");
+// const simulation = content.querySelector(".simulation");
 const statsContainer = content.querySelector(".panel-container");
 
-simulation.classList.add("hidden");
+// simulation.classList.add("hidden");
 statsContainer.classList.add("hidden");
 
 navButtons.forEach(btn => {

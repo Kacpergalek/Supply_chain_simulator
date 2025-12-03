@@ -137,7 +137,7 @@ class StatisticsManager:
         }
 
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        directory = os.path.join(path, 'output')
+        directory = os.path.join(path, 'output_data')
         os.makedirs(directory, exist_ok=True)
 
         self.save_to_json(average_data, directory, 'average')

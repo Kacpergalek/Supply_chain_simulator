@@ -28,7 +28,7 @@ class DeliveryManager:
         self.deliveries = []
 
     def sort_products(self):
-        path = Path(__file__).parent.parent.parent / "input"
+        path = Path(__file__).parent.parent.parent / "input_data"
         columns = ["Product ID", "Category", "Sub-Category", "Product Name", "Sales", "Quantity"]
         products_df = pd.DataFrame(read_csv(f"{path}/products.csv", columns))
         products_df.drop_duplicates(subset=['Product ID'], inplace=True)
@@ -68,7 +68,7 @@ class DeliveryManager:
         return products
 
     def initialize_parcel(self, products: list[Product]) -> list[tuple[Product, int]]:
-        path = Path(__file__).parent.parent.parent / "input"
+        path = Path(__file__).parent.parent.parent / "input_data"
         columns = ["Product ID", "Quantity"]
         products_df = pd.DataFrame(read_csv(f"{path}/products.csv", columns))
         products_df.drop_duplicates(subset=['Product ID'], inplace=True)

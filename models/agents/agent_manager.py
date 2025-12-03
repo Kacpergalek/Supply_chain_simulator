@@ -84,7 +84,7 @@ class AgentManager:
         self.save_to_pickle("office_supplies")
 
     def save_to_pickle(self, filename: str) -> None:
-        path = Path(__file__).parent.parent.parent / "parameters"
+        path = Path(__file__).parent.parent.parent / "input_data"
 
         if filename == "furniture":
             self.furniture_df.to_pickle(f"{path}/stores_furniture.pkl")
@@ -95,11 +95,11 @@ class AgentManager:
                 f"{path}/stores_office_supplies.pkl")
 
     def load_from_pickle(self, filename: str) -> pd.DataFrame:
-        path = Path(__file__).parent.parent.parent / "parameters"
+        path = Path(__file__).parent.parent.parent / "input_data" / f"stores_{filename}.pkl"
         if not path.exists():
             self.initialize_stores()
             self.save_to_pickle(filename)
-        with open(f"{path}/stores_{filename}.pkl", 'rb') as f:
+        with open(path, 'rb') as f:
             return pickle.load(f)
 
     def make_city_dict(self) -> None:
@@ -138,6 +138,7 @@ class AgentManager:
         return 6371 * c
 
     def find_closest_node(self, graph: SimulationGraph, store: pd.Series):
+        #TODO check if node is an airport - we don't take airports
         # GeoPandas Point: .x is longitude, .y is latitude
         lon_c = store['geometry'].x
         lat_c = store['geometry'].y
@@ -232,7 +233,7 @@ class AgentManager:
         }
 
         path = Path(__file__).parent.parent.parent / \
-            "network_data" / "paths.pkl"
+            "input_data" / "network_data" / "paths.pkl"
         with open(path, "wb") as f:
             pickle.dump(data, f)
 

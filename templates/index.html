@@ -10,17 +10,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
             crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='index2.js') }}" defer></script>
     <script src="{{ url_for('static', filename='index.js') }}" defer></script>
     <script src="{{ url_for('static', filename='parameters.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='statistics.js') }}" defer></script>
     <script src="{{ url_for('static', filename='simulation.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='panel.js') }}" defer></script>
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='parameters.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='statistics.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='simulation.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='panel.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index2.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
 </head>
@@ -28,168 +23,108 @@
 
 <body>
 <main class="wrapper">
-    <div class="nav-bar-container">
-        <nav>
-            <header>
-                <h1>Supply Chain Disruption Simulation</h1>
-            </header>
-            <ul class="nav-bar-list">
-                <li>
-                    <button class="nav-button" id="dash-button" ><span>Dashboard</span></button>
-                </li>
-                <li>
-                    <button class="nav-button" id="graph-button" data-page="simulation"><span>Network Graph</span></button>
-                </li>
-                <li>
-                    <button class="nav-button" id="scenario-button" data-page="panel-container"><span>Scenario Comparison</span></button>
-                </li>
-                <li>
-                    <button class="nav-button" id="stats-button"><span>Cost vs Resilience</span> </button>
-                </li>
-            </ul>
-        </nav>
-    </div>
+{#    <div class="nav-bar-container">#}
+{#        <nav>#}
+{#            <header>#}
+{#                <h1>Supply Chain Disruption Simulation</h1>#}
+{#            </header>#}
+{#            <ul class="nav-bar-list">#}
+{#                <li>#}
+{#                    <button class="nav-button" id="dash-button"><span>Dashboard</span></button>#}
+{#                </li>#}
+{#                <li>#}
+{#                    <button class="nav-button" id="graph-button" data-page="simulation"><span>Network Graph</span>#}
+{#                    </button>#}
+{#                </li>#}
+{#                <li>#}
+{#                    <button class="nav-button" id="scenario-button" data-page="panel-container"><span>Scenario Comparison</span>#}
+{#                    </button>#}
+{#                </li>#}
+{#                <li>#}
+{#                    <button class="nav-button" id="stats-button"><span>Cost vs Resilience</span></button>#}
+{#                </li>#}
+{#            </ul>#}
+{#        </nav>#}
+{#    </div>#}
 
     <section class="main-app">
-    <section class="form-wrapper">
-        <h1>Choose simulation parameters</h1>
-        <div class="form-container">
-            <form id="disruptionForm">
-                <div class="form-group">
-                    <label for="disruptionType">Disruption Type:</label>
-                    <select id="disruptionType" name="disruptionType" required>
+        <section class="form-wrapper">
+            <h1>Choose simulation parameters</h1>
+            <div class="form-container">
+                <form id="disruptionForm">
+                    <div class="form-group">
+                        <label for="disruptionType">Disruption Type:</label>
+                        <select id="disruptionType" name="disruptionType" required>
 
-                    </select>
-                </div>
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label for="severity">Disruption Severity:</label>
                         <select id="severity" name="severity" required>
-    
-                       </select>
-                   </div>
 
-                <div class="form-group">
-                    <label for="duration">Duration:</label>
-                    <select id="duration" name="duration" required>
+                        </select>
+                    </div>
 
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label for="duration">Duration:</label>
+                        <select id="duration" name="duration" required>
 
-                <div class="form-group">
-                    <label for="dayOfStart">Day of Start:</label>
-                    <select id="dayOfStart" name="dayOfStart" required>
+                        </select>
+                    </div>
 
-                    </select>
-                </div>
+                    <div class="form-group">
+                        <label for="dayOfStart">Day of Start:</label>
+                        <select id="dayOfStart" name="dayOfStart" required>
 
-                <div class="form-group">
-                    <label for="placeOfDisruption">Place of Disruption (Node ID):</label>
-                    <select id="placeOfDisruption" name="placeOfDisruption" required>
+                        </select>
+                    </div>
 
-                    </select>
-                </div>
-            </form>
+                    <div class="form-group">
+                        <label for="placeOfDisruption">Place of Disruption (Node ID):</label>
+                        <select id="placeOfDisruption" name="placeOfDisruption" required>
 
-            <button onclick="sendData()">Submit</button>
-            <div id="output"></div>
-            <div id="message" class="message"></div>
-        </div>
+                        </select>
+                    </div>
+                </form>
 
-    </section>
-
-    <section id="content">
-
-        <div class="loading"></div>
-
-        <div class="simulation content-page">
-            <section class="map-section">
-                <iframe src="{{ url_for('static', filename='latest_map.html') }}"
-                        width="100%" height="600"
-                        style="border:none;"></iframe>
-            </section>
-            <section class="simulation-section">
-                <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start simulation</button>
-                <button id="go-to-stat" class="statistics-btn secondary-btn" role="button" onClick="goToStatistics()" disabled>See
-                    statistics
-                </button>
-                <div id="response">
-
-                </div>
-                <div id="logger">
-
-                </div>
-            </section>
-        </div>
-
-        <div class="panel-container content-page">
-            <!-- <button onclick="getDemandStats()">Get demand statistics</button>
-            <button onclick="getCostStats()">Get cost statistics</button>
-            <button onclick="getRouteStats()">Get route statistics</button>
-
-            <div id="stats">
-
+                <button onclick="sendData()">Submit</button>
+                <div id="output"></div>
+                <div id="message" class="message"></div>
             </div>
 
-            <section class="dwnld-section">
-                <button id="download-stats">Download file</button>
-            </section>
+        </section>
 
-    {#        <section class="dashboard-section">#}
-    {#            <button class="activate-btn">Render graph</button>#}
-    {#            <div class="dashboard-container">#}
-    {#                <div id="chart-container" class="dashboard d1">#}
-    {##}
-    {#                </div>#}
-    {#                <div class="dashboard d2">#}
-    {##}
-    {#                </div>#}
-    {#            </div>#}
-    {#        </section>#} -->
-            <div class="controls">
+        <section id="content">
 
-                <label for="dataset-select"></label>
-                <select id="dataset-select">
-                    <option value="fulfilled">Fulfilled demand</option>
-                    <option value="lost">Lost demand</option>
-                    <option value="cost">Cost</option>
-                    <option value="loss">Loss</option>
-                    <option value="final">Final snapshot</option>
-                </select>
-                <button id="download-stats" class="primary-btn" type="button">Download</button>
+            <div class="loading"></div>
 
-                <label for="format-toggle-btn"></label>
-                <button id="format-toggle-btn" class="secondary-btn" type="button">.csv</button>
+            <div class="simulation content-page">
+                <section class="map-section">
+                    <iframe src="{{ url_for('static', filename='latest_map.html') }}"
+                            width="100%" height="600"
+                            style="border:none;"></iframe>
+                </section>
+                <section class="simulation-section">
+                    <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start
+                        simulation
+                    </button>
+                    <button id="go-to-stat" class="statistics-btn secondary-btn" role="button"
+                            onClick="goToStatistics()" disabled>See
+                        statistics
+                    </button>
+                    <div id="response">
+
+                    </div>
+                    <div id="logger">
+
+                    </div>
+                </section>
             </div>
 
-            <div id="stats"></div>
-        </div>
 
+        </section>
     </section>
-     </section>
-    <!-- <header>
-        <h1>Supply Chain Disruption Simulation</h1>
-    </header>
-    <nav class="nav-bar-container">
-        <ul class="nav-bar-list">
-            <li>
-                <a href="/category/parameters"><button><span>Parameters</span>
-                </button></a>
-            </li>
-            <li>
-                <a href="/category/simulation"><button><span>Simulation</span>
-                </button></a>
-            </li>
-            <li>
-                <a href="/category/statistics"><button><span>Statistics</span>
-                </button></a>
-            </li>
-            <li>
-                <a href="/category/panel"><button><span>KPI panel</span>
-                </button></a>
-            </li>
-        </ul>
-    </nav> -->
 </main>
 </body>
 </html>

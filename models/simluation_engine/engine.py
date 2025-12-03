@@ -11,20 +11,16 @@ from models.agents.agent_manager import AgentManager
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
-from network.europe import europe_countries
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 
-from models.delivery.delivery import Delivery
 from models.simluation_engine.statistics_manager import StatisticsManager
 from models.simluation_engine.time_manager import TimeManager
 
 from utils.find_delivery import find_delivery_by_agent
 from utils.find_exporter import  find_exporter_by_node_id
 
-from network.simulation_graph import SimulationGraph
 from network.visualization import plot_agent_routes
-from network.graph_reader import GraphManager
 from network.network import NetworkManager
 
 logger = logging.getLogger(__name__)
@@ -58,15 +54,15 @@ class Simulation:
         """ Deliveries initialization """
         self.deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network, self.exporters,
                                                                                     self.agent_paths)
-        self.inject_parameters(15, "day")
+        self.max_time = 15
+        self.time_manager = TimeManager("day")
+        self.inject_parameters()
         self.initialize()
 
 
-    def inject_parameters(self, max_time: int, time_resolution: str):
-        self.max_time = max_time
-        self.time_manager = TimeManager(time_resolution)
+    def inject_parameters(self):
         project_path = Path(__file__).parent.parent.parent
-        full_path = os.path.join(project_path, "parameters", "disruption_parameters.pkl")
+        full_path = os.path.join(project_path, "input_data", "disruption_parameters.pkl")
         with open(full_path, 'rb') as f:
             self.disruption = pickle.load(f)
         self.statistics_manager = StatisticsManager(len(self.exporters), max_time=self.max_time)
@@ -247,7 +243,7 @@ class Simulation:
         self.initialize()
 
     def save_deliveries(self, folder : str = "delivery", file_name : str = "starting_deliveries.json"):
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "simulation_data")
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data")
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
@@ -258,7 +254,7 @@ class Simulation:
 
 
     def load_deliveries(self, folder : str = "delivery", file_name : str = "starting_deliveries.json"):
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "simulation_data")
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data")
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(folder_path):
             raise FileNotFoundError(f"Folder: {folder_path} does not exist.")
@@ -276,7 +272,16 @@ class Simulation:
 
         for object in data:
             try:
-                delivery = Delivery(**object)
-                self.deliveries.append(delivery)
+                # print(*object)
+                # obj_cpy = object.copy()
+                # obj_cpy.pop("capacity")
+                # delivery = Delivery(**obj_cpy)
+                # self.deliveries.append(delivery)
+                self.deliveries[object["delivery_id"]].route = object["route"]
+                self.deliveries[object["delivery_id"]].length = object["length"]
+                self.deliveries[object["delivery_id"]].cost = object["cost"]
+                self.deliveries[object["delivery_id"]].lead_time = object["lead_time"]
+                self.deliveries[object["delivery_id"]].disrupted = object["disrupted"]
+                self.deliveries[object["delivery_id"]].find_minimum_capacity(self.network)
             except TypeError as e:
                 print(f"Error while deserializing delivery object: {str(e)}")
