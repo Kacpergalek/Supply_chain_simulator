@@ -34,7 +34,7 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth=20):
         node_scores, key=node_scores.get, reverse=True)[:10]
 
     path = Path(__file__).parent.parent
-    output_path = path / "form_data" / "place_of_disruption.json"
+    output_path = path / "input_data" / "form_data" / "place_of_disruption.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:

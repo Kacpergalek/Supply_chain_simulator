@@ -11,9 +11,6 @@
             integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
             crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='index2.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='index.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='parameters.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='simulation.js') }}" defer></script>
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='index2.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
@@ -23,30 +20,6 @@
 
 <body>
 <main class="wrapper">
-{#    <div class="nav-bar-container">#}
-{#        <nav>#}
-{#            <header>#}
-{#                <h1>Supply Chain Disruption Simulation</h1>#}
-{#            </header>#}
-{#            <ul class="nav-bar-list">#}
-{#                <li>#}
-{#                    <button class="nav-button" id="dash-button"><span>Dashboard</span></button>#}
-{#                </li>#}
-{#                <li>#}
-{#                    <button class="nav-button" id="graph-button" data-page="simulation"><span>Network Graph</span>#}
-{#                    </button>#}
-{#                </li>#}
-{#                <li>#}
-{#                    <button class="nav-button" id="scenario-button" data-page="panel-container"><span>Scenario Comparison</span>#}
-{#                    </button>#}
-{#                </li>#}
-{#                <li>#}
-{#                    <button class="nav-button" id="stats-button"><span>Cost vs Resilience</span></button>#}
-{#                </li>#}
-{#            </ul>#}
-{#        </nav>#}
-{#    </div>#}
-
     <section class="main-app">
         <section class="form-wrapper">
             <h1>Choose simulation parameters</h1>

@@ -88,11 +88,6 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/category/parameters")
-def parameters():
-    return render_template("parameters.html")
-
-
 @app.route('/events')
 def events():
     def stream():
@@ -108,24 +103,14 @@ def events():
     return Response(stream_with_context(stream()), mimetype='text/event-stream')
 
 
-@app.route("/category/simulation")
-def simulation():
-    image_url = url_for('assets', filename='latest_map.png')
-    return render_template("simulation.html", image=image_url)
-
-
 @app.route("/category/statistics")
 def statistics():
     return render_template("statistics.html")
 
 
-@app.route("/category/panel")
-def panel():
-    return render_template("panel.html")
-
-
 @app.route("/api/disruption_type")
 def jsonify_types():
+    print("RESULTS PATH", RESULTS_PATH)
     return jsonify(json.loads((RESULTS_PATH / "disruption_type.json").read_text()))
 
 

@@ -43,32 +43,13 @@ class Delivery:
 
     def find_parcel_cost(self) -> float:
         shipping_prices = {
-            # --- HEAVY / BULKY (Furniture & Large Equipment) ---
-            'Bookcases': 90.00,
-            'Tables': 85.00,
-            'Copiers': 75.00,
-            'Chairs': 55.00,
-            'Machines': 45.00,  # Printers, shredders, etc.
-            'Furnishings': 30.00,  # Lamps, rugs, decor
-
-            # --- MEDIUM (Boxed items, Electronics) ---
-            'Storage': 22.00,  # Bins/organizers (bulky volume)
-            'Appliances': 20.00,  # Small office appliances
-            'Phones': 12.00,  # High value, tracked shipping
-            'Paper': 12.00,  # Heavy by weight (ream density)
-            'Art': 12.00,  # Fragile handling
-
-            # --- LIGHT (Small parcels) ---
-            'Accessories': 9.50,  # Keyboards, mice, USBs
-            'Binders': 8.00,
-            'Supplies': 6.50,  # Pens, staplers, misc
-            'Labels': 4.50,
-            'Envelopes': 4.00,
-            'Fasteners': 3.50  # Paperclips, staples (very light)
+            'furniture': 8,
+            'technology': 4,
+            'office supplies': 1
         }
         parcel_price = 0
         for product, quantity in self.parcel:
-            parcel_price += shipping_prices[product.subcategory] * quantity
+            parcel_price += shipping_prices[product.category]
         return parcel_price
 
     def find_minimum_capacity(self, network: SimulationGraph) -> float:
