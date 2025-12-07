@@ -1,62 +1,62 @@
 {
   "Agent 0": {
-    "final_fulfilled_demand": 525.0,
+    "final_fulfilled_demand": 27525.0,
     "final_lost_demand": 0.0,
-    "final_cost": 13853.55,
+    "final_cost": 14111.4,
     "final_loss": 0.0
   },
   "Agent 1": {
-    "final_fulfilled_demand": 585.0,
-    "final_lost_demand": 0.0,
-    "final_cost": 25719.0,
+    "final_fulfilled_demand": 27330.0,
+    "final_lost_demand": 23686.0,
+    "final_cost": 26313.45,
     "final_loss": 0.0
   },
   "Agent 2": {
-    "final_fulfilled_demand": 450.0,
-    "final_lost_demand": 360.0,
-    "final_cost": 16639.95,
+    "final_fulfilled_demand": 24630.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 16634.25,
     "final_loss": 0.0
   },
   "Agent 3": {
-    "final_fulfilled_demand": 345.0,
+    "final_fulfilled_demand": 26265.0,
     "final_lost_demand": 0.0,
-    "final_cost": 12064.35,
+    "final_cost": 11508.3,
     "final_loss": 0.0
   },
   "Agent 4": {
-    "final_fulfilled_demand": 645.0,
+    "final_fulfilled_demand": 33990.0,
     "final_lost_demand": 0.0,
     "final_cost": 0.0,
     "final_loss": 0.0
   },
   "Agent 5": {
-    "final_fulfilled_demand": 570.0,
+    "final_fulfilled_demand": 32520.0,
     "final_lost_demand": 0.0,
-    "final_cost": 32322.75,
+    "final_cost": 10282.5,
     "final_loss": 0.0
   },
   "Agent 6": {
-    "final_fulfilled_demand": 540.0,
+    "final_fulfilled_demand": 26055.0,
     "final_lost_demand": 0.0,
-    "final_cost": 12946.5,
+    "final_cost": 13357.2,
     "final_loss": 0.0
   },
   "Agent 7": {
-    "final_fulfilled_demand": 705.0,
-    "final_lost_demand": 0.0,
-    "final_cost": 19466.1,
+    "final_fulfilled_demand": 32940.0,
+    "final_lost_demand": 28548.0,
+    "final_cost": 19747.05,
     "final_loss": 0.0
   },
   "Agent 8": {
-    "final_fulfilled_demand": 780.0,
-    "final_lost_demand": 0.0,
-    "final_cost": 7024.2,
+    "final_fulfilled_demand": 27210.0,
+    "final_lost_demand": 23582.0,
+    "final_cost": 12987.9,
     "final_loss": 0.0
   },
   "Agent 9": {
-    "final_fulfilled_demand": 450.0,
+    "final_fulfilled_demand": 25365.0,
     "final_lost_demand": 0.0,
-    "final_cost": 961.35,
+    "final_cost": 31604.7,
     "final_loss": 0.0
   }
 }

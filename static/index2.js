@@ -132,6 +132,32 @@ async function manageLogs() {
         evtSource.close();
     };
 }
+// === 🔥 Aktualizacja mapy po wyborze węzła ===
+document.querySelector("#placeOfDisruption").addEventListener("change", function () {
+    let nodeId = this.value;
+
+    fetch(`/api/highlight_node/${nodeId}`)
+        .then(() => {
+            const iframe = document.querySelector(".map-section iframe");
+            iframe.src = `/static/latest_map.html?t=${Date.now()}`;
+        });
+});
+// =========================== SLIDE-IN LOG PANEL =============================
+
+const toggleBtn = document.getElementById("log-panel-toggle");
+const logPanel = document.getElementById("log-panel");
+
+toggleBtn.addEventListener("click", () => {
+    const isOpen = logPanel.classList.contains("open");
+    if (isOpen) {
+        logPanel.classList.remove("open");
+        toggleBtn.textContent = "Logs ▼";
+    } else {
+        logPanel.classList.add("open");
+        toggleBtn.textContent = "Logs ▲";
+    }
+});
+
 
 manageLogs();
 

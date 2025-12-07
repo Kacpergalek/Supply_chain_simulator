@@ -151,7 +151,7 @@ class Simulation:
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
-            # self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
+            self.save_current_map(disrupted_nodes=[int(self.disruption["placeOfDisruption"])])
             time.sleep(2)
 
         """ End a disruption"""
@@ -161,7 +161,7 @@ class Simulation:
             self.network.activate_nodes(places_of_disruption)
             # self.default_routes()
             self.load_deliveries()
-            # self.save_current_map()
+            self.save_current_map()
             time.sleep(2)
 
         """ What happens regardless of a disruption"""

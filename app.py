@@ -233,6 +233,12 @@ def parameters_process():
 
     return jsonify(fig.to_dict())
 
+@app.route("/api/highlight_node/<int:node_id>")
+def highlight_node_api(node_id):
+    sim.save_current_map(disrupted_nodes=[node_id])
+    print("MAP_UPDATE")   # aby index2.js wiedział o aktualizacji
+    return {"ok": True}
+
 
 @app.route('/api/graph', methods=['POST'])
 def start_simulation():
