@@ -238,6 +238,47 @@ def highlight_node_api(node_id):
     sim.save_current_map(disrupted_nodes=[node_id])
     print("MAP_UPDATE")   # aby index2.js wiedział o aktualizacji
     return {"ok": True}
+@app.route("/api/edges")
+def api_edges():
+    edges_payload = []
+    for u, v, key, data in sim.network.edges(data=True, keys=True):
+        x1, y1 = sim.network.nodes[u].get("x"), sim.network.nodes[u].get("y")
+        x2, y2 = sim.network.nodes[v].get("x"), sim.network.nodes[v].get("y")
+        if x1 is None or y1 is None or x2 is None or y2 is None:
+            continue
+        edges_payload.append({"x1": x1, "y1": y1, "x2": x2, "y2": y2})
+    return jsonify(edges_payload)
+
+
+@app.route("/api/nodes")
+def api_nodes():
+    nodes_payload = {}
+    for n, data in sim.network.nodes(data=True):
+        x = data.get("x")
+        y = data.get("y")
+        if x is None or y is None:
+            continue
+        nodes_payload[str(n)] = {
+            "x": x,
+            "y": y,
+            "city": data.get("city")
+        }
+    return jsonify(nodes_payload)
+
+
+@app.route("/api/map_state")
+def map_state():
+    routes = [d.route for d in sim.deliveries]   # tylko trasy agentów
+    exporters = [e.node_id for e in sim.exporters]
+    importers = [i.node_id for i in sim.importers]
+    disrupted = getattr(sim, "disruption_nodes", [])
+
+    return jsonify({
+        "routes": routes,
+        "exporters": exporters,
+        "importers": importers,
+        "disrupted": disrupted
+    })
 
 
 @app.route('/api/graph', methods=['POST'])

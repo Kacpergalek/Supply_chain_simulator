@@ -117,6 +117,7 @@ class Simulation:
     def save_current_map(self, filename="latest_map.png", disrupted_nodes =None):
         """Zapisuje aktualny stan sieci i tras do pliku PNG."""
         try:
+            '''
             routes = [d.route for d in self.deliveries]
             exporter_nodes = [e.node_id for e in self.exporters]
             importer_nodes = [i.node_id for i in self.importers]
@@ -130,7 +131,9 @@ class Simulation:
                 exporter_nodes,
                 importer_nodes,
                 disrupted_nodes = disrupted_nodes,
-            )
+            )'''
+            if disrupted_nodes is not None:
+                self.disruption_nodes = disrupted_nodes
             print("MAP_UPDATE")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
@@ -148,6 +151,7 @@ class Simulation:
             places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
             print(f"Finding place of disruption: {time.time() - place_of_disr_time}")
             self.network.deactivate_nodes(places_of_disruption)
+            self.disruption_nodes = [disruption_place]
             self.find_disrupted_routes()
             self.update_disrupted_routes()
             self.update_lost_demand()
@@ -159,6 +163,7 @@ class Simulation:
             disruption_place = int(self.disruption["placeOfDisruption"])
             places_of_disruption = bfs_limited(self.network, disruption_place, max_depth=20)
             self.network.activate_nodes(places_of_disruption)
+            self.disruption_nodes = []
             # self.default_routes()
             self.load_deliveries()
             self.save_current_map()

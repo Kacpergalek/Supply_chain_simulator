@@ -9,11 +9,18 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
             crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+
     <script src="{{ url_for('static', filename='index2.js') }}" defer></script>
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='index2.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
+    
 </head>
 
 <body>
@@ -55,24 +62,22 @@
         <section id="content">
             <div class="simulation content-page">
                 <section class="map-section">
-                    <iframe src="{{ url_for('static', filename='latest_map.html') }}"
-                            width="100%" height="700px"
-                            style="border:none;"></iframe>
+                    <div id="map"></div>
 
-                    <!-- ZMIANA: panel sterowania/logów na mapie -->
+                    <!-- Panel sterowania/logów jako overlay -->
                     <div class="map-controls">
                         <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start simulation</button>
                         <button id="go-to-stat" class="statistics-btn secondary-btn" role="button"
                                 onClick="goToStatistics()" disabled>See statistics</button>
                         <div id="response"></div>
 
-                        <!-- ZMIANA: panel logów zwijany -->
                         <div id="log-panel">
                             <button id="log-panel-toggle">Logs ▼</button>
                             <div id="logger" class="log-content"></div>
                         </div>
                     </div>
                 </section>
+
             </div>
         </section>
     </section>
