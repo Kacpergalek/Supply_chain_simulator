@@ -40,9 +40,6 @@ class NetworkManager():
                 if "country" not in data:
                     data["country"] = unidecode(country).lower().replace(" ", "_")
         return sim_graph
-    
-    def add_infrastructure(self, graph : SimulationGraph, type : str):
-        pass
 
 
     def load_airports_graph(self, default_capacity : int, default_price : float, airports_filename : str = "airports.dat", routes_filename : str = "routes.dat"):
@@ -97,6 +94,7 @@ class NetworkManager():
                     "airline" : row["Airline"],
                     "length" : length,
                     "capacity" : default_capacity,
+                    "max_capacity" : default_capacity,
                     "cost" : length/1000 * default_price,
                     "flow" : 0,
                     "type" : "air_route"
@@ -172,6 +170,7 @@ class NetworkManager():
         edge_data = {
             "length" : length * m,
             "capacity" : default_capacity,
+            "max_capacity" : default_capacity,
             "cost" : length/m *default_price,
             "flow" : 0,
             "duration_hours" : duration_hours,

@@ -11,6 +11,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.graph_helper import haversine_coordinates
+from network.transport_types import MinimalCostType
 class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, type : str = "road", **attr):
         super().__init__(incoming_graph_data, multigraph_input, **attr)
@@ -25,6 +26,8 @@ class SimulationGraph(nx.MultiGraph):
                 data["flow"] = 0
             if "type" not in data:
                 data["type"] = type
+            if "max_capacity" not in data:
+                data["max_capacity"] = self.default_capacity
         
         for node, data in self.nodes(data=True):
             if "active" not in data:
@@ -201,10 +204,10 @@ class SimulationGraph(nx.MultiGraph):
         return None
 
 
-    def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
-        if metric == "length":
-            edges = list(self[node_start][node_end].values())
-            print(edges)
+    # def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
+    #     if metric == "length":
+    #         edges = list(self[node_start][node_end].values())
+    #         print(edges)
 
 
     def heuristic(self, start_node : int | str, end_node : int | str, metric : str, mode : str = "euclidean"):
@@ -215,24 +218,41 @@ class SimulationGraph(nx.MultiGraph):
         return None
 
 
-    def haversine_nodes(self, node1 : int, node2 : int, metric : str):
+    def haversine_nodes(self, node1 : int | str, node2 : int | str, metric : str):
+        if ((self.nodes()[node1]["type"] == "seaport" and self.nodes()[node2]["type"] == "seaport") or \
+            (self.nodes()[node1]["type"] == "airport" and self.nodes()[node2]["type"] == "airport")) and \
+            (metric in ("length", "cost")):
+            min_metric = float("inf")
+            for k, data in self[node1][node2].items():
+                value = data.get(metric, float("inf"))
+                if value < min_metric:
+                    min_metric = value
+            return min_metric
+        
+        lon1 = self.nodes()[node1]["x"]
+        lat1 = self.nodes()[node1]["y"]
+        lon2 = self.nodes()[node2]["x"]
+        lat2 = self.nodes()[node2]["y"]
+
+        R = 6371  # promień Ziemi
+
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+
+        a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
         if metric == "length":
-            lon1 = self.nodes()[node1]["x"]
-            lat1 = self.nodes()[node1]["y"]
-            lon2 = self.nodes()[node2]["x"]
-            lat2 = self.nodes()[node2]["y"]
-
-            R = 6371  # promień Ziemi
-
-            phi1 = math.radians(lat1)
-            phi2 = math.radians(lat2)
-            dphi = math.radians(lat2 - lat1)
-            dlambda = math.radians(lon2 - lon1)
-
-            a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
             return R * c * 1000
+        
+        if metric == "cost":
+            min_road_cost = float(MinimalCostType.ROAD.value)
+            return min_road_cost * R * c
+        return None
+
+
         
         
     def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int | str = None):

@@ -109,3 +109,14 @@ seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=50
 graph.compose(seaport_graph)
 graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
 
+node1 = graph.get_nearest_node(52, 21)
+node2 = graph.get_nearest_node(52.5, 13)
+
+astar_time = time.time()
+path_length = graph.astar(node1, node2)
+print(f"Liczba nodów: {len(path_length)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
+print(path_length)
+
+path_cost = graph.astar(node1, node2, metric="cost")
+print(f"Liczba nodów: {len(path_cost)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
+print(path_cost)
