@@ -89,16 +89,14 @@ class Delivery:
         for e in exporters:
             if e.node_id == self.start_node_id:
                 exporter = e
-        graph_undirected = SimulationGraph(default_capacity=network.default_capacity,
-                                           default_price=network.default_price,
-                                           incoming_graph_data=network)
-        path = exporter.find_cheapest_path(graph_undirected, self.end_node_id)
+        path_stats = network.shortest_path_stats(exporter.node_id, self.end_node_id, metric="length")
+        # path = exporter.find_cheapest_path(graph_undirected, self.end_node_id)
         #print(f"New path: {path}")
-        if path is None:
+        if path_stats is None:
             return
-        self.route = path['path']
+        self.route = path_stats['path']
         self.capacity = self.find_minimum_capacity(network)
-        self.length = path['total_distance_km']
-        self.cost = path['estimated_cost']
-        self.lead_time = path['estimated_lead_time_days']
+        self.length = path_stats['total_distance_km']
+        self.cost = path_stats['estimated_cost']
+        self.lead_time = path_stats['estimated_lead_time_days']
         # print(f"Delivery {self.delivery_id} updated. New cost: {self.cost}. New length: {self.length}.")

@@ -21,7 +21,7 @@ from utils.graph_helper import haversine_coordinates
 
 class NetworkManager():
 
-    def __init__(self, folder : str = "network_data", default_crs : str = "EPSG:4326"):
+    def __init__(self, folder : str = os.path.join("input_data", "network_data"), default_crs : str = "EPSG:4326"):
         self.graph_manager = GraphManager(folder=folder)
         self.default_crs = default_crs
 
@@ -44,9 +44,6 @@ class NetworkManager():
                     data["country"] = unidecode(country).lower().replace(" ", "_")
         # sim_graph = self.merge_graph_components(sim_graph, max_dist_km=70)
         return sim_graph
-
-    def add_infrastructure(self, graph : SimulationGraph, type : str):
-        pass
 
 
     def load_airports_graph(self, default_capacity : int, default_price : float, airports_filename : str = "airports.dat", routes_filename : str = "routes.dat"):
@@ -101,6 +98,7 @@ class NetworkManager():
                     "airline" : row["Airline"],
                     "length" : length,
                     "capacity" : default_capacity,
+                    "max_capacity" : default_capacity,
                     "cost" : length/1000 * default_price,
                     "flow" : 0,
                     "type" : "airline_route"
@@ -112,7 +110,7 @@ class NetworkManager():
 
     def load_seaports_graph(self, default_capacity : int, default_price : float, seaports_filename : str = "UPPLY-SEAPORTS.csv"):
         path = Path(__file__).parent.parent
-        folder_path = os.path.join(path, "simulation_data", "seaports")
+        folder_path = os.path.join(path, "input_data", "simulation_data", "seaports")
         seaports_path = os.path.join(folder_path, seaports_filename)
 
         df_seaports = pd.read_csv(seaports_path, header=0, delimiter=";")
@@ -176,12 +174,15 @@ class NetworkManager():
         edge_data = {
             "length" : length * m,
             "capacity" : default_capacity,
+            "max_capacity" : default_capacity,
             "cost" : length/m *default_price,
             "flow" : 0,
             "duration_hours" : duration_hours,
+            "type" : "sea_route",
             "linestring" : linestring
         }
         return edge_data
+
 
     def merge_graph_components(self, graph: SimulationGraph, max_dist_km: float = 50.0) -> SimulationGraph:
         # 1. Get all weakly connected components (directed graph needs weakly connected)

@@ -247,17 +247,20 @@ class ExporterAgent(BaseAgent):
                 raise nx.NetworkXNoPath(f"target node {dest_node} not in routing graph")
 
             # Dijkstra-style shortest path on routing_graph with custom weight
-            path = nx.shortest_path(
-                sim_graph,
-                source=self.node_id,
-                target=dest_node,
-                weight=weight_function
-            )
+            # path = nx.shortest_path(
+            #     sim_graph,
+            #     source=self.node_id,
+            #     target=dest_node,
+            #     weight=weight_function
+            # )
+
+            path = sim_graph.astar(start_node=self.node_id, end_node=dest_node)
 
             # 5. Aggregate metrics
             total_distance_km = 0.0
             total_money_cost = 0.0
             total_lead_time_days = 0.0
+            print(len(path))
 
             for i in range(len(path) - 1):
                 u = path[i]
