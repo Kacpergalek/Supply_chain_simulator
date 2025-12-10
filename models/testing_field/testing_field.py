@@ -17,10 +17,10 @@ from network.network import NetworkManager
 from models.agents.exporter_agent import ExporterAgent
 
 # reader = GraphManager()
-#dash = DashboardsManager()
-# graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-# for node in graph.nodes:
-#     print(node)
+# dash = DashboardsManager()
+# graph = reader.load_pickle_graph("europe_motorway.pkl")
+# for u, v, d in graph.edges(data=True):
+#     print(d)
 # print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))
 # print(graph.nodes[1418295070].get("active", None))
 # simulation = Simulation(10, 'day', graph)

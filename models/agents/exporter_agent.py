@@ -1,11 +1,10 @@
-from .base_agent import BaseAgent
-import math
-from typing import Optional, Dict, Any
+from models.agents.base_agent import BaseAgent
+from typing import Optional, Dict, Any, Union
+import networkx as nx
 
-try:
-    import networkx as nx
-except Exception:
-    nx = None 
+from models.delivery.product import Product
+from utils.find_quantity_by_product import find_quantity_by_product
+
 
 class ExporterAgent(BaseAgent):
     """
@@ -21,273 +20,341 @@ class ExporterAgent(BaseAgent):
       - create_offer(qty=None) -> zwraca ofertę sprzedaży (qty i unit_price)
       - sell(qty)        -> aktualizuje inventory i finances (zwraca kwotę)
     """
-    def __init__(self, agent_id, node_id, country="Poland", quantity=100, price=10.0, finances=1000.0):
-        super().__init__(agent_id, node_id, country)
-        self.quantity = int(quantity)
-        self.price = float(price)
+
+    def __init__(self, agent_id: int, node_id: int, store_name: str, store_category: str, city: str,
+                 courier_company: str, products: list[Product], finances: float = 1000.0):
+        super().__init__(agent_id, node_id, city.split(",")[1])
+        self.store_name = store_name
+        self.store_category = store_category
+        self.city = city
+        self.courier_company = courier_company
+
+        self.inventory = [(product, 1_000_000) for product in products]
+        self.delivery = None
+        self.unit_demand = 0
         self.finances = float(finances)
-        self.inventory = 0  # ile aktualnie ma w magazynie
 
-    def __repr__(self):
-        return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}, qty_per_step={self.quantity}, "
-                f"price={self.price}, finances={self.finances}, inventory={self.inventory})")
+        # self.production_price = 0
+        # self.retail_price = 0
+        # # self.quantity = int(quantity)
 
-    def produce(self):
-        """Proste wytwarzanie: przyrost zapasu o 'quantity'."""
-        self.inventory += self.quantity
-        self.finances -= (self.price*0.5) * self.quantity
-        return self.inventory
+        # self.inventory = 0  # ile aktualnie ma w magazynie
 
-    def create_offer(self, qty=None):
+    # def __repr__(self):
+    #     return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}"
+    #             f"retail_price={self.retail_price}, finances={self.finances}, inventory={self.inventory})")
+
+    # def produce(self, quantity: int = 1):
+    #     for product, inventory in self.inventory:
+    #         inventory += quantity
+    #         self.finances -= product.production_price * quantity
+
+    # def create_offer(self, qty=None):
+    #     """
+    #     Tworzy ofertę sprzedaży. Jeśli qty nie podane -> proponuje max możliwy (min(inventory, quantity)).
+    #     Zwraca dict: {'agent_id', 'node_id', 'qty', 'unit_price'}.
+    #     """
+    #     if qty is None:
+    #         qty = min(self.inventory, self.quantity)
+    #     qty = int(min(qty, self.inventory))
+    #     return {
+    #         "agent_id": self.agent_id,
+    #         "node_id": self.node_id,
+    #         "qty": qty,
+    #         "unit_price": self.retail_price
+    #     }
+    #
+    def products_to_dict(self):
+        product_dict = {}
+        for product, inventory in self.inventory:
+            product_dict[product.product_id] = inventory
+        return product_dict
+
+    def send_parcel(self):
+        # Defensive checks: ensure delivery exists and parcel is iterable
+        if self.delivery is None:
+            raise RuntimeError(
+                f"Exporter {self.agent_id} has no delivery assigned")
+
+        demand = 0
+        new_inventory = []
+        parcel = getattr(self.delivery, "parcel", []) or []
+
+        for product, inv in self.inventory:
+            quantity = find_quantity_by_product(parcel, product)
+            # Ensure quantity is an int and clamp to available inventory
+            try:
+                quantity = int(quantity or 0)
+            except Exception:
+                quantity = 0
+
+            sold = min(inv, quantity)
+            inv = inv - sold
+            demand += sold
+            new_inventory.append((product, inv))
+
+        # Persist updated inventory
+        self.inventory = new_inventory
+
+        # Update finances defensively (guard if delivery methods/attrs missing)
+        try:
+            self.finances += self.delivery.find_retail_price()
+        except Exception:
+            pass
+
+        try:
+            parcel_cost = getattr(
+                self.delivery, 'find_parcel_cost', lambda: 0)()
+            self.finances -= parcel_cost * getattr(self.delivery, 'cost', 0)
+        except Exception:
+            pass
+
+        self.unit_demand = demand
+        # """
+        # Realizuje sprzedaż: zmniejsza inventory i zwiększa finances.
+        # Zwraca revenue (float). Jeśli qty > inventory -> sprzedaje tyle ile ma.
+        # """
+        # qty = int(qty)
+        # sold = min(qty, self.inventory)
+        # revenue = sold * self.retail_price
+        # self.inventory -= sold
+        # self.finances += revenue
+        # return sold, revenue
+
+    # def to_dict(self):
+    #     d = super().to_dict()
+    #     d.update({
+    #         # "quantity": self.quantity,
+    #         "price": self.retail_price,
+    #         "finances": self.finances,
+    #         "inventory": self.inventory
+    #     })
+    #     return d
+
+    @staticmethod
+    def _parse_maxspeed(ms: Union[str, float, list, None]) -> Optional[float]:
         """
-        Tworzy ofertę sprzedaży. Jeśli qty nie podane -> proponuje max możliwy (min(inventory, quantity)).
-        Zwraca dict: {'agent_id', 'node_id', 'qty', 'unit_price'}.
+        ms może być: int/float, string ('50', '50 mph', '50;70'), list ['50','70'] itd.
+        Zwraca speed w km/h lub None jeśli nie da się sparsować.
         """
-        if qty is None:
-            qty = min(self.inventory, self.quantity)
-        qty = int(min(qty, self.inventory))
-        return {
-            "agent_id": self.agent_id,
-            "node_id": self.node_id,
-            "qty": qty,
-            "unit_price": self.price
-        }
+        if ms is None:
+            return None
 
-    def sell(self, qty):
-        """
-        Realizuje sprzedaż: zmniejsza inventory i zwiększa finances.
-        Zwraca revenue (float). Jeśli qty > inventory -> sprzedaje tyle ile ma.
-        """
-        qty = int(qty)
-        sold = min(qty, self.inventory)
-        revenue = sold * self.price
-        self.inventory -= sold
-        self.finances += revenue
-        return sold, revenue
+        if isinstance(ms, (int, float)):
+            return float(ms)
 
-    def to_dict(self):
-        d = super().to_dict()
-        d.update({
-            "quantity": self.quantity,
-            "price": self.price,
-            "finances": self.finances,
-            "inventory": self.inventory
-        })
-        return d
+        if isinstance(ms, (list, tuple)):
+            vals = [ExporterAgent._parse_maxspeed(x) for x in ms]
+            valid_vals = [v for v in vals if v is not None]
+            return max(valid_vals) if valid_vals else None
 
+        if isinstance(ms, str):
+            s = ms.strip().lower()
+            s = s.replace("[", "").replace("]", "").replace(
+                "(", "").replace(")", "").replace(" ", "")
 
+            # Helper to extract number from string
+            def get_num(val_str):
+                try:
+                    return float(''.join(c for c in val_str if (c.isdigit() or c == '.')))
+                except ValueError:
+                    return None
+
+            # Handle mph
+            is_mph = "mph" in s
+
+            # Handle separators like ';' or ',' or '|'
+            for sep in [";", ",", "|"]:
+                if sep in s:
+                    parts = [get_num(p) for p in s.split(sep) if p]
+                    valid = [p for p in parts if p is not None]
+                    val = max(valid) if valid else None
+                    return val * 1.60934 if (val and is_mph) else val
+
+            # Single value string
+            val = get_num(s)
+            if val is not None:
+                return val * 1.60934 if is_mph else val
+
+        return None
 
     def find_cheapest_path(self, sim_graph, dest_node: int, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Znajdź najtańszą ścieżkę z self.node_id do dest_node na obiekcie SimulationGraph.
+        Finds the cheapest path based on monetary cost (length_km * unit_cost) on the *active* graph.
 
-        Arguments:
-            sim_graph: SimulationGraph lub inny nx.MultiDiGraph z krawędziami zawierającymi 'length' (metry) i 'cost' (opcjonalnie)
-            dest_node: target node id (int)
-            params: dict (opcjonalne), możliwe klucze:
-                - alpha (float): waga distance_km (domyślnie 1.0)
-                - beta  (float): waga cost (domyślnie 0.0)
-                - gamma (float): waga risk (domyślnie 0.0)  -- jeśli krawędzie mają 'risk' attr
-                - coords_map: dict node_id -> (lat, lon) używane w fallback
-                - avg_speed_km_per_day: float (do est. lead time, domyślnie 60.0)
-        Returns:
-            dict z polami:
-              - method: 'graph' lub 'heuristic'
-              - path: list node ids (przybliżony lub rzeczywisty)
-              - total_weight: suma wag (alpha*dist + beta*cost + gamma*risk)
-              - total_distance_km
-              - estimated_lead_time_days
-              - estimated_cost
+        - If `sim_graph` has get_active_graph(), routing is done on that active subgraph.
+        - If no path exists in the active graph but exists in the full graph, we treat it
+          as a disruption-caused disconnection and return a structured "no path" result.
         """
-        #print(f"[DEBUG] Agent {self.agent_id}: sim_graph={type(sim_graph)}")
         if params is None:
             params = {}
 
-        alpha = float(params.get("alpha", 1.0))
-        beta = float(params.get("beta", 1.0))
-        if beta == 0:
-            beta = 1.0 
-        gamma = float(params.get("gamma", 0.0))
-        delta = float(params.get("time_weight", 1.0)) 
-        coords_map = params.get("coords_map", None)
-        avg_speed = float(params.get("avg_speed_km_per_day", 60.0))
-        driving_hours_per_day = float(params.get("driving_hours_per_day", 8.0))
-        default_speed_kmh = float(params.get("default_speed_kmh", max(60.0, avg_speed / driving_hours_per_day)))
+        # 1. Configuration
+        driving_hours = float(params.get("driving_hours_per_day", 8.0))
+        default_speed = float(params.get("default_speed_kmh", 60.0))
 
-        def parse_maxspeed(ms):
-            """
-            ms może być: int/float, string ('50', '50 mph', '50;70'), list ['50','70'] itd.
-            Zwraca speed w km/h lub None jeśli nie da się sparsować.
-            """
-            if ms is None:
-                return None
-            # jeśli liczba
-            if isinstance(ms, (int, float)):
-                try:
-                    return float(ms)
-                except Exception:
-                    return None
-            # jeśli lista / tuple
-            if isinstance(ms, (list, tuple)):
-                vals = []
-                for it in ms:
-                    v = parse_maxspeed(it)
-                    if v is not None:
-                        vals.append(v)
-                return max(vals) if vals else None
-            # jeśli string
-            if isinstance(ms, str):
-                s = ms.strip()
-                # usuń nawiasy i spacje
-                s = s.strip("[]() ")
-                # często separator ';' lub ',' lub '|' - spróbuj rozbić
-                for sep in [";", ",", "|", " "]:
-                    if sep in s:
-                        parts = [p.strip() for p in s.split(sep) if p.strip()]
-                        vals = []
-                        for p in parts:
-                            # sprawdź mph
-                            if "mph" in p.lower():
-                                try:
-                                    num = float(''.join(ch for ch in p if (ch.isdigit() or ch == ".")))
-                                    vals.append(num * 1.60934)  # mph -> km/h
-                                except Exception:
-                                    pass
-                            else:
-                                try:
-                                    num = float(''.join(ch for ch in p if (ch.isdigit() or ch == ".")))
-                                    vals.append(num)
-                                except Exception:
-                                    pass
-                        if vals:
-                            return max(vals)
-                # jeśli nie było rozdzielania, spróbuj pojedynczej liczby lub '50mph'
-                if "mph" in s.lower():
-                    try:
-                        num = float(''.join(ch for ch in s if (ch.isdigit() or ch == ".")))
-                        return num * 1.60934
-                    except Exception:
-                        return None
-                try:
-                    num = float(''.join(ch for ch in s if (ch.isdigit() or ch == ".")))
-                    return num
-                except Exception:
-                    return None
-            return None
-     
-        if sim_graph is not None:
-          
-            tmp_attr = "_tmp_combined_weight"
+        prices = {
+            "price_per_km_land": 1.0,
+            "price_per_km_air": 5.0,
+            "price_per_km_sea": 0.5
+        }
+        speed_land_default = 60.0
+        speed_air_default = 800.0  # Avg cruising speed
+        speed_sea_default = 35.0
 
- 
-            for u, v, key, data in sim_graph.edges(data=True, keys=True):
-             
-                length_m = data.get("length", None)
-                if length_m is None:
-                    dist_km = 0.0
-                else:
-                    try:
-                        dist_km = float(length_m) / 1000.0
-                    except Exception:
-                        dist_km = 0.0
+        if sim_graph is None or nx is None:
+            return {"error": "Graph or NetworkX not available"}
 
-                cost_attr = float(data.get("cost", 0.0))
-                risk_attr = float(data.get("risk", 0.0))
+        def get_edge_mode(edge_data):
+            """Returns 'air', 'sea', or 'land' based on OSM tags."""
+            # Explicit override
+            if edge_data.get("mode") in ["air", "flight"]:
+                return "air"
+            if edge_data.get("mode") in ["sea", "shipping"]:
+                return "sea"
 
-                speed_kmh = parse_maxspeed(data.get("maxspeed", None))
-                if speed_kmh is None or speed_kmh <= 0:
-                    speed_kmh = default_speed_kmh
+            # OSM standard tags
+            if edge_data.get("route") == "ferry":
+                return "sea"
+            if "aeroway" in edge_data:
+                return "air"
 
-                km_per_day = speed_kmh * driving_hours_per_day 
-                time_days = dist_km / km_per_day if km_per_day > 0 else None
+            # Default to land (highway, railway, etc.)
+            return "land"
 
-                data[tmp_attr] = (alpha * dist_km) * (beta * cost_attr) + gamma * risk_attr + (delta * (time_days if time_days is not None else 0.0))
-                data["_tmp_time_days"] = time_days if time_days is not None else 0.0
-           
-            try:
-                path = sim_graph.safe_astar_path(self.node_id, dest_node, weight=tmp_attr)
-               
-                total_weight = 0.0
-                total_distance_km = 0.0
-                total_cost = 0.0
-                total_risk = 0.0
-                total_time_days = 0.0
-            
-                for u, v in zip(path[:-1], path[1:]):
+        # 3. Dynamic cost function (kept here for flexibility; could be precomputed for even more speed)
+        def weight_function(u, v, d):
+            length_m = d.get("length", 0.0)
+            dist_km = length_m / 1000.0
 
-                    edges_between = sim_graph[u].get(v, {})
-                 
-                    best_weight = None
-                    best_data = None
-                    for k, ed in edges_between.items():
-                        w_val = ed.get(tmp_attr, None)
+            mode = get_edge_mode(d)
+            if mode == "air":
+                unit_cost = prices["price_per_km_air"]
+            elif mode == "sea":
+                unit_cost = prices["price_per_km_sea"]
+            else:
+                unit_cost = prices["price_per_km_land"]
 
-                        if w_val is None:
-                            length_m = ed.get("length", 0.0)
-                            dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
-                            c = float(ed.get("cost", 0.0))
-                            r = float(ed.get("risk", 0.0))
-                            speed_kmh = parse_maxspeed(ed.get("maxspeed", None)) or default_speed_kmh
-                            km_per_day = speed_kmh * driving_hours_per_day if driving_hours_per_day > 0 else default_speed_kmh * driving_hours_per_day
-                            time_days_local = dist_km / km_per_day if km_per_day > 0 else 0.0
-                            w_val = (alpha * dist_km) * (beta * c) + gamma * r + delta * time_days_local
-                        if best_weight is None or w_val < best_weight:
-                            best_weight = w_val
-                            best_data = ed
+            # If edge has its own "cost" attribute, use it as a multiplier; otherwise use unit_cost
+            return d.get('cost', unit_cost)
 
-          
-                    if best_data is None:
-                        dist_km = 0.0
-                        cost_e = 0.0
-                        risk_e = 0.0
-                        w_val = 0.0
-                        time_days_e =0.0
+        # 4. Path finding
+        try:
+            # Defensive presence checks on the routing graph (active or full)
+            if self.node_id not in sim_graph:
+                raise nx.NetworkXNoPath(f"source node {self.node_id} not in routing graph")
+            if dest_node not in sim_graph:
+                raise nx.NetworkXNoPath(f"target node {dest_node} not in routing graph")
+
+            # Dijkstra-style shortest path on routing_graph with custom weight
+            path = nx.shortest_path(
+                sim_graph,
+                source=self.node_id,
+                target=dest_node,
+                weight=weight_function
+            )
+
+            # 5. Aggregate metrics
+            total_distance_km = 0.0
+            total_money_cost = 0.0
+            total_lead_time_days = 0.0
+
+            for i in range(len(path) - 1):
+                u = path[i]
+                v = path[i + 1]
+                edges_data = sim_graph.get_edge_data(u, v)
+                if not edges_data:
+                    continue  # Should not happen, but be defensive
+
+                # Find best edge between u and v by our weight_function
+                best_edge = None
+                best_cost_val = float("inf")
+                for key, attr in edges_data.items():
+                    w = weight_function(u, v, attr)
+                    if w < best_cost_val:
+                        best_cost_val = w
+                        best_edge = attr
+
+                if best_edge is None:
+                    continue
+
+                length_m = best_edge.get("length", 0.0)
+                dist_km = length_m / 1000.0
+                mode = get_edge_mode(best_edge)
+
+                if mode == "land":
+                    ms = self._parse_maxspeed(best_edge.get("maxspeed"))
+                    speed = ms if (ms and ms > 0) else speed_land_default
+                    hours_driving = dist_km / speed
+
+                    if driving_hours > 0:
+                        total_lead_time_days += (hours_driving / driving_hours)
                     else:
-                        length_m = best_data.get("length", 0.0)
-                        dist_km = float(length_m) / 1000.0 if length_m is not None else 0.0
-                        cost_e = float(best_data.get("cost", 0.0))
-                        risk_e = float(best_data.get("risk", 0.0))
-                        time_days_e = float(best_data.get("_tmp_time_days", 0.0))
-                        w_val = best_weight
+                        total_lead_time_days += (hours_driving / 24.0)
+                elif mode == "air":
+                    speed = speed_air_default
+                    hours_flying = dist_km / speed
+                    total_lead_time_days += (hours_flying / 24.0)
+                elif mode == "sea":
+                    speed = speed_sea_default
+                    hours_sailing = dist_km / speed
+                    total_lead_time_days += (hours_sailing / 24.0)
 
-                    total_weight += w_val
-                    total_distance_km += dist_km
-                    total_cost += cost_e
-                    total_risk += risk_e
-                    total_time_days += time_days_e
+                total_distance_km += dist_km
+                total_money_cost += best_cost_val
 
-                for u, v, key, data in sim_graph.edges(data=True, keys=True):
-                    if tmp_attr in data:
-                        del data[tmp_attr]
-                    if "_tmp_time_days" in data:
-                        del data["_tmp_time_days"]
+            return {
+                "method": "multimodal_cost_min",
+                "path": path,
+                "total_weight": total_money_cost,
+                "estimated_cost": total_money_cost,
+                "total_distance_km": total_distance_km,
+                "estimated_lead_time_days": total_lead_time_days,
+            }
 
-                est_days = None
-                if delta > 0.0:
-                    est_days = total_time_days
-                else:
-                    # fallback na avg_speed_km_per_day
-                    est_days = total_distance_km / avg_speed if avg_speed > 0 else None
+        except nx.NetworkXNoPath:
+            # 6. Robust diagnostics:
+            #    Distinguish between:
+            #    - graph disconnected even without disruptions
+            #    - only active graph disconnected (disruption effect)
+            # src_in_routing = self.node_id in sim_graph
+            # dst_in_routing = dest_node in sim_graph
+            # src_in_full = self.node_id in full_graph
+            # dst_in_full = dest_node in full_graph
+            #
+            # reachable_in_full = False
+            # if src_in_full and dst_in_full:
+            #     try:
+            #         reachable_in_full = nx.has_path(full_graph, self.node_id, dest_node)
+            #     except Exception:
+            #         reachable_in_full = False
+            #
+            # if reachable_in_full and not (src_in_routing and dst_in_routing):
+            #     # One of endpoints was stripped out from active graph (e.g. deactivated node)
+            #     reason = "endpoint_removed_from_active_graph"
+            # elif reachable_in_full and (src_in_routing and dst_in_routing):
+            #     # Both endpoints still present but active graph substructure broke connectivity
+            #     reason = "disruption_disconnected_components"
+            # else:
+            #     reason = "no_path_even_in_full_graph"
 
-                return {
-                    "method": "graph",
-                    "path": path,
-                    "total_weight": total_weight,
-                    "total_distance_km": total_distance_km,
-                    "estimated_lead_time_days": est_days,
-                    "estimated_cost": total_cost,
-                    "total_risk": total_risk
-                }
+            # print(
+            #     f"No path found for agent {self.agent_id} from {self.node_id} to {dest_node}. "
+            #     f"reason={reason}, "
+            #     f"src_in_routing={src_in_routing}, dst_in_routing={dst_in_routing}, "
+            #     f"src_in_full={src_in_full}, dst_in_full={dst_in_full}, "
+            #     f"reachable_in_full={reachable_in_full}"
+            # )
 
-            except Exception as e:
-                # jeśli coś poszło nie tak (np. NodeNotFound, NoPath), przejdź do heurystyki
-                # przed przejściem - cleanup tmp_attr (na wszelki wypadek)
-                for u, v, key, data in sim_graph.edges(data=True, keys=True):
-                    if tmp_attr in data:
-                        del data[tmp_attr]
-                    if "_tmp_time_days" in data:
-                        del data["_tmp_time_days"]
-                print(f"⚠️ Graph path failed for agent {self.agent_id}: {e}")
-             
+            # Return structured "no path" result instead of empty dict
+            return {}
 
-        
+        except Exception as e:
+            print(f"Error in pathfinding for agent {self.agent_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "method": "error",
+                "error": str(e),
+                "path": [],
+            }

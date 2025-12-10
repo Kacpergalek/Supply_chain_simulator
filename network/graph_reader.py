@@ -14,7 +14,7 @@ from network.simulation_graph import SimulationGraph
 
 
 class GraphManager():
-    def __init__(self, folder="network_data"):
+    def __init__(self, folder="input_data/network_data"):
         self.folder = folder
         self.graph = None
 

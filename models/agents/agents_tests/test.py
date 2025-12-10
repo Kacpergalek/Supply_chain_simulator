@@ -7,7 +7,7 @@ def test_exporter():
     print(exp)
     offer = exp.create_offer()
     print("Oferta:", offer)
-    sold, revenue = exp.sell(20)
+    sold, revenue = exp.send_parcel(20)
     print(f"Sprzedano {sold}, przychód {revenue}, stan magazynu: {exp.inventory}")
 
 if __name__ == "__main__":

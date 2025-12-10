@@ -1,28 +1,24 @@
-import datetime
 import os
 import pickle
 import sys
 import logging
 import queue
-import time
 
 from flask import Flask, render_template, jsonify, send_from_directory, request, url_for, Response, stream_with_context
 from pathlib import Path
 import json
-import plotly.io as pio
 import plotly.graph_objs as go
 from dashboard.dashboards_manager import DashboardsManager
 from models.simluation_engine.engine import Simulation
-from network.graph_reader import GraphManager
 import threading
 from network.empty_visualization import plot_empty_map
 
 app = Flask(__name__)
 dash_manager = DashboardsManager()
 plot_empty_map()
-RESULTS_PATH = Path('form_data')
-OUTPUT_PATH = Path('output')
-ASSETS_DIR = Path(__file__).parent / "assets"
+
+RESULTS_PATH = Path('input_data/form_data')
+OUTPUT_PATH = Path('output_data')
 
 # --- Logging queue + SSE setup ---
 log_queue = queue.Queue()
@@ -92,16 +88,6 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/category/parameters")
-def parameters():
-    return render_template("parameters.html")
-
-
-@app.route('/assets/<path:filename>')
-def assets(filename):
-    return send_from_directory(ASSETS_DIR, filename)
-
-
 @app.route('/events')
 def events():
     def stream():
@@ -117,24 +103,14 @@ def events():
     return Response(stream_with_context(stream()), mimetype='text/event-stream')
 
 
-@app.route("/category/simulation")
-def simulation():
-    image_url = url_for('assets', filename='latest_map.png')
-    return render_template("simulation.html", image=image_url)
-
-
 @app.route("/category/statistics")
 def statistics():
     return render_template("statistics.html")
 
 
-@app.route("/category/panel")
-def panel():
-    return render_template("panel.html")
-
-
 @app.route("/api/disruption_type")
 def jsonify_types():
+    print("RESULTS PATH", RESULTS_PATH)
     return jsonify(json.loads((RESULTS_PATH / "disruption_type.json").read_text()))
 
 
@@ -235,7 +211,7 @@ def process():
     # sim.reset()
     data = request.get_json()
 
-    with open('parameters/disruption_parameters.pkl', 'wb') as f:
+    with open('input_data/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
 
     return jsonify(data)
@@ -246,7 +222,7 @@ def parameters_process():
     data = request.get_json()
 
     # print("Received disruption data from dashboard:\n", data)
-    with open('parameters/disruption_parameters.pkl', 'wb') as f:
+    with open('input_data/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
 
     fig = go.Figure()
@@ -278,7 +254,7 @@ def start_simulation():
             sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
             try:
                 # sim = Simulation(max_time=15, time_resolution="day")
-                sim.inject_parameters(max_time=15, time_resolution="day")
+                # sim.inject_parameters()
                 sim.run()
             except Exception as e:
                 app.logger.exception("Simulation failed: %s", e)

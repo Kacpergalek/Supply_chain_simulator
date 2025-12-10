@@ -4,6 +4,11 @@ import numpy as np
 import os
 import json
 
+from models.agents.exporter_agent import ExporterAgent
+from models.delivery.delivery import Delivery
+from utils.find_exporter import find_exporter_by_node_id
+
+
 class StatisticsManager:
     """ class for managing statistics
 
@@ -69,10 +74,12 @@ class StatisticsManager:
         """ FINAL SNAPSHOT"""
         self.final_snapshot = {f"Agent {i}": {} for i in range(number_of_agents)}
 
-    def calculate_loss(self):
-        """ Calculate loss for each agent (0 if not disrupted)"""
-        for i in range(len(self.cost)):
-            self.loss[i] = max(self.cost_timeseries[f"Agent {i}"].values()) - min(self.cost_timeseries[f"Agent {i}"].values())
+    def calculate_loss(self, exporters: list[ExporterAgent], delivery: Delivery, loss):
+        agent = find_exporter_by_node_id(exporters, delivery.start_node_id)
+        self.loss[agent.agent_id] = loss
+        # """ Calculate loss for each agent (0 if not disrupted)"""
+        # for i in range(len(self.cost)):
+        #     self.loss[i] = self.cost[i] - min(self.cost_timeseries[f"Agent {i}"].values())
 
     def add_snapshot(self, current_time: int):
         """ Each timestamp saves the current snapshot of fulfilled_demand, lost_demand, cost and loss values
@@ -137,7 +144,7 @@ class StatisticsManager:
         }
 
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        directory = os.path.join(path, 'output')
+        directory = os.path.join(path, 'output_data')
         os.makedirs(directory, exist_ok=True)
 
         self.save_to_json(average_data, directory, 'average')
