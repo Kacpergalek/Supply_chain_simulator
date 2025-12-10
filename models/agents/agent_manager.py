@@ -137,16 +137,72 @@ class AgentManager:
         c = 2 * math.asin(math.sqrt(a))
         return 6371 * c
 
+    def _is_airport_node(self, graph: SimulationGraph, node_id: int) -> bool:
+        """
+        Heuristic check whether a node represents an airport / airport-only route.
+        Adjust this if your airport tagging schema is different.
+        """
+        data = graph.nodes[node_id]
+
+        # 1) Direct node tags commonly used for airports
+        if data.get("type") == "airport":
+            return True
+        else:
+            return False
+        # if data.get("is_airport"):
+        #     return True
+        # if data.get("aeroway") in {"aerodrome", "airport", "heliport"}:
+        #     return True
+        # if data.get("amenity") == "airport":
+        #     return True
+        # return False
+
+        # 2) If all incident edges are air-mode edges, treat as airport node
+        # def edge_is_air(e_data: dict) -> bool:
+        #     mode = e_data.get("mode")
+        #     route = e_data.get("route")
+        #     if mode in {"air", "flight"}:
+        #         return True
+        #     if route in {"air", "flight"}:
+        #         return True
+        #     return False
+        #
+        # has_edges = False
+        # for _, _, e_data in graph.out_edges(node_id, data=True):
+        #     has_edges = True
+        #     if not edge_is_air(e_data):
+        #         return False
+        # for _, _, e_data in graph.in_edges(node_id, data=True):
+        #     has_edges = True
+        #     if not edge_is_air(e_data):
+        #         return False
+        #
+        # # If there are edges and all of them look like air edges -> airport node
+        # return has_edges
+
     def find_closest_node(self, graph: SimulationGraph, store: pd.Series):
         #TODO check if node is an airport - we don't take airports
         # GeoPandas Point: .x is longitude, .y is latitude
         lon_c = store['geometry'].x
         lat_c = store['geometry'].y
-        return min(
+
+        sorted_nodes = sorted(
             graph.nodes,
             key=lambda n: self.haversine_km(
-                lat_c, lon_c, graph.nodes[n].get("y", 0), graph.nodes[n].get("x", 0))
+                lat_c,
+                lon_c,
+                graph.nodes[n].get("y", 0),
+                graph.nodes[n].get("x", 0),
+            ),
         )
+
+        for node_id in sorted_nodes:
+            if not self._is_airport_node(graph, node_id):
+                return node_id
+
+            # Fallback: if everything looks like an airport, just return the closest
+            # (or you could raise an error instead)
+        return sorted_nodes[0]
 
     def initialize_exporters(self, graph: SimulationGraph) -> list[ExporterAgent]:
         for city in exporter_cities:
@@ -161,11 +217,11 @@ class AgentManager:
                                      products=products)
             self.exporters.append(exporter)
         # Debug: show how many exporters were created and sample node ids
-        try:
-            print(
-                f"Initialized {len(self.exporters)} exporters. Sample nodes: {[e.node_id for e in self.exporters[:5]]}")
-        except Exception:
-            pass
+        # try:
+        #     print(
+        #         f"Initialized {len(self.exporters)} exporters. Sample nodes: {[e.node_id for e in self.exporters[:5]]}")
+        # except Exception:
+        #     pass
         return self.exporters
 
     def initialize_importers(self, graph: SimulationGraph) -> list[BaseAgent]:
@@ -176,11 +232,11 @@ class AgentManager:
             importer = BaseAgent(agent_id=agent_id, node_id=closest_node)
             self.importers.append(importer)
         # Debug: show how many importers were created and sample node ids
-        try:
-            print(
-                f"Initialized {len(self.importers)} importers. Sample nodes: {[i.node_id for i in self.importers[:5]]}")
-        except Exception:
-            pass
+        # try:
+        #     print(
+        #         f"Initialized {len(self.importers)} importers. Sample nodes: {[i.node_id for i in self.importers[:5]]}")
+        # except Exception:
+        #     pass
         return self.importers
 
     def initialize_routes(self, graph: SimulationGraph) -> list[dict]:
@@ -213,7 +269,8 @@ class AgentManager:
             print(exp)
             try:
                 params = {
-                    "default_unit_cost": courier_companies[exp.courier_company]}
+                    "default_unit_cost": courier_companies[exp.courier_company]
+                }
                 result = exp.find_cheapest_path(
                     graph_undirected, dest_node=imp.node_id, params=params)
                 results.append({

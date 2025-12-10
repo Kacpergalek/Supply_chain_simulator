@@ -1,4 +1,4 @@
 importer_cities = [
-    "Vienna, Austria", "Rome, Italy", "Cologne, Germany", "Naples, Italy", "Zürich, Switzerland",
-    "Antwerp, Belgium", "Lausanne, Switzerland", "Wrocław, Poland", "Munich, Germany", "Porto, Portugal"
+    "Paris, France", "Hamburg, Germany", "Turin, Italy", "Brussels, Belgium", "Madrid, Spain",
+    "Łódź, Poland", "Vienna, Austria", "Wrocław, Poland", "Porto, Portugal", "Geneva, Switzerland"
 ]

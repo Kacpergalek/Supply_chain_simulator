@@ -36,7 +36,7 @@ class NetworkManager():
             for node, data in sim_graph.nodes(data=True):
                 if "country" not in data:
                     data["country"] = unidecode(country).lower().replace(" ", "_")
-        sim_graph = self.merge_graph_components(sim_graph, max_dist_km=70)
+        # sim_graph = self.merge_graph_components(sim_graph, max_dist_km=70)
         return sim_graph
 
     def add_infrastructure(self, graph : SimulationGraph, type : str):
@@ -64,7 +64,7 @@ class NetworkManager():
                 "x" : row["Lon"],
                 "country" : row["Country"],
                 "active" : True,
-                "type" : str(row["Type"]).lower()
+                "type" : "airport"
             }
             graph.add_node(iata, **node_data)
             coords_map[iata] = (row["Lat"], row["Lon"])
@@ -97,7 +97,8 @@ class NetworkManager():
                     "length" : length,
                     "capacity" : default_capacity,
                     "cost" : length/1000 * default_price,
-                    "flow" : 0
+                    "flow" : 0,
+                    "type" : "airline_route"
                 }
                 graph.add_edge(aita_source, aita_dest, **edge_data)
 

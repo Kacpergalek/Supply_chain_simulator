@@ -43,13 +43,32 @@ class Delivery:
 
     def find_parcel_cost(self) -> float:
         shipping_prices = {
-            'furniture': 8,
-            'technology': 4,
-            'office supplies': 1
+            # --- HEAVY / BULKY (Furniture & Large Equipment) ---
+            'Bookcases': 90.00,
+            'Tables': 85.00,
+            'Copiers': 75.00,
+            'Chairs': 55.00,
+            'Machines': 45.00,  # Printers, shredders, etc.
+            'Furnishings': 30.00,  # Lamps, rugs, decor
+
+            # --- MEDIUM (Boxed items, Electronics) ---
+            'Storage': 22.00,  # Bins/organizers (bulky volume)
+            'Appliances': 20.00,  # Small office appliances
+            'Phones': 12.00,  # High value, tracked shipping
+            'Paper': 12.00,  # Heavy by weight (ream density)
+            'Art': 12.00,  # Fragile handling
+
+            # --- LIGHT (Small parcels) ---
+            'Accessories': 9.50,  # Keyboards, mice, USBs
+            'Binders': 8.00,
+            'Supplies': 6.50,  # Pens, staplers, misc
+            'Labels': 4.50,
+            'Envelopes': 4.00,
+            'Fasteners': 3.50  # Paperclips, staples (very light)
         }
         parcel_price = 0
         for product, quantity in self.parcel:
-            parcel_price += shipping_prices[product.category]
+            parcel_price += (shipping_prices[product.subcategory] / 30)
         return parcel_price
 
     def find_minimum_capacity(self, network: SimulationGraph) -> float:
@@ -60,7 +79,7 @@ class Delivery:
         return minimum_capacity
 
     def reset_delivery(self) -> None:
-        self.route = 0
+        self.route = []
         self.length = 0
         self.cost = 0
         self.lead_time = 0
@@ -70,7 +89,11 @@ class Delivery:
         for e in exporters:
             if e.node_id == self.start_node_id:
                 exporter = e
-        path = exporter.find_cheapest_path(network, self.end_node_id)
+        graph_undirected = SimulationGraph(default_capacity=network.default_capacity,
+                                           default_price=network.default_price,
+                                           incoming_graph_data=network)
+        path = exporter.find_cheapest_path(graph_undirected, self.end_node_id)
+        #print(f"New path: {path}")
         if path is None:
             return
         self.route = path['path']
@@ -78,3 +101,4 @@ class Delivery:
         self.length = path['total_distance_km']
         self.cost = path['estimated_cost']
         self.lead_time = path['estimated_lead_time_days']
+        # print(f"Delivery {self.delivery_id} updated. New cost: {self.cost}. New length: {self.length}.")

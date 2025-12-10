@@ -71,14 +71,22 @@ class SimulationGraph(nx.MultiGraph):
 
 
     def deactivate_nodes(self, nodes : list[int]):
-        for node, data in self.nodes(data=True):
-            if node in nodes:
+        # for node, data in self.nodes(data=True):
+        #     if node in nodes:
+        #         data["active"] = False
+        for node in nodes:
+            if node in self.nodes:
+                data = self.nodes[node]
                 data["active"] = False
 
 
     def activate_nodes(self, nodes : list[int]):
-        for node, data in self.nodes(data=True):
-            if node in nodes:
+        # for node, data in self.nodes(data=True):
+        #     if node in nodes:
+        #         data["active"] = True
+        for node in nodes:
+            if node in self.nodes:
+                data = self.nodes[node]
                 data["active"] = True
 
 
