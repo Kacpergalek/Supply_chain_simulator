@@ -1,62 +1,62 @@
 {
   "Agent 0": {
-    "final_fulfilled_demand": 41645.0,
+    "final_fulfilled_demand": 26662.0,
     "final_lost_demand": 0.0,
-    "final_cost": 83543.32,
+    "final_cost": 83596.1,
     "final_loss": 0.0
   },
   "Agent 1": {
-    "final_fulfilled_demand": 33485.0,
+    "final_fulfilled_demand": 23576.0,
     "final_lost_demand": 0.0,
-    "final_cost": 43385.98,
-    "final_loss": 6041.4
+    "final_cost": 43026.34,
+    "final_loss": 6064.8
   },
   "Agent 2": {
-    "final_fulfilled_demand": 40521.0,
+    "final_fulfilled_demand": 47440.0,
     "final_lost_demand": 0.0,
-    "final_cost": 114983.14,
-    "final_loss": 15317.7
+    "final_cost": 115027.77,
+    "final_loss": 15355.05
   },
   "Agent 3": {
-    "final_fulfilled_demand": 24494.0,
+    "final_fulfilled_demand": 23595.0,
     "final_lost_demand": 0.0,
-    "final_cost": 66370.64,
-    "final_loss": 11883.9
+    "final_cost": 66382.92,
+    "final_loss": 11853.9
   },
   "Agent 4": {
-    "final_fulfilled_demand": 49066.0,
+    "final_fulfilled_demand": 45854.0,
     "final_lost_demand": 0.0,
-    "final_cost": 122731.43,
-    "final_loss": 12600.15
+    "final_cost": 122727.77,
+    "final_loss": 12578.85
   },
   "Agent 5": {
-    "final_fulfilled_demand": 57449.0,
+    "final_fulfilled_demand": 54082.0,
     "final_lost_demand": 0.0,
-    "final_cost": 48672.05,
-    "final_loss": 14228.55
+    "final_cost": 72683.99,
+    "final_loss": 14276.55
   },
   "Agent 6": {
-    "final_fulfilled_demand": 41523.0,
+    "final_fulfilled_demand": 48100.0,
     "final_lost_demand": 0.0,
-    "final_cost": 135670.79,
-    "final_loss": 14044.95
+    "final_cost": 135365.55,
+    "final_loss": 14187.15
   },
   "Agent 7": {
-    "final_fulfilled_demand": 35508.0,
+    "final_fulfilled_demand": 39423.0,
     "final_lost_demand": 0.0,
-    "final_cost": 50863.92,
-    "final_loss": 9399.0
+    "final_cost": 50944.93,
+    "final_loss": 9480.15
   },
   "Agent 8": {
-    "final_fulfilled_demand": 52664.0,
+    "final_fulfilled_demand": 51309.0,
     "final_lost_demand": 0.0,
-    "final_cost": 148676.52,
-    "final_loss": 17090.1
+    "final_cost": 148721.93,
+    "final_loss": 17166.45
   },
   "Agent 9": {
-    "final_fulfilled_demand": 55856.0,
+    "final_fulfilled_demand": 62559.0,
     "final_lost_demand": 0.0,
-    "final_cost": 103713.69,
-    "final_loss": 13339.35
+    "final_cost": 103790.4,
+    "final_loss": 13440.0
   }
 }

@@ -17,6 +17,9 @@ from network.europe import europe_countries
 from network.europe import top_europe_airports_iata
 from network.europe import europe_country_codes
 from network.europe import europe_seaports_un_locode
+from network.world import top_world_airports_iata
+from network.world import top_world_seaport_locodes
+from network.world import country_codes
 from utils.graph_helper import haversine_coordinates
 
 class NetworkManager():
@@ -51,10 +54,13 @@ class NetworkManager():
         folder_path = os.path.join(path, "input_data", "simulation_data", "airports")
         airports_path = os.path.join(folder_path, airports_filename)
 
+        top_airport = top_world_airports_iata.copy()
+        top_airport.extend(top_europe_airports_iata)
+
         airports_cols = ["ID", "Name", "City", "Country", "IATA", "ICAO", "Lat", "Lon", "Alt", "Timezone", "DST", "Tz", "Type", "Source"]
 
         df_airports = pd.read_csv(airports_path, names=airports_cols, header=None)
-        df_top_airports = df_airports[df_airports["IATA"].isin(top_europe_airports_iata)].copy()
+        df_top_airports = df_airports[df_airports["IATA"].isin(top_airport)].copy()
 
         graph = nx.MultiGraph()
         graph.graph["crs"] = self.default_crs
@@ -77,7 +83,7 @@ class NetworkManager():
         routes_cols = ["Airline", "AirlineID", "Source", "SourceID", "Dest", "DestID", "Codeshare", "Stops", "Eq"]
         df_routes = pd.read_csv(routes_path, header=None, names=routes_cols)
 
-        df_top_routes = df_routes[df_routes["Source"].isin(top_europe_airports_iata) & df_routes["Dest"].isin(top_europe_airports_iata)]
+        df_top_routes = df_routes[df_routes["Source"].isin(top_airport) & df_routes["Dest"].isin(top_airport)]
         df_top_routes = df_top_routes.drop_duplicates(subset=["Source", "Dest", "Airline"])
 
         routes = set()
@@ -113,10 +119,22 @@ class NetworkManager():
         folder_path = os.path.join(path, "input_data", "simulation_data", "seaports")
         seaports_path = os.path.join(folder_path, seaports_filename)
 
-        df_seaports = pd.read_csv(seaports_path, header=0, delimiter=";")
-        df_eu_seaports = df_seaports[df_seaports["country_code"].isin(europe_country_codes) & df_seaports["code"].isin(europe_seaports_un_locode)].copy()
+        top_seaports = top_world_seaport_locodes.copy()
+        top_seaports.extend(europe_seaports_un_locode)
 
-        hubs = ["NLROT", "BEANR", "DEHAM", "DEBRV", "ESALG", "GRPIR"]
+        df_seaports = pd.read_csv(seaports_path, header=0, delimiter=";")
+        df_eu_seaports = df_seaports[df_seaports["code"].isin(top_seaports)].copy()
+
+        europe_hubs = ["NLROT", "BEANR", "DEHAM", "DEBRV", "ESALG", "GRPIR"]
+        top_seaports_countries = self.get_world_hubs()
+        world_hubs = []
+        for locode in top_world_seaport_locodes:
+            for _, row in df_seaports.iterrows():
+                if row["code"] == locode:
+                    country = country_codes.get(row["country_code"], None)
+                    if country and country in top_seaports_countries:
+                        world_hubs.append(locode)
+
 
         graph = nx.MultiGraph()
         graph.graph["crs"] = self.default_crs
@@ -129,7 +147,7 @@ class NetworkManager():
                 "country" : row["country_code"],
                 "active" : True,
                 "type" : "seaport",
-                "hub" : (node_id in hubs) 
+                "hub" : (node_id in europe_hubs or node_id in world_hubs) 
             }
             graph.add_node(node_id, **node_data)
             coords_map[node_id] = (row["latitude"], row["longitude"])
@@ -260,3 +278,20 @@ class NetworkManager():
 
         print(f"Merge complete. Created {links_created} new connections.")
         return graph
+
+
+    def get_world_hubs(self, statistics_file : str = "US.LSCI_20260109_145101.csv"):
+        path = Path(__file__).parent.parent
+        folder_path = os.path.join(path, "input_data", "simulation_data", "seaports")
+        seaports_path = os.path.join(folder_path, statistics_file)
+
+        seaports_stats_df = pd.read_csv(seaports_path, delimiter=",")
+
+        seaports_stats_df = seaports_stats_df.sort_values(by="Q3 2025_Ranking_per_quarter_Value", ascending=True)
+        world_hub_countries = []
+
+        for _, row in seaports_stats_df.iterrows():
+            if row["Q3 2025_Ranking_per_quarter_Value"] <= 10:
+                world_hub_countries.append(row["Economy_Label"])
+        
+        return world_hub_countries

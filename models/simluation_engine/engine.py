@@ -35,12 +35,13 @@ class Simulation:
         """ Network initialization"""
         time_start = time.time()
         network_manager = NetworkManager()
-        self.network = network_manager.get_graph_from_file("europe")
-        airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=7)
-        self.network.compose(airplane_graph)
-        seaport_graph = network_manager.load_seaports_graph(default_capacity=5, default_price=3)
-        self.network.compose(seaport_graph)
-        self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+        # self.network = network_manager.get_graph_from_file("europe")
+        # airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=7)
+        # self.network.compose(airplane_graph)
+        # seaport_graph = network_manager.load_seaports_graph(default_capacity=5, default_price=3)
+        # self.network.compose(seaport_graph)
+        # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+        self.network = network_manager.get_graph_from_file("world", road_type="")
         print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
 
         """ Agents initialization """

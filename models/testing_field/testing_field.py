@@ -55,7 +55,7 @@ from models.agents.exporter_agent import ExporterAgent
 # sim.inject_parameters(15, "day")
 # sim.run()
 
-time_start = time.time()
+""" time_start = time.time()
 network = NetworkManager()
 reader = GraphManager()
 
@@ -73,7 +73,7 @@ empty_graph = graph.coherence(threshold=10000)
 reader.save_pickle_file("added_edges_motorway.pkl", empty_graph)
 
 reader.save_pickle_file("europe_motorway.pkl", graph)
-print(f"Consolidation time: {time.time() - consolidate_start_time}")
+print(f"Consolidation time: {time.time() - consolidate_start_time}") """
 
 
 
@@ -120,3 +120,14 @@ print(path_length)
 path_cost = graph.astar(node1, node2, metric="cost")
 print(f"Liczba nodów: {len(path_cost)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
 print(path_cost) """
+
+network = NetworkManager()
+graph = network.get_graph_from_file("europe")
+airplane_graph = network.load_airports_graph(default_capacity=10, default_price=7)
+graph.compose(airplane_graph)
+seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)
+graph.compose(seaport_graph)
+graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+
+reader = GraphManager()
+reader.save_pickle_file("world_.pkl", graph)
