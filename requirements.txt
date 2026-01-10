@@ -7,5 +7,6 @@ pandas==2.3.3
 geopandas==1.1.1
 plotly==6.4.0
 scipy==1.16.3
+searoute==1.4.3
 Shapely==2.1.2
 Unidecode==1.4.0

@@ -16,9 +16,9 @@ from network.empty_visualization import plot_empty_map
 app = Flask(__name__)
 dash_manager = DashboardsManager()
 plot_empty_map()
+
 RESULTS_PATH = Path('input_data/form_data')
 OUTPUT_PATH = Path('output_data')
-
 
 # --- Logging queue + SSE setup ---
 log_queue = queue.Queue()

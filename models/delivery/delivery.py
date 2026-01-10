@@ -3,7 +3,6 @@ import numpy as np
 from models.agents.exporter_agent import ExporterAgent
 from models.delivery.product import Product
 from network.simulation_graph import SimulationGraph
-# from utils.find_exporter import find_exporter_by_node_id
 
 
 class Delivery:
@@ -42,9 +41,10 @@ class Delivery:
         self.cost = cost
         self.lead_time = lead_time
         self.capacity = 0
-        self.disrupted = disrupted
 
+        self.disrupted = disrupted
         self.is_product = is_product
+
         self.parcel = parcel
 
     def to_dict(self) -> dict:

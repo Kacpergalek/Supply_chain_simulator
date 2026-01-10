@@ -10,7 +10,7 @@ class BaseAgent:
     """
     def __init__(self, agent_id, node_id, country="Poland"):
         self.agent_id = int(agent_id)
-        self.node_id = int(node_id)
+        self.node_id = node_id
         self.country = str(country)
 
     def __repr__(self):
