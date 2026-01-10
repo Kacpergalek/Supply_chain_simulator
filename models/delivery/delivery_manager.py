@@ -5,77 +5,104 @@ import pandas as pd
 from models.agents.exporter_agent import ExporterAgent
 from models.delivery.delivery import Delivery
 from models.delivery.product import Product
+from models.delivery.product_manager import ProductManager
+from models.delivery.raw_material import RawMaterial
 from network.simulation_graph import SimulationGraph
-from utils.find_exporter import find_exporter_by_node_id
-
-
-def read_csv(filepath: str, columns: list[str]):
-    df = pd.read_csv(filepath, encoding='cp1252')
-    return df[columns]
+from utils.find_delivery import find_delivery_by_starting_node_id
+# from utils.find_exporter import find_exporter_by_node_id
+from utils.get_dataframe_from_csv import get_dataframe_from_csv
 
 
 class DeliveryManager:
+    """
+        - Generates deliveries between exporters and importers based on precomputed
+          paths and network information.
+        - Builds product parcels for product deliveries using inventory and CSV-based
+          demand quantities.
+        - Derives batches of raw materials from existing product parcels (e.g. for
+          upstream factory deliveries).
+
+        Attributes
+        ----------
+        product_manager : ProductManager
+            Used to load and categorize products.
+        deliveries : list[Delivery]
+            All deliveries that have been initialized in the current simulation.
+        """
     def __init__(self):
-        self.categories = []
-        self.furniture = []
-        self.technology = []
-        self.office_supplies = []
-        self.beauty = []
-
-        self.tags_furniture = ["furniture", "bed", "kitchen", "lighting", "interior_decoration", "bathroom_furnishing"]
-        self.tags_technology = ["electronics", "computer", "mobile_phone", "hifi", "photo", "video_games"]
-        self.tags_office = ["office_supplies", "stationery", "copyshop", "printer_ink"]
-        self.tags_beauty = ["cosmetics", "chemist", "perfumery", "drugstore", "hairdresser_supply", "herbalist"]
-
+        self.product_manager = ProductManager()
         self.deliveries = []
 
-    def sort_products(self):
-        path = Path(__file__).parent.parent.parent / "input_data"
-        columns = ["Product ID", "Category", "Sub-Category", "Product Name", "Price", "Quantity"]
-        products_df = pd.DataFrame(read_csv(f"{path}/products.csv", columns))
-        products_df.drop_duplicates(subset=['Product ID'], inplace=True)
-        self.categories = list(set([row["Category"] for index, row in products_df.iterrows()]))
 
-        for index, row in products_df.iterrows():
-            product = Product(row["Product ID"], row["Product Name"], row["Category"], row["Sub-Category"],
-                              row["Price"] / row["Quantity"])
-            if row["Category"] == "Furniture":
-                self.furniture.append(product)
-            elif row["Category"] == "Technology":
-                self.technology.append(product)
-            else:
-                self.office_supplies.append(product)
+    def initialize_deliveries(self, network: SimulationGraph, node_to_exporter: dict[int, ExporterAgent],
+                              paths: list[dict], product_delivery: bool) -> list[Delivery]:
+        """
+        Parameters
+        ----------
+        network : SimulationGraph
+            The transportation network used to determine edge capacities.
+        node_to_exporter :  dict[str, ExporterAgent]
+            Exporter agents participating in the simulation.
+        paths : list[dict]
+            Precomputed path descriptions. Each dict is expected to include:
+            - 'exporter_node': int
+            - 'importer_node': int
+            - 'path': list[int]
+            - 'total_distance_km': float
+            - 'estimated_cost': float
+            - 'estimated_lead_time_days': float
+        product_delivery : bool
+            If True, create product deliveries
+            If False, create raw material deliveries (corresponding product delivery must exist already)
 
-
-    def initialize_deliveries(self, network: SimulationGraph, exporters: list[ExporterAgent], agent_data: list[dict]):
-        self.sort_products()
-        for agent_dict in agent_data:
-            agent = find_exporter_by_node_id(exporters, agent_dict['exporter_node'])
+        Returns
+        -------
+        list[Delivery]
+            The list of all deliveries initialized (including any existing ones).
+        """
+        self.product_manager.sort_products()
+        deliveries = []
+        for agent_dict in paths:
+            agent = node_to_exporter[agent_dict['exporter_node']]
 
             number_of_products = random.randrange(int(agent_dict['total_distance_km'] / 10.0),
                                                   int(agent_dict['total_distance_km'] / 5.0))
-            parcel = self.initialize_parcel([inv[0] for inv in agent.inventory], number_of_products)
+            if product_delivery:
+                parcel = self.initialize_parcel([inv[0] for inv in agent.inventory], number_of_products)
+            else:
+
+                p_delivery = find_delivery_by_starting_node_id(self.deliveries, agent_dict['importer_node'])
+                parcel = self.initialize_raw_material_batch(p_delivery.parcel)
             delivery = Delivery(len(self.deliveries), agent_dict['exporter_node'], agent_dict['importer_node'],
                                 agent_dict['path'], agent_dict['total_distance_km'], agent_dict['estimated_cost'],
-                                agent_dict['estimated_lead_time_days'], parcel)
+                                agent_dict['estimated_lead_time_days'], parcel, False, product_delivery)
             delivery.capacity = delivery.find_minimum_capacity(network)
             agent.delivery = delivery
             self.deliveries.append(delivery)
-        return self.deliveries
-
-    def initialize_products(self, store_category: str) -> list[Product]:
-        if store_category in self.tags_furniture:
-            return self.furniture
-        elif store_category in self.tags_technology:
-            return self.technology
-        else:
-            return self.office_supplies
+            deliveries.append(delivery)
+        return deliveries
 
     def initialize_parcel(self, products: list[Product], number_of_products: int) -> list[tuple[Product, int]]:
+        """
+        Parameters
+        ----------
+        products : list[Product]
+            Candidate products (usually from an exporter's inventory).
+        number_of_products : int
+            Desired number of distinct product types in the parcel (will be capped if necessary).
+
+        Returns
+        -------
+        list[tuple[Product, int]]
+            A list of `(product, quantity)` pairs representing the parcel.
+        """
         path = Path(__file__).parent.parent.parent / "input_data"
         columns = ["Product ID", "Quantity"]
-        products_df = pd.DataFrame(read_csv(f"{path}/products.csv", columns))
+        products_df = pd.DataFrame(get_dataframe_from_csv(f"{path}/products.csv", columns))
         products_df = products_df.groupby("Product ID").sum().reset_index()
+        products2_df = pd.DataFrame(get_dataframe_from_csv(f"{path}/products2.csv", columns))
+        products2_df = products2_df.groupby("Product ID").sum().reset_index()
+        products_df = pd.concat([products_df, products2_df])
         parcel = []
         if number_of_products > len(products):
             number_of_products = len(products)
@@ -85,12 +112,26 @@ class DeliveryManager:
             parcel.append((product, quantity))
         return parcel
 
+    def initialize_raw_material_batch(self, parcel: list[tuple[Product, int]]) -> list[tuple[RawMaterial, float]]:
+        """
+        Parameters
+        ----------
+        parcel : list[tuple[Product, int]]
+            A list of `(product, quantity)` pairs representing a finished
+            product parcel.
 
-# if __name__ == "__main__":
-#     path = Path(__file__).parent.parent.parent / "input_data"
-#     columns = ["Product ID", "Quantity"]
-#     products_df = pd.DataFrame(read_csv(f"{path}/products.csv", columns))
-#     # print(products_df[products_df["Product ID"] == "FUR-BO-10000112"])
-#     df = products_df.groupby("Product ID").sum().reset_index()
-#     print(df)
-#     print(df["Product ID"])
+        Returns
+        -------
+        list[tuple[RawMaterial, float]]
+            A list of `(raw_material, quantity_kg)` pairs representing the
+            upstream raw material batch.
+        """
+        batch = []
+        for product, quantity in parcel:
+            m_name = product.name + "_raw_material"
+            m_category = product.category + "_raw_material"
+            m_price = product.retail_price * 0.1
+            material = RawMaterial(product.product_id, m_name, m_category, m_price)
+            qty_kg = quantity * 0.2
+            batch.append((material, qty_kg))
+        return batch

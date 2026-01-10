@@ -40,6 +40,18 @@ class ExporterAgent(BaseAgent):
 
         # self.inventory = 0  # ile aktualnie ma w magazynie
 
+    def to_dict(self):
+        return {
+            "agent_id": self.agent_id,
+            "node_id": self.node_id,
+            "store_name": self.store_name,
+            "store_category": self.store_category,
+            "city": self.city,
+            "courier_company": self.courier_company,
+            "products": [product for product, _ in self.inventory],
+            "finances": self.finances
+        }
+
     # def __repr__(self):
     #     return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}"
     #             f"retail_price={self.retail_price}, finances={self.finances}, inventory={self.inventory})")
@@ -98,7 +110,7 @@ class ExporterAgent(BaseAgent):
 
         # Update finances defensively (guard if delivery methods/attrs missing)
         try:
-            self.finances += self.delivery.find_retail_price()
+            self.finances += self.delivery.find_parcel_retail_price()
         except Exception:
             pass
 

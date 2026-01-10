@@ -1,272 +1,231 @@
 import json
 import math
+import os
 import pickle
 import random
 from pathlib import Path
-import osmnx as ox
 import pandas as pd
-import geopandas as gpd
 
+from input_data.agent_data.material_exporter_cities import material_exporter_cities
 from models.agents.base_agent import BaseAgent
-from models.agents.courier_companies import courier_companies
-from models.agents.importer_cities import importer_cities
-from models.agents.exporter_cities import exporter_cities
-from models.agents.europe_top_cities import europe_top_cities
+from input_data.delivery_data.courier_companies import courier_companies
+from input_data.agent_data.product_importer_cities import product_importer_cities
+from input_data.agent_data.importer_exporter_cities import importer_exporter_cities
 from models.agents.exporter_agent import ExporterAgent
+from models.agents.factory_manager import FactoryManager
+from models.agents.retail_store_manager import RetailStoreManager
 from models.delivery.delivery_manager import DeliveryManager
-from models.delivery.product import Product
 
 from network.simulation_graph import SimulationGraph
 
 
+def haversine_km(lat1, lon1, lat2, lon2) -> float:
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+    d_lon = lon2 - lon1
+    d_lat = lat2 - lat1
+    a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * \
+        math.cos(lat2) * math.sin(d_lon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    return 6371 * c
+
+
+def _is_airport_node(graph: SimulationGraph, node_id: int) -> bool:
+    """
+    Heuristic check whether a node represents an airport / airport-only route.
+
+    Returns
+    -------
+    bool
+        True if the node is interpreted as an airport, False otherwise.
+    """
+    data = graph.nodes[node_id]
+
+    # 1) Direct node tags commonly used for airports
+    if data.get("type") == "airport":
+        return True
+    else:
+        return False
+
+def find_closest_node(graph: SimulationGraph, store: pd.Series):
+    """
+    Find the closest non-airport graph node to a given store location.
+    The distance is computed via the Haversine formula over all nodes,
+    while skipping nodes that are considered airports.
+
+    Returns
+    -------
+    int
+        ID of the closest suitable node.
+    """
+    lon_c = store['geometry'].x
+    lat_c = store['geometry'].y
+
+    sorted_nodes = sorted(
+        graph.nodes,
+        key=lambda n: haversine_km(
+            lat_c,
+            lon_c,
+            graph.nodes[n].get("y", 0),
+            graph.nodes[n].get("x", 0),
+        ),
+    )
+
+    for node_id in sorted_nodes:
+        if not _is_airport_node(graph, node_id):
+            return node_id
+
+    return sorted_nodes[0]
+
+
 class AgentManager:
+    """
+    Responsibilities
+    ----------------
+    - Initialize:
+        * material exporters (raw material providers),
+        * importer-exporters (intermediate factories),
+        * product importers (retail-side receivers).
+    - Attach agents to the underlying network by choosing nearest nodes.
+    - Precompute cheapest routes between exporters and importers.
+    - Expose metadata needed by the simulation (agents and their routes).
+
+    Attributes
+    ----------
+    material_exporters : list[ExporterAgent]
+        Agents exporting raw materials to importer-exporters.
+    importer_exporters : list[ExporterAgent]
+        Agents that both import raw materials and export finished products.
+    product_importers : list[BaseAgent]
+        Downstream agents receiving finished products.
+    delivery_manager : DeliveryManager
+        Used to construct deliveries for initialized routes.
+    retail_store_manager : RetailStoreManager
+        Manages store locations and categories (note: 'retial' typo kept for compatibility).
+    factory_manager : FactoryManager
+        Manages factory locations and categories.
+    product_manager
+        Reference to product manager from `RetailStoreManager` used to assign
+        product assortments to exporters.
+    stores : dict
+        Mapping: city -> store metadata (geometry, name, category).
+    factories : dict
+        Mapping: city -> factory metadata (geometry, name, category).
+    """
     def __init__(self):
-        self.cities = europe_top_cities
-        self.stores = {}
-        self.cols_of_interest = ['name', 'shop', 'geometry']
-        self.tags_furniture = {
-            "shop": ["furniture", "bed", "kitchen", "lighting", "interior_decoration", "bathroom_furnishing"]
-        }
-        self.tags_technology = {
-            "shop": ["electronics", "computer", "mobile_phone", "hifi", "photo", "video_games"]
-        }
-        self.tags_office = {
-            "shop": ["office_supplies", "stationery", "copyshop", "printer_ink"]
-        }
-        self.furniture = []
-        self.technology = []
-        self.office_supplies = []
-
-        self.furniture_df = gpd.GeoDataFrame()
-        self.technology_df = gpd.GeoDataFrame()
-        self.office_supplies_df = gpd.GeoDataFrame()
-
-        self.exporters = []
-        self.importers = []
-
+        self.material_routes = []
+        self.product_routes = []
+        self.material_exporters = []
+        self.importer_exporters = []
+        self.product_importers = []
         self.delivery_manager = DeliveryManager()
-        self.delivery_manager.sort_products()
-
-    def initialize_stores(self) -> None:
-        for country in self.cities:
-            for city in self.cities[country]:
-                print(f"Querying: {city}...")
-
-                try:
-                    gdf_f = ox.features.features_from_place(
-                        city, self.tags_furniture)
-                    gdf_f = gdf_f[self.cols_of_interest].dropna()
-                    gdf_f['city'] = city
-                    self.furniture_df = pd.concat(
-                        [self.furniture_df, gdf_f], ignore_index=True)
-
-                    gdf_t = ox.features.features_from_place(
-                        city, self.tags_technology)
-                    gdf_t = gdf_t[self.cols_of_interest].dropna()
-                    gdf_t['city'] = city
-                    self.technology_df = pd.concat(
-                        [self.technology_df, gdf_t], ignore_index=True)
-
-                    gdf_o = ox.features.features_from_place(
-                        city, self.tags_office)
-                    gdf_o = gdf_o[self.cols_of_interest].dropna()
-                    gdf_o['city'] = city
-                    self.office_supplies_df = pd.concat(
-                        [self.office_supplies_df, gdf_o], ignore_index=True)
-
-                except Exception as e:
-                    print(f"   > Polygon not found for '{city}'")
-                    self.cities[country].remove(city)
-        with open('europe_top_cities_filtered.json', 'w') as fp:
-            json.dump(self.cities, fp)
-        self.save_to_pickle("furniture")
-        self.save_to_pickle("technology")
-        self.save_to_pickle("office_supplies")
-
-    def save_to_pickle(self, filename: str) -> None:
-        path = Path(__file__).parent.parent.parent / "input_data"
-
-        if filename == "furniture":
-            self.furniture_df.to_pickle(f"{path}/stores_furniture.pkl")
-        elif filename == "technology":
-            self.technology_df.to_pickle(f"{path}/stores_technology.pkl")
-        elif filename == "office_supplies":
-            self.office_supplies_df.to_pickle(
-                f"{path}/stores_office_supplies.pkl")
-
-    def load_from_pickle(self, filename: str) -> pd.DataFrame:
-        path = Path(__file__).parent.parent.parent / "input_data" / f"stores_{filename}.pkl"
-        if not path.exists():
-            self.initialize_stores()
-            self.save_to_pickle(filename)
-        with open(path, 'rb') as f:
-            return pickle.load(f)
-
-    def make_city_dict(self) -> None:
-        self.furniture_df = self.load_from_pickle("furniture")
-        stores = self.furniture_df[self.furniture_df['geometry'].type == 'Point']
-        self.technology_df = self.load_from_pickle("technology")
-        stores = pd.concat(
-            [stores, self.technology_df[self.technology_df['geometry'].type == 'Point']])
-        self.office_supplies_df = self.load_from_pickle("office_supplies")
-        stores = pd.concat(
-            [stores, self.office_supplies_df[self.office_supplies_df['geometry'].type == 'Point']])
-
-        for city in stores['city'].unique():
-            store = stores[stores['city'] == city].sample()
-            store_dict = {"geometry": store['geometry'].item(),
-                          "store_name": store['name'].item(), "store_category": store['shop'].item()}
-            self.stores[store['city'].item()] = store_dict
+        self.retail_store_manager = RetailStoreManager()
+        self.factory_manager = FactoryManager()
+        self.stores = self.retail_store_manager.stores
+        self.factories = self.factory_manager.factories
 
     def initialize_agents(self, graph: SimulationGraph) -> dict[str, list]:
+        """
+        Initialize all agent types, attach them to the network and compute routes.
+
+        Returns
+        -------
+        dict[str, list]
+            Dictionary containing:
+            - "material_exporters" : list[ExporterAgent]
+            - "importer_exporters" : list[ExporterAgent]
+            - "product_importers" : list[BaseAgent]
+            - "material_routes"   : list[dict]
+            - "product_routes"    : list[dict]
+        """
         if len(self.stores) == 0:
-            self.make_city_dict()
-        exporters = self.initialize_exporters(graph)
-        importers = self.initialize_importers(graph)
-        routes = self.initialize_routes(graph)
-        initialized = {"exporters": exporters,
-                       "importers": importers, "routes": routes}
+            self.stores = self.retail_store_manager.make_city_dict()
+        if len(self.factories) == 0:
+            self.factories = self.factory_manager.make_city_dict()
+        self.importer_exporters = self.initialize_exporters(graph, importer_exporter_cities)
+        self.material_exporters  = self.initialize_exporters(graph, material_exporter_cities)
+        self.product_importers = self.initialize_product_importers(graph)
+        self.material_routes = self.initialize_routes(graph, self.material_exporters, self.importer_exporters)
+        self.product_routes = self.initialize_routes(graph, self.importer_exporters, self.product_importers)
+        initialized = {"material_exporters": self.material_exporters, "importer_exporters": self.importer_exporters,
+                       "product_importers": self.product_importers, "material_routes": self.material_routes,
+                       "product_routes": self.product_routes}
+        # self.save_agent_data("material_exporters.json", material_exporters)
+        # self.save_agent_data("importer_exporters.json", importer_exporters)
+        # self.save_agent_data("product_importers.json", product_importers)
+        # self.save_agent_data("material_routes.json", material_routes)
+        # self.save_agent_data("product_routes.json", product_routes)
         return initialized
 
-    def haversine_km(self, lat1, lon1, lat2, lon2) -> float:
-        lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
-        d_lon = lon2 - lon1
-        d_lat = lat2 - lat1
-        a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * \
-            math.cos(lat2) * math.sin(d_lon / 2) ** 2
-        c = 2 * math.asin(math.sqrt(a))
-        return 6371 * c
-
-    def _is_airport_node(self, graph: SimulationGraph, node_id: int) -> bool:
+    def initialize_exporters(self, graph: SimulationGraph, exporter_cities: list[str]) -> list[ExporterAgent]:
         """
-        Heuristic check whether a node represents an airport / airport-only route.
-        Adjust this if your airport tagging schema is different.
+        Create exporter agents for a given list of cities.
+
+        Returns
+        -------
+        list[ExporterAgent]
+            Initialized exporter agents with assigned locations, products
+            and courier companies.
         """
-        data = graph.nodes[node_id]
-
-        # 1) Direct node tags commonly used for airports
-        if data.get("type") == "airport":
-            return True
-        else:
-            return False
-        # if data.get("is_airport"):
-        #     return True
-        # if data.get("aeroway") in {"aerodrome", "airport", "heliport"}:
-        #     return True
-        # if data.get("amenity") == "airport":
-        #     return True
-        # return False
-
-        # 2) If all incident edges are air-mode edges, treat as airport node
-        # def edge_is_air(e_data: dict) -> bool:
-        #     mode = e_data.get("mode")
-        #     route = e_data.get("route")
-        #     if mode in {"air", "flight"}:
-        #         return True
-        #     if route in {"air", "flight"}:
-        #         return True
-        #     return False
-        #
-        # has_edges = False
-        # for _, _, e_data in graph.out_edges(node_id, data=True):
-        #     has_edges = True
-        #     if not edge_is_air(e_data):
-        #         return False
-        # for _, _, e_data in graph.in_edges(node_id, data=True):
-        #     has_edges = True
-        #     if not edge_is_air(e_data):
-        #         return False
-        #
-        # # If there are edges and all of them look like air edges -> airport node
-        # return has_edges
-
-    def find_closest_node(self, graph: SimulationGraph, store: pd.Series):
-        #TODO check if node is an airport - we don't take airports
-        # GeoPandas Point: .x is longitude, .y is latitude
-        lon_c = store['geometry'].x
-        lat_c = store['geometry'].y
-
-        sorted_nodes = sorted(
-            graph.nodes,
-            key=lambda n: self.haversine_km(
-                lat_c,
-                lon_c,
-                graph.nodes[n].get("y", 0),
-                graph.nodes[n].get("x", 0),
-            ),
-        )
-
-        for node_id in sorted_nodes:
-            if not self._is_airport_node(graph, node_id):
-                return node_id
-
-            # Fallback: if everything looks like an airport, just return the closest
-            # (or you could raise an error instead)
-        return sorted_nodes[0]
-
-    def initialize_exporters(self, graph: SimulationGraph) -> list[ExporterAgent]:
+        exporters = []
         for city in exporter_cities:
             store = self.stores[city]
-            closest_node = self.find_closest_node(graph, store)
-            agent_id = len(self.exporters)
+            closest_node = find_closest_node(graph, store)
+            agent_id = len(exporters + self.importer_exporters)
             courier_company = random.choice(list(courier_companies))
-            products = self.delivery_manager.initialize_products(
-                store['store_category'])
+            products = self.retail_store_manager.product_manager.initialize_products(store['store_category'])
+            finances = random.randrange(1000, 5000)
             exporter = ExporterAgent(agent_id=agent_id, node_id=closest_node, store_name=store['store_name'],
                                      store_category=store['store_category'], city=city, courier_company=courier_company,
-                                     products=products)
-            self.exporters.append(exporter)
-        # Debug: show how many exporters were created and sample node ids
-        # try:
-        #     print(
-        #         f"Initialized {len(self.exporters)} exporters. Sample nodes: {[e.node_id for e in self.exporters[:5]]}")
-        # except Exception:
-        #     pass
-        return self.exporters
+                                     products=products, finances=finances)
+            exporters.append(exporter)
+        return exporters
 
-    def initialize_importers(self, graph: SimulationGraph) -> list[BaseAgent]:
-        for city in importer_cities:
+    def initialize_product_importers(self, graph: SimulationGraph) -> list[BaseAgent]:
+        """
+        Create product importer agents assigned to the nearest graph node.
+
+        Returns
+        -------
+        list[BaseAgent]
+            List of product importer agents.
+        """
+        for city in product_importer_cities:
             store = self.stores[city]
-            closest_node = self.find_closest_node(graph, store)
-            agent_id = len(self.exporters) + len(self.importers)
+            closest_node = find_closest_node(graph, store)
+            agent_id = len(self.importer_exporters + self.product_importers + self.material_exporters)
             importer = BaseAgent(agent_id=agent_id, node_id=closest_node)
-            self.importers.append(importer)
-        # Debug: show how many importers were created and sample node ids
-        # try:
-        #     print(
-        #         f"Initialized {len(self.importers)} importers. Sample nodes: {[i.node_id for i in self.importers[:5]]}")
-        # except Exception:
-        #     pass
-        return self.importers
+            self.product_importers.append(importer)
+        return self.product_importers
 
-    def initialize_routes(self, graph: SimulationGraph) -> list[dict]:
+    def initialize_routes(self, graph: SimulationGraph, exporters: list[ExporterAgent], importers: list[BaseAgent]) -> list[dict]:
+        """
+        Compute cheapest routes between exporter and importer pairs.
+
+        Parameters
+        ----------
+        graph : SimulationGraph
+            Directed network graph containing capacities and prices.
+        exporters : list[ExporterAgent]
+            Source agents for shipments.
+        importers : list[BaseAgent]
+            Destination agents for shipments.
+
+        Returns
+        -------
+        list[dict]
+            A list of route metadata dictionaries, each containing:
+            - agent_id, exporter_node, importer_node, path, total_distance_km,
+              estimated_cost, estimated_lead_time_days, etc. (as returned by
+              `ExporterAgent.find_cheapest_path`).
+        """
         results = []
 
         graph_undirected = SimulationGraph(default_capacity=graph.default_capacity,
                                            default_price=graph.default_price,
                                            incoming_graph_data=graph)
 
-        # --- DEBUG: show connected components and where agents are  ---
-        import networkx as nx
-        components = list(nx.connected_components(graph_undirected))
-        print(f"Graph has {len(components)} connected components")
-        comp_index_by_node = {}
-        for idx, comp in enumerate(components):
-            for n in comp:
-                comp_index_by_node[n] = idx
-
-        for idx, exp in enumerate(self.exporters):
-            imp = self.importers[idx]
-            exp_comp = comp_index_by_node.get(exp.node_id, None)
-            imp_comp = comp_index_by_node.get(imp.node_id, None)
-            print(
-                f"Pair {idx}: exporter {exp.node_id} in comp {exp_comp}, "
-                f"importer {imp.node_id} in comp {imp_comp}"
-            )
-        # --- END DEBUG ---
-
-        for i, (exp, imp) in enumerate(zip(self.exporters, self.importers), start=0):
-            print(exp)
+        for i, (exp, imp) in enumerate(zip(exporters, importers), start=0):
+            # print(exp)
             try:
                 params = {
                     "default_unit_cost": courier_companies[exp.courier_company]
@@ -288,20 +247,77 @@ class AgentManager:
             "importer_node": [r["importer_node"] for r in results],
             "results": results
         }
-
-        path = Path(__file__).parent.parent.parent / \
-            "input_data" / "network_data" / "paths.pkl"
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
+        self.save_paths_to_pkl(data)
 
         return results
 
-    # def calculate_prices(self):
-    #     for exporter in self.exporters:
-    #         delivery = find_delivery_by_agent()
-    #         exporter.production_price = exporter.delivery.calculate_production_price()
+    def save_paths_to_pkl(self, data: dict):
+        path = Path(__file__).parent.parent.parent / "input_data" / "network_data" / "paths.pkl"
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
 
+    def save_agent_data(self, file_name: str, data) -> None:
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
+        if not os.path.exists(data_path):
+            os.makedirs(data_path)
 
-if __name__ == "__main__":
-    am = AgentManager()
-    am.initialize_stores()
+        full_path = os.path.join(data_path, file_name)
+        if not isinstance(data[0], dict):
+            with open(full_path, "w", encoding="utf-8") as json_file:
+                json.dump([d.to_dict() for d in data], json_file, indent=4, ensure_ascii=False)
+        else:
+            with open(full_path, "w", encoding="utf-8") as json_file:
+                json.dump([d for d in data], json_file, indent=4, ensure_ascii=False)
+
+    def load_exporters(self, file_name: str) -> list[ExporterAgent]:
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
+        full_path = os.path.join(data_path, file_name)
+        agent_list = []
+        with open(full_path, "r", encoding="utf-8") as json_file:
+            try:
+                data = json.load(json_file)
+            except json.JSONDecodeError as e:
+                print(f"Json loading error: {str(e)}")
+                return agent_list
+        for o in data:
+            try:
+                agent = ExporterAgent(o["agent_id"], int(o["node_id"]), o["store_name"], o["store_category"],
+                                      o["city"], o["courier_company"], o["products"])
+                agent_list.append(agent)
+            except TypeError as e:
+                print(f"Error while deserializing delivery object: {str(e)}")
+        return agent_list
+
+    def load_importers(self, file_name: str) -> list[BaseAgent]:
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
+        full_path = os.path.join(data_path, file_name)
+        agent_list = []
+        with open(full_path, "r", encoding="utf-8") as json_file:
+            try:
+                data = json.load(json_file)
+            except json.JSONDecodeError as e:
+                print(f"Json loading error: {str(e)}")
+                return agent_list
+        for o in data:
+            try:
+                agent = BaseAgent(o["agent_id"], int(o["node_id"]), o["country"])
+                agent_list.append(agent)
+            except TypeError as e:
+                print(f"Error while deserializing delivery object: {str(e)}")
+        return agent_list
+
+    def load_routes(self, file_name: str) -> list[dict]:
+        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
+        full_path = os.path.join(data_path, file_name)
+        with open(full_path, "r", encoding="utf-8") as json_file:
+            try:
+                data = json.load(json_file)
+            except json.JSONDecodeError as e:
+                print(f"Json loading error: {str(e)}")
+        return data

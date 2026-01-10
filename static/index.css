@@ -59,7 +59,7 @@ select, input[type="number"] {
     box-sizing: border-box;
 }
 
-button {
+.form-button {
     width: 100%;
     padding: 12px;
     background-color: #4CAF50;
@@ -71,7 +71,7 @@ button {
     margin-top: 10px;
 }
 
-button:hover {
+.form-button:hover {
     background-color: #45a049;
 }
 

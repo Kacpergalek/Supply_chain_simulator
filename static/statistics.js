@@ -1,4 +1,3 @@
-// Helper: map dataset => output endpoint
 const GRAPH_ENDPOINTS = {
     'fulfilled': '/api/fulfilled_demand_stats',
     'lost': '/api/lost_demand_stats',
@@ -75,11 +74,12 @@ async function displayData(dataset, format) {
     }
 }
 
+/* ============================ FORMAT TOGGLE ============================ */
+
 // initialize format toggle (button shows the alternative format)
 window.currentFormat = window.currentFormat || 'json';
 const formatToggleBtn = document.getElementById('format-toggle-btn');
 function updateFormatButton() {
-    // if button is not present on this page, silently skip updating
     if (!formatToggleBtn) return;
     const alt = window.currentFormat === 'json' ? 'csv' : 'json';
     formatToggleBtn.textContent = '.' + alt;
@@ -89,15 +89,13 @@ if (formatToggleBtn) {
     updateFormatButton();
     formatToggleBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        // toggle current format
         window.currentFormat = window.currentFormat === 'json' ? 'csv' : 'json';
         updateFormatButton();
-        // re-render currently displayed content immediately
         displayData(window.latestRawData.dataset, window.currentFormat);
     });
 }
 
-displayData(document.getElementById('dataset-select').value, window.currentFormat || 'json');
+/* ============================ DOWNLOAD STATS ============================ */
 
 document.getElementById('download-stats').addEventListener('click', function (event) {
     event.preventDefault();
@@ -136,6 +134,10 @@ document.getElementById('download-stats').addEventListener('click', function (ev
 document.getElementById('dataset-select').addEventListener('change', function (event) {
     displayData(event.target.value, window.currentFormat || 'json');
 });
+
+/* ============================= DISPLAY DATA ============================ */
+
+displayData(document.getElementById('dataset-select').value, window.currentFormat || 'json');
 
 /* ============================ GRAPH RENDERING ============================ */
 
@@ -258,77 +260,48 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
     }
 }
 
-// window.currentFormat = window.currentFormat || 'Average';
-// const formatToggleBtn = document.getElementById('format-toggle-btn');
-//
-// function updateFormatButton() {
-//     // if button is not present on this page, silently skip updating
-//     if (!formatToggleBtn) return;
-//     formatToggleBtn.textContent = window.currentFormat === 'Average' ? 'Sum' : 'Average';
-// }
-//
-// // initialize only if element exists
-// if (formatToggleBtn) {
-//     updateFormatButton();
-//     formatToggleBtn.addEventListener('click', function (e) {
-//         e.preventDefault();
-//         // toggle current format
-//         window.currentFormat = window.currentFormat === 'Average' ? 'Sum' : 'Average';
-//         updateFormatButton();
-//     });
-// }
-//
-// async function plotGraph(format) {
-//     if (format === 'Average') {
-//         plotAggregationGraph("/api/average_stats", '#average', "avg");
-//     } else if (format === 'Sum') {
-//         plotAggregationGraph("/api/sum_stats", '#sum', "sum");
-//     }
-// }
-//
-// document.addEventListener('DOMContentLoaded', () => {
-//     plotGraph(window.currentFormat);
-// });
+/* ============================ AGGREGATION TOGGLE ============================ */
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Select elements safely inside DOMContentLoaded
-    const formatToggleBtn = document.getElementById('format-toggle-btn');
+async function updateGraphs() {
+
     const avgContainer = document.getElementById('average');
     const sumContainer = document.getElementById('sum');
+    // 2. Logic to show/hide containers and update button text
+    if (window.currentAggragate === 'Average') {
+        // Show Average, Hide Sum
+        avgContainer.style.display = 'block';
+        sumContainer.style.display = 'none';
+        aggToggleBtn.textContent = 'Sum'; // Offer option to switch to Sum
 
-    // Default state
-    window.currentFormat = 'Average';
+        // Render if empty (or re-render to be safe)
+        plotAggregationGraph("/api/average_stats", '#average', "avg");
+    } else {
+        // Show Sum, Hide Average
+        avgContainer.style.display = 'none';
+        sumContainer.style.display = 'block';
+        aggToggleBtn.textContent = 'Average'; // Offer option to switch to Average
 
-    async function updateUI() {
-        // 2. Logic to show/hide containers and update button text
-        if (window.currentFormat === 'Average') {
-            // Show Average, Hide Sum
-            avgContainer.style.display = 'block';
-            sumContainer.style.display = 'none';
-            formatToggleBtn.textContent = 'Sum'; // Offer option to switch to Sum
-
-            // Render if empty (or re-render to be safe)
-            await plotAggregationGraph("/api/average_stats", '#average', "avg");
-        } else {
-            // Show Sum, Hide Average
-            avgContainer.style.display = 'none';
-            sumContainer.style.display = 'block';
-            formatToggleBtn.textContent = 'Average'; // Offer option to switch to Average
-
-            await plotAggregationGraph("/api/sum_stats", '#sum', "sum"); // ensure this matches your python dict keys e.g. sum_fulfilled_demand
-        }
+        plotAggregationGraph("/api/sum_stats", '#sum', "sum"); // ensure this matches your python dict keys e.g. sum_fulfilled_demand
     }
+}
 
-    if (formatToggleBtn) {
-        // Initial load
-        updateUI();
+window.currentAggragate = window.currentAggragate || 'Average';
+const aggToggleBtn = document.getElementById('agg-toggle-btn');
+function updateAggregateButton() {
+    if (!aggToggleBtn) return;
+    aggToggleBtn.textContent = window.currentAggragate === 'Average' ? 'Sum' : 'Average';
+}
 
-        formatToggleBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            // 3. Toggle state
-            window.currentFormat = window.currentFormat === 'Average' ? 'Sum' : 'Average';
-            // 4. Call the update function to trigger changes
-            updateUI();
-        });
-    }
-});
+if (aggToggleBtn) {
+    updateAggregateButton();
+    aggToggleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.currentAggragate = window.currentAggragate === 'Average' ? 'Sum' : 'Average';
+        updateAggregateButton();
+        updateGraphs();
+    });
+}
+
+/* ============================ RENDER GRAPH ON LOAD ============================ */
+
+plotAggregationGraph("/api/average_stats", '#average', "avg");

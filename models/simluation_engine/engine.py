@@ -16,7 +16,6 @@ from models.simluation_engine.time_manager import TimeManager
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 from utils.find_delivery import find_delivery_by_agent
-from utils.find_exporter import find_exporter_by_node_id
 
 from network.visualization import plot_agent_routes
 from network.network import NetworkManager
@@ -26,40 +25,83 @@ logger = logging.getLogger(__name__)
 
 
 class Simulation:
+    """
+    - Initialize the transportation network (including airports).
+    - Initialize agents (exporters, factories, importers) and their deliveries.
+    - Configure and execute disruption scenarios over discrete time steps.
+    - Track and persist statistics via `StatisticsManager`.
+    - Generate intermediate visualizations of agent routes and disruptions.
+
+    Attributes
+    ----------
+    current_time : int
+        Current simulation time step.
+    network : SimulationGraph
+        Underlying transportation network (road/air).
+    agent_manager : AgentManager
+        Manages creation and configuration of agents and routes.
+    material_exporters, importer_exporters, product_importers : list
+        Agent lists returned by `AgentManager`.
+    material_paths, product_paths : list[dict]
+        Precomputed path metadata for material and product flows.
+    deliveries : list[Delivery]
+        Deliveries derived from precomputed paths.
+    max_time : int
+        Number of discrete time steps to simulate.
+    time_manager : TimeManager
+        Helper for time granularity (e.g. days).
+    path : Path
+        Root path of the project (used for data I/O).
+    disruption, start_day, end_day, severity, disruption_type, place_of_disruption
+        Parameters loaded from `disruption_parameters.pkl`.
+    depth, number_of_phases, phase, disaster_steps_dict
+        Internal representation of disruption severity and recovery phases.
+    statistics_manager : StatisticsManager
+        Collects and persists simulation statistics.
+    """
     def __init__(self):
-        self.current_time = 0
-        self.exporters = []
-        self.importers = []
-        self.deliveries = []
-
-        """ Network initialization"""
-        time_start = time.time()
-        network_manager = NetworkManager()
-        self.network = network_manager.get_graph_from_file("europe")
-        airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
-        self.network.compose(airplane_graph)
-        print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
-
-        """ Agents initialization """
-        self.agent_manager = AgentManager()
-        initialized = self.agent_manager.initialize_agents(self.network)
-        self.exporters = initialized["exporters"]
-        self.importers = initialized["importers"]
-        self.agent_paths = initialized["routes"]
-
-        """ Deliveries initialization """
-        self.deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network, self.exporters,
-                                                                                    self.agent_paths)
         """ Time and path initialization """
+        self.disruption = {}
+        self.current_time = 0
         self.max_time = 15
         self.time_manager = TimeManager("day")
         self.path = Path(__file__).parent.parent.parent
         # self.inject_parameters()
 
+        """ Network initialization"""
+        #time_start = time.time()
+        network_manager = NetworkManager()
+        self.network = network_manager.get_graph_from_file("europe")
+        airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
+        self.network.compose(airplane_graph)
+        #print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
+
+        """ Agents initialization """
+        self.agent_manager = AgentManager()
+        initialized = self.agent_manager.initialize_agents(self.network)
+        self.material_exporters = initialized["material_exporters"]
+        self.importer_exporters = initialized["importer_exporters"]
+        self.product_importers = initialized["product_importers"]
+        self.material_paths = initialized["material_routes"]
+        self.product_paths = initialized["product_routes"]
+        self.node_to_exporter = {int(agent.node_id): agent for agent in self.importer_exporters + self.material_exporters}
+
+        """ Deliveries initialization """
+        self.product_deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network,
+                                                                                        self.node_to_exporter,
+                                                                                        self.product_paths, True)
+        self.material_deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network,
+                                                                                        self.node_to_exporter,
+                                                                                        self.material_paths, False)
+        self.deliveries = []
+        for delivery in self.product_deliveries:
+            self.deliveries.append(delivery)
+        for delivery in self.material_deliveries:
+            self.deliveries.append(delivery)
+            #print(delivery.to_dict())
+
         """ Disruption parameters """
-        full_path = os.path.join(self.path, "input_data", "disruption_parameters.pkl")
-        with open(full_path, 'rb') as f:
-            self.disruption = pickle.load(f)
+        self.load_disruption_parameters()
         self.start_day = int(self.disruption['dayOfStart'])
         self.end_day = self.start_day + int(self.disruption['duration'])
         self.severity = self.disruption['severity']
@@ -67,33 +109,41 @@ class Simulation:
         self.place_of_disruption = int(self.disruption["placeOfDisruption"])
         self.disaster_steps_dict = {}
         self.number_of_phases = 0
-        self.phase = 2
+        self.phase = 1
         self.depth = 0
         self.interpret_disruption_parameters()
-        print(f"Day of start: {self.start_day}, day of end: {self.end_day}, disruption severity: {self.severity}, disruption type: {self.disruption_type}, place of disruption: {self.place_of_disruption}")
 
         """ Statistics initialization"""
-        self.statistics_manager = StatisticsManager(len(self.exporters), max_time=self.max_time)
-        self.statistics_manager.total_routes = len(self.agent_paths)
-        for exporter in self.exporters:
+        self.statistics_manager = StatisticsManager(len(self.importer_exporters), max_time=self.max_time)
+        self.statistics_manager.total_routes = len(self.product_paths)
+        for exporter in self.importer_exporters:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.cost[exporter.agent_id] = cost
 
         self.initialize()
 
-    # def inject_parameters(self):
-    #     project_path = Path(__file__).parent.parent.parent
-    #     full_path = os.path.join(project_path, "input_data", "disruption_parameters.pkl")
-    #     with open(full_path, 'rb') as f:
-    #         self.disruption = pickle.load(f)
-    #     self.statistics_manager = StatisticsManager(len(self.exporters), max_time=self.max_time)
-    #     self.statistics_manager.total_routes = len(self.agent_paths)
-    #     for exporter in self.exporters:
-    #         cost = find_delivery_by_agent(self.deliveries, exporter).cost
-    #         self.statistics_manager.cost[exporter.agent_id] = cost
+    def load_disruption_parameters(self):
+        full_path = self.path / "input_data" / "disruption_parameters.pkl"
+
+        if not full_path.exists():
+            logger.error(f"Disruption parameters not found at {full_path}")
+            raise FileNotFoundError(f"Missing config: {full_path}")
+
+        try:
+            with open(full_path, 'rb') as f:
+                self.disruption = pickle.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load disruption parameters: {e}")
+            raise
+
 
     def run(self) -> None:
-
+        """
+        - Advance time step by step while `should_continue()` is True.
+        - Apply disruptions and recovery logic at configured days.
+        - Record statistics each time step.
+        - Save statistics at the end and print summary information.
+        """
         print("Starting simulation")
         time.sleep(1)
 
@@ -114,36 +164,34 @@ class Simulation:
             print(f"Simulation completed after {self.current_time} time steps")
 
     def initialize(self) -> None:
-        for exporter in self.exporters:
-            # exporter.delivery = find_delivery_by_agent(self.deliveries, exporter)
-            exporter.finances = random.randrange(1000, 5000)
-
-        # find_nodes_to_disrupt(self.network, self.deliveries, 30)
-        self.update_cost(self.deliveries)
+        """
+        - Assign random initial finances to each importer-exporter.
+        - Compute and store initial costs for all product deliveries.
+        - Save deliveries and an initial route map to disk.
+        """
+        #find_nodes_to_disrupt(self.network, self.deliveries, 50)
+        self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
         self.save_deliveries()
         self.save_current_map()
 
     def interpret_disruption_parameters(self) -> None:
-        if self.severity == "low":
+        """
+        Translate disruption configuration into internal severity parameters.
+        depth controls the BFS radius of node deactivation.
+        """
+        if self.severity == "Low":
             self.depth = 10
         elif self.severity == "Normal":
-            self.depth = 20
+            self.depth = 25
         else:
-            self.depth = 30
+            self.depth = 50
 
-        # if self.disruption_type in ["Geopolitical", "Technical"]:
-        #     self.disaster_steps_dict = {
-        #         "Phase 1": self.depth,
-        #         "Phase 2": self.depth,
-        #         "Phase 3": self.depth,
-        #         "Phase 4": self.depth
-        #     }
         if self.disruption_type == "Natural disaster":
             self.disaster_steps_dict = {
-                "Phase 1": self.depth,
-                "Phase 2": round(self.depth / 2),
-                "Phase 3": round(self.depth / 4),
-                "Phase 4": round(self.depth / 8)
+                "phase_1": round(self.depth / 2),
+                "phase_2": round(self.depth / 4),
+                "phase_3": round(self.depth / 6),
+                "phase_4": round(self.depth / 8)
             }
             self.number_of_phases = len(self.disaster_steps_dict)
 
@@ -155,13 +203,20 @@ class Simulation:
     def finalize(self) -> None:
         self.statistics_manager.save_statistics()
 
-    def execute_time_step(self):
-
+    def execute_time_step(self) -> None:
+        """
+        - Start a disruption when `current_time == start_day`.
+        - End a disruption or gradually recover from it depending on type.
+        - Always invoke `handle_time_step` for per-step demand/parcel logic.
+        """
         t = self.current_time
         print(f" =========== Executing time step {t} ===========")
+        """ Send first parcel """
+        if self.current_time == 1:
+            for agent in self.importer_exporters + self.material_exporters:
+                agent.send_parcel()
 
         """ Start a disruption """
-        # print(f"Day of start: {self.start_day}, current day: {t}, Are they equal: {self.start_day == t}")
         if self.start_day == t:
             self.handle_disruption_start()
 
@@ -175,86 +230,101 @@ class Simulation:
         """ What happens regardless of a disruption"""
         self.handle_time_step(t)
 
-        # """ What happens during a disruption"""
-        # if self.start_day <= t <= self.end_day:
-        #     self.statistics_manager.calculate_loss()
 
     def handle_disruption_start(self) -> None:
-        depth = self.depth
-        places_of_disruption = bfs_limited(self.network, self.place_of_disruption, depth)
+        places_of_disruption = bfs_limited(self.network, self.place_of_disruption, self.depth)
+        deactivated_nodes = self.deactivate_nodes(places_of_disruption)
+        deactivated_deliveries = self.find_deactivated_deliveries()
+        disrupted_deliveries = self.mark_deliveries_disrupted(deactivated_deliveries, disrupted=True)
 
-        exporter_nodes = {e.node_id for e in self.exporters}
-        importer_nodes = {i.node_id for i in self.importers}
-        nodes_to_deactivate = [n for n in places_of_disruption if n not in exporter_nodes and n not in importer_nodes]
+        self.update_deliveries(disrupted_deliveries)
+        self.reset_parcels(disrupted_deliveries)
+
+        self.save_current_map(deactivated_nodes)
+
+    def deactivate_nodes(self, places_of_disruption: list[int]) -> list[int]:
+        exporter_nodes = {e.node_id for e in self.material_exporters}
+        importer_exporter_nodes = {ie.node_id for ie in self.importer_exporters}
+        importer_nodes = {i.node_id for i in self.product_importers}
+        nodes_to_deactivate = [n for n in places_of_disruption if n not in importer_exporter_nodes
+                               and n not in importer_nodes and n not in exporter_nodes]
         self.network.deactivate_nodes(nodes_to_deactivate)
 
-        disrupted_deliveries = self.find_disrupted_deliveries()
-        self.mark_deliveries_disrupted(disrupted_deliveries, disrupted=True)
-        self.update_deliveries(disrupted_deliveries)
-        self.update_cost(disrupted_deliveries)
-        self.update_lost_demand(disrupted_deliveries, disrupted=True)
-        self.reset_parcels(disrupted_deliveries)
-
-        self.save_current_map(nodes_to_deactivate)
+        return nodes_to_deactivate
 
     def handle_disruption_end(self) -> None:
-        depth = self.depth
-        places_of_disruption = bfs_limited(self.network, self.place_of_disruption, max_depth=depth)
+        places_of_disruption = bfs_limited(self.network, self.place_of_disruption, max_depth=self.depth)
         self.network.activate_nodes(places_of_disruption)
+
+        deliveries_to_fix = [delivery for delivery in self.deliveries if delivery.disrupted]
+        product_deliveries_to_fix = [d for d in deliveries_to_fix if d in self.product_deliveries]
+
+        self.mark_deliveries_disrupted(deliveries_to_fix, disrupted=False)
+        self.load_deliveries(deliveries_to_fix)
+        self.statistics_manager.reset_loss(product_deliveries_to_fix, self.node_to_exporter)
+        self.statistics_manager.update_cost(product_deliveries_to_fix, self.node_to_exporter)
+        self.statistics_manager.update_lost_demand(product_deliveries_to_fix, self.node_to_exporter, False)
+        self.reset_parcels(deliveries_to_fix)
+
         self.save_current_map()
 
-        disrupted_deliveries = [delivery for delivery in self.deliveries if delivery.disrupted]
-        self.update_lost_demand(disrupted_deliveries, disrupted=False)
-        self.mark_deliveries_disrupted(disrupted_deliveries, disrupted=False)
-        self.load_deliveries(disrupted_deliveries)
-        self.update_cost(disrupted_deliveries)
-        self.reset_parcels(disrupted_deliveries)
-
-    def handle_time_step(self, t: int):
-        for exporter in self.exporters:
-            """ Updating finances """
-            exporter.send_parcel()
-
-            """ Updating fulfilled demand """
-            delivery = find_delivery_by_agent(self.deliveries, exporter)
-            if self.start_day + delivery.lead_time > t >= self.start_day:
-                self.statistics_manager.fulfilled_demand[exporter.agent_id] = 0
-            else:
-                self.statistics_manager.fulfilled_demand[exporter.agent_id] = exporter.unit_demand
-
-            """ Reset parcel content """
-            deliveries_to_reset = self.find_parcels_to_reset()
-            self.reset_parcels(deliveries_to_reset)
-
-    def handle_gradual_ending(self):
+    def handle_gradual_ending(self) -> None:
         """ If disruption type is a natural disaster (after ending the comeback is gradual) """
         if self.phase == 5:
             self.handle_disruption_end()
             return
-        previous_depth = self.disaster_steps_dict[f"Phase {self.phase - 1}"]
-        previous_deactivated = bfs_limited(self.network, self.place_of_disruption, max_depth=previous_depth)
+        if self.phase == 1:
+            deactivated_nodes = bfs_limited(self.network, self.place_of_disruption, max_depth=self.depth)
+        else:
+            previous_depth = self.disaster_steps_dict[f"phase_{self.phase - 1}"]
+            deactivated_nodes = bfs_limited(self.network, self.place_of_disruption, max_depth=previous_depth)
 
-        current_depth = self.disaster_steps_dict[f"Phase {self.phase}"]
-        current_deactivated = bfs_limited(self.network, self.place_of_disruption, max_depth=current_depth)
+        current_depth = self.disaster_steps_dict[f"phase_{self.phase}"]
+        nodes_to_deactivate = bfs_limited(self.network, self.place_of_disruption, max_depth=current_depth)
 
-        self.network.activate_nodes(previous_deactivated - current_deactivated)
+        nodes_to_activate = deactivated_nodes - nodes_to_deactivate
+        self.network.activate_nodes(nodes_to_activate)
 
-        disrupted_deliveries = self.find_disrupted_deliveries()
-        new_deliveries = [d for d in self.deliveries if d not in disrupted_deliveries]
-        self.mark_deliveries_disrupted(new_deliveries, disrupted=False)
-        self.update_lost_demand(disrupted_deliveries, disrupted=False)
-        self.load_deliveries(new_deliveries)
-        self.update_cost(new_deliveries)
-        self.reset_parcels(new_deliveries)
+        previously_disrupted_deliveries = [d for d in self.deliveries if d.disrupted]
+        self.load_deliveries(previously_disrupted_deliveries)
+        currently_disrupted_deliveries = self.find_deactivated_deliveries()
+        currently_disrupted_deliveries = self.mark_deliveries_disrupted(currently_disrupted_deliveries, disrupted=True)
 
-        self.save_current_map(current_deactivated)
+        fixed_deliveries = [d for d in previously_disrupted_deliveries if d not in currently_disrupted_deliveries]
+        fixed_product_deliveries = [d for d in fixed_deliveries if d in self.product_deliveries]
+
+        self.mark_deliveries_disrupted(fixed_deliveries, disrupted=False)
+
+        self.update_deliveries(currently_disrupted_deliveries)
+        self.reset_parcels(currently_disrupted_deliveries)
+
+        self.load_deliveries(fixed_deliveries)
+        self.statistics_manager.update_cost(fixed_product_deliveries, self.node_to_exporter)
+        self.reset_parcels(currently_disrupted_deliveries)
+        self.statistics_manager.reset_loss(fixed_product_deliveries, self.node_to_exporter)
+        self.statistics_manager.update_lost_demand(fixed_product_deliveries, self.node_to_exporter, False)
+
+        self.save_current_map(nodes_to_deactivate)
         self.phase += 1
 
-    def save_current_map(self, disrupted_nodes=None):
+    def handle_time_step(self, t: int) -> None:
+        for exporter in self.importer_exporters:
+            """ Updating fulfilled demand """
+            delivery = find_delivery_by_agent(self.product_deliveries, exporter)
+            if self.start_day + delivery.lead_time > t >= self.start_day:
+                self.statistics_manager.update_fulfilled_demand(exporter, True)
+            else:
+                self.statistics_manager.update_fulfilled_demand(exporter, False)
+
+        """ Reset parcel content """
+        deliveries_to_reset = self.find_parcels_to_reset()
+        self.reset_parcels(deliveries_to_reset)
+
+    def save_current_map(self, disrupted_nodes=None) -> None:
         try:
             routes = [d.route for d in self.deliveries]
-            exporter_nodes = [e.node_id for e in self.exporters]
-            importer_nodes = [i.node_id for i in self.importers]
+            exporter_nodes = [e.node_id for e in self.importer_exporters]
+            importer_nodes = [i.node_id for i in self.product_importers]
 
             plot_agent_routes(
                 self.network,
@@ -263,11 +333,11 @@ class Simulation:
                 importer_nodes,
                 disrupted_nodes=disrupted_nodes,
             )
-            print("MAP_UPDATE")
+            #print("MAP_UPDATE")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
 
-    def find_disrupted_deliveries(self) -> list[Delivery]:
+    def find_deactivated_deliveries(self) -> list[Delivery]:
         disrupted_deliveries = []
         for delivery in self.deliveries:
             for node in delivery.route:
@@ -277,61 +347,43 @@ class Simulation:
                     break
         return disrupted_deliveries
 
-    def mark_deliveries_disrupted(self, deliveries: list[Delivery], disrupted: bool):
+    def mark_deliveries_disrupted(self, deliveries: list[Delivery], disrupted: bool) -> list[Delivery]:
         for delivery in deliveries:
             delivery.disrupted = disrupted
+        return deliveries
 
-    def update_deliveries(self, deliveries: list[Delivery]):
-        """ Update:
+    def update_deliveries(self, disrupted_deliveries: list[Delivery]) -> None:
+        """
+        In both material and product deliveries update:
             * route
             * capacity
             * length
             * costs
             * lead time
-            of disrupted deliveries """
+        In only product deliveries update:
+            * loss
+        """
         active_network = self.network.get_active_graph()
-        for delivery in deliveries:
-            # print(f"Agent affected: {find_exporter_by_node_id(self.exporters, delivery.start_node_id).agent_id}")
+        disrupted_product_deliveries = [d for d in disrupted_deliveries if d in self.product_deliveries]
+        old_cost = [d.cost for d in disrupted_product_deliveries]
+
+        for delivery in disrupted_deliveries:
             delivery.reset_delivery()
-            old_cost = delivery.cost
-            delivery.update_delivery(self.exporters, active_network)
-            new_cost = delivery.cost
-            self.statistics_manager.calculate_loss(self.exporters, delivery, new_cost - old_cost)
+            delivery.update_delivery(self.node_to_exporter, active_network)
+        self.statistics_manager.update_cost(disrupted_product_deliveries, self.node_to_exporter)
+        self.statistics_manager.update_loss(disrupted_product_deliveries, self.node_to_exporter, old_cost)
+        self.statistics_manager.update_lost_demand(disrupted_product_deliveries, self.node_to_exporter, True)
 
-    def update_cost(self, deliveries: list[Delivery]):
-        for delivery in deliveries:
-            agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-            self.statistics_manager.cost[agent.agent_id] = delivery.cost
-
-    def update_lost_demand(self, deliveries: list[Delivery], disrupted: bool = False):
-        if disrupted:
-            for delivery in deliveries:
-                agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-                self.statistics_manager.lost_demand[agent.agent_id] = agent.unit_demand
-        else:
-            for delivery in deliveries:
-                agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-                self.statistics_manager.lost_demand[agent.agent_id] = 0
-
-    def display_info(self):
+    def display_info(self) -> None:
         t = self.current_time
-        for exporter in self.exporters:
+        for exporter in self.importer_exporters:
             print(f"Agent {exporter.agent_id}'s finances: {exporter.finances:.2f}")
         if int(self.disruption['dayOfStart']) == t:
             print(f"DISRUPTION OCCURS (time step {t})")
         if int(self.disruption['dayOfStart']) + int(self.disruption['duration']) == t:
             print(f"DISRUPTION ENDS (time step {t})")
 
-    def reset(self):
-        self.current_time = 0
-        self.exporters = []
-        self.importers = []
-        self.deliveries = []
-        self.statistics_manager = StatisticsManager(len(self.exporters), self.max_time)
-
-        self.initialize()
-
-    def save_deliveries(self, folder: str = "delivery", file_name: str = "starting_deliveries.json"):
+    def save_deliveries(self, folder: str = "delivery", file_name: str = "starting_deliveries.json") -> None:
         data_path = os.path.join(self.path, "input_data/simulation_data")
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(folder_path):
@@ -342,7 +394,7 @@ class Simulation:
             json.dump([delivery.to_dict() for delivery in self.deliveries], json_file, indent=4, ensure_ascii=False)
 
     def load_deliveries(self, deliveries: list[Delivery], folder: str = "delivery",
-                        file_name: str = "starting_deliveries.json"):
+                        file_name: str = "starting_deliveries.json") -> None:
         data_path = os.path.join(self.path, "input_data/simulation_data")
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(folder_path):
@@ -359,23 +411,20 @@ class Simulation:
                 print(f"Json loading error: {str(e)}")
                 return
 
-        for object in data:
+        for o in data:
             try:
-                # print(*object)
-                # obj_cpy = object.copy()
-                # obj_cpy.pop("capacity")
-                # delivery = Delivery(**obj_cpy)
-                # self.deliveries.append(delivery)
-                if self.deliveries[object["delivery_id"]] in deliveries:
-                    self.deliveries[object["delivery_id"]].route = object["route"]
-                    self.deliveries[object["delivery_id"]].length = object["length"]
-                    self.deliveries[object["delivery_id"]].cost = object["cost"]
-                    self.deliveries[object["delivery_id"]].lead_time = object["lead_time"]
-                    self.deliveries[object["delivery_id"]].disrupted = object["disrupted"]
-                    self.deliveries[object["delivery_id"]].find_minimum_capacity(self.network)
+                if self.deliveries[o["delivery_id"]] in deliveries:
+                    self.deliveries[o["delivery_id"]].route = o["route"]
+                    self.deliveries[o["delivery_id"]].length = o["length"]
+                    self.deliveries[o["delivery_id"]].cost = o["cost"]
+                    self.deliveries[o["delivery_id"]].lead_time = o["lead_time"]
+                    self.deliveries[o["delivery_id"]].disrupted = o["disrupted"]
+                    self.deliveries[o["delivery_id"]].capacity = self.deliveries[o["delivery_id"]].find_minimum_capacity(self.network)
+                    self.deliveries[o["delivery_id"]].is_product = o["is_product"]
                     # print(f"New delivery loaded: {self.deliveries[object["delivery_id"]]}")
             except TypeError as e:
                 print(f"Error while deserializing delivery object: {str(e)}")
+
 
     def find_parcels_to_reset(self) -> list[Delivery]:
         deliveries_to_reset = []
@@ -384,21 +433,43 @@ class Simulation:
                 deliveries_to_reset.append(delivery)
         return deliveries_to_reset
 
-    def reset_parcels(self, deliveries: list[Delivery]):
+    def reset_parcels(self, deliveries: list[Delivery]) -> None:
         for delivery in deliveries:
-            agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-            number_of_products = random.randrange(int(self.agent_paths[agent.agent_id]['total_distance_km'] / 10.0),
-                                                  int(self.agent_paths[agent.agent_id]['total_distance_km'] / 5.0))
+            agent = self.node_to_exporter[delivery.start_node_id]
+            number_of_products = random.randrange(int(self.product_paths[agent.agent_id % 10]['total_distance_km'] / 10.0),
+                                                  int(self.product_paths[agent.agent_id % 10]['total_distance_km'] / 5.0))
             new_parcel = self.agent_manager.delivery_manager.initialize_parcel([inv[0] for inv in agent.inventory],
                                                                                number_of_products)
-            delivery.parcel = new_parcel
+            new_batch = self.agent_manager.delivery_manager.initialize_raw_material_batch(new_parcel)
+            if delivery.is_product:
+                delivery.parcel = new_parcel
+            else:
+                delivery.parcel = new_batch
+            agent.send_parcel()
 
-    # def reset_parcel(self, deliveries: list[Delivery]):
-    #     for delivery in deliveries:
-    #         if self.current_time % math.ceil(delivery.lead_time) == 0:
-    #             agent = find_exporter_by_node_id(self.exporters, delivery.start_node_id)
-    #             number_of_products = random.randrange(int(self.agent_paths[agent.agent_id]['total_distance_km'] / 10.0),
-    #                                                   int(self.agent_paths[agent.agent_id]['total_distance_km'] / 5.0))
-    #             new_parcel = self.agent_manager.delivery_manager.initialize_parcel([inv[0] for inv in agent.inventory],
-    #                                                                                number_of_products)
-    #             delivery.parcel = new_parcel
+    def reset(self) -> None:
+        self.current_time = 0
+
+        """ Disruption reinitialization """
+        with open(self.path, 'rb') as f:
+            self.disruption = pickle.load(f)
+        self.start_day = int(self.disruption['dayOfStart'])
+        self.end_day = self.start_day + int(self.disruption['duration'])
+        self.severity = self.disruption['severity']
+        self.disruption_type = self.disruption['disruptionType']
+        self.place_of_disruption = int(self.disruption["placeOfDisruption"])
+        self.disaster_steps_dict = {}
+        self.number_of_phases = 0
+        self.phase = 1
+        self.depth = 0
+        self.interpret_disruption_parameters()
+
+        """ Statistics reinitialization"""
+        self.statistics_manager = StatisticsManager(len(self.importer_exporters), max_time=self.max_time)
+        self.statistics_manager.total_routes = len(self.product_paths)
+        for exporter in self.importer_exporters:
+            cost = find_delivery_by_agent(self.deliveries, exporter).cost
+            self.statistics_manager.cost[exporter.agent_id] = cost
+
+        self.initialize()
+        # self.run()
