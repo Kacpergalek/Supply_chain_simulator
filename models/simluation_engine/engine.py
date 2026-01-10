@@ -78,7 +78,7 @@ class Simulation:
         # self.network.compose(seaport_graph)
         # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
         self.network = network_manager.get_graph_from_file("world", road_type="")
-        print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
+        #print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
         self.network = network_manager.get_graph_from_file("europe")
         airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
         self.network.compose(airplane_graph)

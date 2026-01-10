@@ -269,8 +269,8 @@ def api_nodes():
 @app.route("/api/map_state")
 def map_state():
     routes = [d.route for d in sim.deliveries]   # tylko trasy agentów
-    exporters = [e.node_id for e in sim.exporters]
-    importers = [i.node_id for i in sim.importers]
+    exporters = [e.node_id for e in sim.importer_exporters]
+    importers = [i.node_id for i in sim.product_importers]
     disrupted = getattr(sim, "disruption_nodes", [])
 
     return jsonify({
