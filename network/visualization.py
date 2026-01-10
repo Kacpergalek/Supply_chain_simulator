@@ -2,6 +2,7 @@
 import folium
 from pathlib import Path
 
+
 def plot_agent_routes(
     graph,
     routes,

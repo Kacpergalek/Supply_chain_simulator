@@ -1,0 +1,216 @@
+/* ========================== Parameters form ========================== */
+
+.form-wrapper {
+    width: 20%;
+    padding: 20px;
+    background-color: #fff;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+#content {
+    width: 80%;
+    height: 100vh;
+    position: relative; /* dla panelu sterowania */
+    box-sizing: border-box;
+    margin: 0;
+}
+.main-app {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100vh; /* pełna wysokość */
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.form-container {
+    background-color: white;
+    width: 100%;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+}
+
+h2 {
+    min-width: 400px;
+    flex-wrap: nowrap;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: bold;
+}
+
+select, input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.form-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.form-button:hover {
+    background-color: #45a049;
+}
+
+.message {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ========================== Map and logs ========================== */
+/*
+.simulation {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-top: 8%;
+}*/
+#map {
+    width: 100%;
+    height: 100%;    /* wypełnia rodzica */
+    min-height: 600px; /* opcjonalnie minimalna wysokość */
+}
+.map-section {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+}
+
+img {
+    width: 100%;
+}
+/*
+.simulation-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+   
+}*/
+.map-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-width: 250px;
+    z-index: 1000;
+}
+.map-controls button {
+    width: 100%;
+    padding: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+/* Logger styling for real-time logs */
+#logger {
+    width: 100%;
+    max-height: 20rem;
+    /* fixed visual height */
+    height: 20rem;
+    margin-top: 1rem;
+    margin-right: 1rem;
+    padding: 0.75rem;
+    overflow-y: auto;
+    background: #ededed;
+    color: #505050;
+    border-radius: 8px;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4);
+    font-family: monospace;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    /* don't allow flexbox to grow/shrink this element */
+}
+
+#logger div {
+    margin-bottom: 0.25rem;
+    white-space: pre-wrap;
+
+}
+
+
+
+.simulation {
+    display: flex;
+}
+
+.map-section {
+    flex-grow: 3;
+}
+
+.simulation-section {
+    flex-grow: 1;
+}
+#log-panel-toggle {
+    width: 100%;
+    padding: 6px;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    text-align: left;
+}
+
+.log-content {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 6px;
+    margin-top: 4px;
+    display: none; /* domyślnie ukryte */
+}
+
+/* ZMIANA: klasa open pokazuje logi */
+#log-panel.open .log-content {
+    display: block;
+}

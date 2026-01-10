@@ -1,5 +1,6 @@
 .idea
 .venv
+.json
 
 __pycache__/
 *.py[codt]
@@ -9,3 +10,9 @@ __pycache__/
 .ipynb_checkpoints/
 
 cache/
+
+venv
+
+.vscode
+saved_statistics/
+

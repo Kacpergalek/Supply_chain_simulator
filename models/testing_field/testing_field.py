@@ -17,10 +17,10 @@ from network.network import NetworkManager
 from models.agents.exporter_agent import ExporterAgent
 
 # reader = GraphManager()
-#dash = DashboardsManager()
-# graph = reader.load_pickle_graph("poland_motorway_trunk_primary.pkl")
-# for node in graph.nodes:
-#     print(node)
+# dash = DashboardsManager()
+# graph = reader.load_pickle_graph("europe_motorway.pkl")
+# for u, v, d in graph.edges(data=True):
+#     print(d)
 # print(graph.nodes[1418295070], graph.nodes[1418295070].get("x", None))
 # print(graph.nodes[1418295070].get("active", None))
 # simulation = Simulation(10, 'day', graph)
@@ -55,11 +55,11 @@ from models.agents.exporter_agent import ExporterAgent
 # sim.inject_parameters(15, "day")
 # sim.run()
 
-time_start = time.time()
+""" time_start = time.time()
 network = NetworkManager()
 reader = GraphManager()
 
-""" 
+
 graph = network.create_graph()
 # graph = network.get_graph_from_file("consolidated_europe")  
 print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
@@ -94,9 +94,40 @@ airports_graph = ox.graph_from_polygon(europe, custom_filter=filter)
 print(len(list(airports_graph.nodes()))) """
 
 
-graph = network.load_airports_graph(10, 100)
+""" graph = network.load_seaports_graph(10, 100)
 for n, data in graph.nodes(data=True):
     print(data) 
 
 for u, v, k, data in graph.edges(data=True, keys=True):
-    print(f"Start: {u}, end: {v}, key: {k}, data: {data}")
+    print(f"Start: {u}, end: {v}, key: {k}, data: {data}") """
+
+
+""" graph = network.get_graph_from_file("europe")
+airplane_graph = network.load_airports_graph(default_capacity=10, default_price=1000)
+graph.compose(airplane_graph)
+seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=500)
+graph.compose(seaport_graph)
+graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+
+node1 = graph.get_nearest_node(52, 21)
+node2 = graph.get_nearest_node(52.5, 13)
+
+astar_time = time.time()
+path_length = graph.astar(node1, node2)
+print(f"Liczba nodów: {len(path_length)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
+print(path_length)
+
+path_cost = graph.astar(node1, node2, metric="cost")
+print(f"Liczba nodów: {len(path_cost)}, czas wykonywania astara: {round(time.time() - astar_time, 2)}")
+print(path_cost) """
+
+network = NetworkManager()
+graph = network.get_graph_from_file("europe")
+airplane_graph = network.load_airports_graph(default_capacity=10, default_price=7)
+graph.compose(airplane_graph)
+seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)
+graph.compose(seaport_graph)
+graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+
+reader = GraphManager()
+reader.save_pickle_file("world_.pkl", graph)

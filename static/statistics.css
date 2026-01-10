@@ -9,18 +9,7 @@
     box-sizing: border-box;
 }
 
-/* ======================= Agent-entry ======================= */
-
-h4 {
-    justify-content: center;
-}
-
-.agent-entry ul {
-    font-size: 0.9rem;
-    padding: 0.25rem 0 0.5rem 1rem;
-    margin: 0;
-    list-style: none;
-}
+/* ======================= Agent stat panel ======================= */
 
 /* make stats scrollable and readable, avoid overlap with buttons */
 #stats {
@@ -36,42 +25,6 @@ h4 {
     background: #e8e8e8;
     border-radius: 8px;
     box-shadow: 3px 3px 8px rgb(89, 89, 89);
-}
-
-/* Charts container: push down below navbar and center charts */
-#chartsContainer {
-    width: 100%;
-    margin-top: 6rem;
-    /* move down to avoid navbar overlap */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.5rem;
-    background: transparent;
-    box-sizing: border-box;
-    padding-bottom: 2rem;
-}
-
-.chart-wrapper {
-    width: 90%;
-    max-width: 1000px;
-    min-height: 360px;
-    background: transparent;
-    border-radius: 8px;
-}
-
-/* ensure action buttons have space and don't overlap */
-.panel-container>button,
-#stats,
-.dashboard-section {
-    z-index: 1;
-}
-
-.dashboard-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 /* ======================= Dataset Select ======================= */
@@ -130,10 +83,9 @@ h4 {
     padding-bottom: 2rem;
 }
 
-.chart-wrapper {
-    width: 90%;
-    max-width: 1000px;
-    min-height: 360px;
-    background: transparent;
-    border-radius: 8px;
+/* ensure action buttons have space and don't overlap */
+.panel-container>button,
+#stats,
+.dashboard-section {
+    z-index: 1;
 }

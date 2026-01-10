@@ -8,9 +8,17 @@ import numpy as np
 from shapely import Polygon
 import os
 import sys
+import warnings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.graph_helper import haversine_coordinates
+from network.transport_types import MinimalCostType
+from utils.graph_helper import convert_speed
+
+AVG_FLIGHT_SPEED_KMH = 700
+MAX_TRUCK_SPEED_KMH = 90
+DEFAULT_SPEED_KMH = 50
+
 class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, type : str = "road", **attr):
         super().__init__(incoming_graph_data, multigraph_input, **attr)
@@ -23,6 +31,14 @@ class SimulationGraph(nx.MultiGraph):
                 data["cost"] = data["length"]/1000 * self.default_price
             if "flow" not in data:
                 data["flow"] = 0
+            if "type" not in data:
+                data["type"] = type
+            if "max_capacity" not in data:
+                data["max_capacity"] = self.default_capacity
+            if "maxspeed" not in data or str(data.get("maxspeed")).strip().lower() in ("none", "null", "nan"):
+                data["maxspeed"] = DEFAULT_SPEED_KMH
+            if "length" not in data:
+                data["length"] = self.haversine_nodes(u, v, "length")
         
         for node, data in self.nodes(data=True):
             if "active" not in data:
@@ -70,19 +86,27 @@ class SimulationGraph(nx.MultiGraph):
                     data["cost"] = price
 
 
-    def deactivate_nodes(self, nodes : list[int]):
-        for node, data in self.nodes(data=True):
-            if node in nodes:
+    def deactivate_nodes(self, nodes : list[int | str]):
+        # for node, data in self.nodes(data=True):
+        #     if node in nodes:
+        #         data["active"] = False
+        for node in nodes:
+            if node in self.nodes:
+                data = self.nodes[node]
                 data["active"] = False
 
 
-    def activate_nodes(self, nodes : list[int]):
-        for node, data in self.nodes(data=True):
-            if node in nodes:
+    def activate_nodes(self, nodes : list[int | str]):
+        # for node, data in self.nodes(data=True):
+        #     if node in nodes:
+        #         data["active"] = True
+        for node in nodes:
+            if node in self.nodes:
+                data = self.nodes[node]
                 data["active"] = True
 
 
-    def safe_shortest_path(self, start_node : int, end_node : int, weight : str = "cost"):
+    def safe_shortest_path(self, start_node : int | str, end_node : int | str, weight : str = "cost"):
         active_sim_graph = self.get_active_graph()
         return nx.shortest_path(active_sim_graph, start_node, end_node, weight=weight)
 
@@ -144,7 +168,7 @@ class SimulationGraph(nx.MultiGraph):
             ox.plot_graph(sub_graph)
 
 
-    def safe_astar_path(self, start_node : int, end_node : int, weight : str = "length"):
+    def safe_astar_path(self, start_node : int | str, end_node : int | str, weight : str = "length"):
         active_sim_graph = self.get_active_graph()
         return nx.astar_path(active_sim_graph, start_node, end_node, weight=weight)
 
@@ -167,7 +191,7 @@ class SimulationGraph(nx.MultiGraph):
         return total_path[::-1] 
 
 
-    def astar(self, start_node: int, end_node: int, metric: str = "length"):
+    def astar(self, start_node: int | str, end_node: int | str, metric: str = "length"):
         active_sim_graph = self.get_active_graph()
         entry_queue = []
         heapq.heappush(entry_queue, (0.0, 0.0, start_node))
@@ -185,7 +209,7 @@ class SimulationGraph(nx.MultiGraph):
             # if current_g > g_score.get(current_node, float('inf')):
             #     continue
 
-            for neighbour in self.neighbors(current_node):
+            for neighbour in active_sim_graph.neighbors(current_node):
                 neighbour_g = current_g + self.haversine_nodes(current_node, neighbour, metric)
                 
                 if neighbour_g < g_score.get(neighbour, float('inf')):
@@ -199,13 +223,13 @@ class SimulationGraph(nx.MultiGraph):
         return None
 
 
-    def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
-        if metric == "length":
-            edges = list(self[node_start][node_end].values())
-            print(edges)
+    # def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
+    #     if metric == "length":
+    #         edges = list(self[node_start][node_end].values())
+    #         print(edges)
 
 
-    def heuristic(self, start_node : int, end_node : int, metric : str, mode : str = "euclidean"):
+    def heuristic(self, start_node : int | str, end_node : int | str, metric : str, mode : str = "euclidean"):
         if mode == "euclidean":
             return self.haversine_nodes(start_node, end_node, metric)
         if mode == "manhattan":
@@ -213,27 +237,44 @@ class SimulationGraph(nx.MultiGraph):
         return None
 
 
-    def haversine_nodes(self, node1 : int, node2 : int, metric : str):
+    def haversine_nodes(self, node1 : int | str, node2 : int | str, metric : str):
+        if ((self.nodes()[node1]["type"] == "seaport" and self.nodes()[node2]["type"] == "seaport") or \
+            (self.nodes()[node1]["type"] == "airport" and self.nodes()[node2]["type"] == "airport")) and \
+            (metric in ("length", "cost")):
+            min_metric = float("inf")
+            for k, data in self[node1][node2].items():
+                value = data.get(metric, float("inf"))
+                if value < min_metric:
+                    min_metric = value
+            return min_metric
+        
+        lon1 = self.nodes()[node1]["x"]
+        lat1 = self.nodes()[node1]["y"]
+        lon2 = self.nodes()[node2]["x"]
+        lat2 = self.nodes()[node2]["y"]
+
+        R = 6371  # promień Ziemi
+
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+
+        a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
         if metric == "length":
-            lon1 = self.nodes()[node1]["x"]
-            lat1 = self.nodes()[node1]["y"]
-            lon2 = self.nodes()[node2]["x"]
-            lat2 = self.nodes()[node2]["y"]
-
-            R = 6371  # promień Ziemi
-
-            phi1 = math.radians(lat1)
-            phi2 = math.radians(lat2)
-            dphi = math.radians(lat2 - lat1)
-            dlambda = math.radians(lon2 - lon1)
-
-            a = math.sin(dphi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda/2)**2
-            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
             return R * c * 1000
         
+        if metric == "cost":
+            min_road_cost = float(MinimalCostType.ROAD.value)
+            return min_road_cost * R * c
+        return None
+
+
         
-    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int = None):
+        
+    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int | str = None):
         min_dist = float("inf")
         nearest_node = None
         if longitude is None and lattitude is None and node is not None:
@@ -243,7 +284,7 @@ class SimulationGraph(nx.MultiGraph):
         for node_id, data in self.nodes(data=True):
             node_lat = data.get('y', None)
             node_lon = data.get('x', None)
-            if node_lat is None or node_lon is None:
+            if node_lat is None or node_lon is None or node_id == node or data["type"] in ("airport", "seaport"):
                 continue
 
             dist = haversine_coordinates(lattitude, longitude, node_lat, node_lon, "length")
@@ -333,7 +374,7 @@ class SimulationGraph(nx.MultiGraph):
         return final_empty
     
 
-    def get_nearest_index(self, G_proj : nx.MultiGraph, indexes : list, node : int, type : str):
+    def get_nearest_index(self, G_proj : nx.MultiGraph, indexes : list, node : int | str, type : str):
         all_nodes = list(G_proj.nodes())
         shortest_distance = float("inf")
         closest_node = None
@@ -358,3 +399,67 @@ class SimulationGraph(nx.MultiGraph):
 
         graph_area = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y), (min_x, min_y)])
         return graph_area
+    
+
+    def connect_airports_seaports(self, default_capacity : int, default_price : float):
+        for source_node, source_data in self.nodes(data=True):
+            if source_data.get("type") in ("airport", "seaport"):
+                nearest_node = self.get_nearest_node(node=source_node)
+                length = self.haversine_nodes(source_node, nearest_node, "length")   
+                edge_data = {
+                    "length" : length,
+                    "capacity" : default_capacity,
+                    "cost" : default_price, 
+                    "added_artificially" : True,
+                    "flow" : 0,
+                    "type" : "road"
+                }
+
+                self.add_edge(source_node, nearest_node, **edge_data)
+
+
+    def shortest_path_stats(self, start_node: int | str, end_node: int | str, metric: str = "length"):
+        path = self.astar(start_node, end_node, metric)
+
+        if path is None:
+            warnings.warn(f"Path between start_node: {start_node} and end_node: {end_node} does not exists.")
+            return None
+        
+        total_cost = 0
+        total_distance_km = 0
+        total_lead_time_days = 0
+
+        
+        for node in path[1:]:
+            edge_data = self[start_node][node][0]
+
+            length = edge_data.get("length", 0)/1000
+            total_cost += edge_data.get("cost", 0)
+            total_distance_km += length
+
+            duration = 0
+            if edge_data.get("type") == "sea_route":
+                duration = edge_data.get("duration_hours", 0)/24
+            elif edge_data.get("type") == "airline_route":
+                duration = (length/AVG_FLIGHT_SPEED_KMH)/24
+            elif edge_data.get("type") == "road":
+                speed_data = edge_data.get("maxspeed", DEFAULT_SPEED_KMH)
+                max_speed = convert_speed(speed_data, output_type="int")
+                if max_speed is None:
+                    avg_speed = DEFAULT_SPEED_KMH
+                else:
+                    avg_speed = min(max_speed, MAX_TRUCK_SPEED_KMH)
+                duration = (length/avg_speed)/24
+
+            total_lead_time_days += duration
+            start_node = node
+            
+        return {
+            "path" : path,
+            "estimated_cost": round(total_cost, 2),
+            "total_distance_km": round(total_distance_km, 2),
+            "estimated_lead_time_days": round(total_lead_time_days, 2)
+        }
+
+            
+
