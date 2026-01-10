@@ -302,6 +302,7 @@ def start_simulation():
             try:
                 # sim = Simulation(max_time=15, time_resolution="day")
                 # sim.inject_parameters()
+                
                 sim.run()
             except Exception as e:
                 app.logger.exception("Simulation failed: %s", e)

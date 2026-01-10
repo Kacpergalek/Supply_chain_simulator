@@ -29,8 +29,11 @@ async function readJSON(appRoute, query) {
 
     data.forEach(word => {
         const option = document.createElement("option");
-        option.innerHTML = `<option>${word}</option>`;
+        option.value = word;
+        option.textContent = word;
         select.appendChild(option);
+
+        
     });
 }
 
@@ -51,7 +54,8 @@ function sendData() {
 
         var e = document.getElementById(listOfForms[index]);
         text += e.options[e.selectedIndex].text;
-        dict[listOfForms[index]] = e.options[e.selectedIndex].text;
+        dict[listOfForms[index]] = e.value;
+
     }
 
     $.ajax({
@@ -135,7 +139,13 @@ function updateMap(state) {
     importerMarkers = [];
     disruptedMarkers = [];
 
-    const colors = ['blue','orange','green','red','purple','brown','black','olive','cyan'];
+    function getColor(i, total) {
+        const hue = (i * (360 / total)) % 360;
+        return `hsl(${hue}, 60%, 55%)`;
+    }
+
+
+
 
     // trasy agentów
     state.routes.forEach((path, i) => {
@@ -165,7 +175,7 @@ function updateMap(state) {
 
                 if (polyline) map.removeLayer(polyline);
                 polyline = L.polyline(drawnCoords, {
-                    color: colors[i % colors.length],
+                    color: getColor(i, state.routes.length),
                     weight: 3
                 }).addTo(map);
 

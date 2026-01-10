@@ -248,8 +248,8 @@ class Simulation:
         self.update_deliveries(disrupted_deliveries)
         self.reset_parcels(disrupted_deliveries)
 
-        self.save_current_map(deactivated_nodes)
-
+        self.save_current_map(self.place_of_disruption)
+        print(f"Disruption started at node {self.place_of_disruption}, deactivated nodes: {deactivated_nodes}")
     def deactivate_nodes(self, places_of_disruption: list[int]) -> list[int]:
         exporter_nodes = {e.node_id for e in self.material_exporters}
         importer_exporter_nodes = {ie.node_id for ie in self.importer_exporters}
@@ -273,8 +273,9 @@ class Simulation:
         self.statistics_manager.update_cost(product_deliveries_to_fix, self.node_to_exporter)
         self.statistics_manager.update_lost_demand(product_deliveries_to_fix, self.node_to_exporter, False)
         self.reset_parcels(deliveries_to_fix)
-
+        self.disruption_nodes = []
         self.save_current_map()
+        
 
     def handle_gradual_ending(self) -> None:
         """ If disruption type is a natural disaster (after ending the comeback is gradual) """
@@ -312,7 +313,7 @@ class Simulation:
         self.statistics_manager.reset_loss(fixed_product_deliveries, self.node_to_exporter)
         self.statistics_manager.update_lost_demand(fixed_product_deliveries, self.node_to_exporter, False)
 
-        self.save_current_map(nodes_to_deactivate)
+        self.save_current_map(self.place_of_disruption)
         self.phase += 1
 
     def handle_time_step(self, t: int) -> None:
@@ -330,18 +331,13 @@ class Simulation:
 
     def save_current_map(self, disrupted_nodes=None) -> None:
         try:
-            routes = [d.route for d in self.deliveries]
-            exporter_nodes = [e.node_id for e in self.importer_exporters]
-            importer_nodes = [i.node_id for i in self.product_importers]
+            if disrupted_nodes is not None: 
+                if isinstance(disrupted_nodes, int): 
+                    self.disruption_nodes = [disrupted_nodes] 
+                else: 
+                    self.disruption_nodes = list(disrupted_nodes) if not isinstance(disrupted_nodes, int) else [disrupted_nodes]
 
-            plot_agent_routes(
-                self.network,
-                routes,
-                exporter_nodes,
-                importer_nodes,
-                disrupted_nodes=disrupted_nodes,
-            )
-            #print("MAP_UPDATE")
+            print("MAP_UPDATE")
         except Exception as e:
             print(f"❌ Błąd podczas zapisu mapy: {e}")
 
