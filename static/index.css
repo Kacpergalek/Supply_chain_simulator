@@ -1,134 +1,6 @@
-* {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-}
+/* ========================== Parameters form ========================== */
 
-main {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-
-    font-family: 'Roboto', sans-serif;
-}
-
-
-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    font-size: 2rem;
-    text-justify: auto;
-}
-
-
-/* Navigation bar */
-
-.nav-bar-container {
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    align-items: center;
-    height: 10vh;
-
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-
-    background-color: #ededed;
-}
-
-nav {
-    display: flex;
-    /* position: relative; */
-    flex-direction: row;
-    gap: 30px;
-}
-
-nav > header {
-    position: absolute;
-    left: 20px;
-    display: block;
-    top: 25%;
-}
-
-nav > header > h1 {
-    font-size: 3rem;
-}
-
-ul {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 10vh;
-    gap: 2rem;
-    position: absolute;
-    top: 0;
-    right: 20px;
-
-    list-style: none;
-}
-
-
-button.nav-button {
- outline: none;
- cursor: pointer;
- border: none;
- padding: 0.9rem 2rem;
- margin: 0;
- font-family: inherit;
- font-size: inherit;
- position: relative;
- display: inline-block;
- letter-spacing: 0.05rem;
- font-weight: 700;
- font-size: 17px;
- border-radius: 500px;
- overflow: hidden;
- background: #66ff66;
- color: ghostwhite;
-}
-
-button.nav-button span {
-    position: relative;
-    z-index: 10;
-    transition: color 0.4s;
-}
-
-button.nav-button:hover span {
-    color: black;
-}
-
-button.nav-button::before,
-button.nav-button::after {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-}
-
-button.nav-button::before {
-    content: "";
-    background: #000;
-    width: 120%;
-    left: -10%;
-    transform: skew(30deg);
-    transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
-}
-
-button.nav-button:hover::before {
-    transform: translate3d(100%, 0, 0);
-}
-
-/* Simulation form */
-
-.form-wrapper { 
+.form-wrapper {
     width: 20%;
     padding: 30px;
     background-color: white;
@@ -187,7 +59,7 @@ select, input[type="number"] {
     box-sizing: border-box;
 }
 
-button {
+.form-button {
     width: 100%;
     padding: 12px;
     background-color: #4CAF50;
@@ -199,7 +71,7 @@ button {
     margin-top: 10px;
 }
 
-button:hover {
+.form-button:hover {
     background-color: #45a049;
 }
 
@@ -224,4 +96,78 @@ button:hover {
 
 .hidden {
     display: none !important;
+}
+
+/* ========================== Map and logs ========================== */
+
+.simulation {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    margin-top: 8%;
+}
+
+.map-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 90vh;
+}
+
+img {
+    width: 100%;
+}
+
+.simulation-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 0;
+    /* allow children with overflow to scroll */
+}
+
+/* Logger styling for real-time logs */
+#logger {
+    width: 25rem;
+    max-height: 32rem;
+    /* fixed visual height */
+    height: 32rem;
+    margin-top: 1rem;
+    margin-right: 1rem;
+    padding: 0.75rem;
+    overflow-y: auto;
+    background: #ededed;
+    color: #505050;
+    border-radius: 8px;
+    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4);
+    font-family: monospace;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    /* don't allow flexbox to grow/shrink this element */
+}
+
+#logger div {
+    margin-bottom: 0.25rem;
+    white-space: pre-wrap;
+
+}
+
+.main-app {
+    display: flex;
+}
+
+.simulation {
+    display: flex;
+}
+
+.map-section {
+    flex-grow: 3;
+}
+
+.simulation-section {
+    flex-grow: 1;
 }

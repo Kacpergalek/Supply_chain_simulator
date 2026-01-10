@@ -1,25 +1,43 @@
-import csv
+import random
 
 import numpy as np
 import os
 import json
 
+from models.agents.exporter_agent import ExporterAgent
+from models.delivery.delivery import Delivery
+from utils.find_delivery import find_delivery_by_agent
+
+
+def save_to_json(data, directory, file_name):
+    try:
+        aggregated_path = os.path.join(directory, f"{file_name}.json")
+        with open(aggregated_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    except Exception as e:
+        print(f"Failed to save timeseries to disk: {e}")
+
+
 class StatisticsManager:
     """ class for managing statistics
 
-        Monitored variables per timestamp (lists index = agent_id):
+        Monitored variables per timestamp (lists index = agent_id)
+        --------------------------------------------------------------
             lost_demand (list(int)): number of lost supplies in the current timestamp
             fulfilled_demand (list(int)): number of fulfilled supplies in the current timestamp
             cost (list(float)): total cost of the route in the current timestamp
             loss (list(float)): (route cost in the current timestamp) - (previous route cost)
 
         Snapshot dictionaries for CSV (timeseries dicts per agent: { 'Agent 0': { '<time>': value, ... }, ... }):
+        --------------------------------------------------------------
             fulfilled_demand (dict): {agent_id: value}
             lost_demand (dict): {agent_id: value}
             cost (dict): {agent_id: value}
             loss (dict): {agent_id: value}
 
         Aggregated values for JSON - sums up all disrupted agents per timestamp (list index = timestamp):
+        --------------------------------------------------------------
             avg_fulfilled_demand (list(int)): average fulfilled demand
             avg_lost_demand (list(int)): average lost demand
             avg_cost (list(float)): average cost
@@ -30,17 +48,22 @@ class StatisticsManager:
             sum_cost (list(float)): total cost
             sum_loss (list(float)): total loss
 
-        Final snapshot for JSON per agent (lists index = agent_id):
-            final_fulfilled_demand (list(int)): total fulfilled demand
-            final_lost_demand (list(int)): total lost demand
-            final_cost (list(float)): total cost
-            final_loss (list(float)): total loss"""
+        Final snapshot for JSON per agent (lists index = agent_id)
+        --------------------------------------------------------------
+        final_snapshot : dict
+        Mapping:
+        "Agent <id>" -> {
+            "final_fulfilled_demand": float,
+            "final_lost_demand": float,
+            "final_cost": float,
+            "final_loss": float
+        }
+    """
 
     def __init__(self, number_of_agents: int, max_time: int):
-
         self.number_of_agents = number_of_agents
         self.max_time = max_time + 1
-        self.sum_routes = 0
+        self.total_routes = 0
         self.changed_routes = 0
 
         """ REFRESHES EVERY TIMESTAMP """
@@ -69,15 +92,56 @@ class StatisticsManager:
         """ FINAL SNAPSHOT"""
         self.final_snapshot = {f"Agent {i}": {} for i in range(number_of_agents)}
 
-    def calculate_loss(self):
-        """ Calculate loss for each agent (0 if not disrupted)"""
-        for i in range(len(self.cost)):
-            self.loss[i] = max(self.cost_timeseries[f"Agent {i}"].values()) - min(self.cost_timeseries[f"Agent {i}"].values())
+    def update_fulfilled_demand(self, exporter: ExporterAgent, disruption: bool) -> None:
+        if disruption:
+            self.fulfilled_demand[exporter.agent_id] = 0
+        else:
+            self.fulfilled_demand[exporter.agent_id] = exporter.unit_demand
+
+    def update_lost_demand(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent],
+                           disrupted: bool = False) -> None:
+        if disrupted:
+            for delivery in deliveries:
+                agent = node_to_exporter[delivery.start_node_id]
+                self.lost_demand[agent.agent_id] = agent.unit_demand
+        else:
+            for delivery in deliveries:
+                agent = node_to_exporter[delivery.start_node_id]
+                self.lost_demand[agent.agent_id] = 0
+
+    def update_cost(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent]) -> None:
+        for delivery in deliveries:
+            agent = node_to_exporter[delivery.start_node_id]
+            print(agent.to_dict())
+            self.cost[agent.agent_id] = delivery.cost
+
+    def reset_loss(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent]) -> None:
+        for delivery in deliveries:
+            agent = node_to_exporter[delivery.start_node_id]
+            self.loss[agent.agent_id] = 0
+
+    def update_loss(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent],
+                    old_cost: list[float]) -> None:
+        for i, delivery in enumerate(deliveries):
+            agent = node_to_exporter[delivery.start_node_id]
+            self.loss[agent.agent_id] = abs(old_cost[i] - delivery.cost)
+            #print(f"Agent {agent.agent_id} lost {self.loss[agent.agent_id]}")
+
 
     def add_snapshot(self, current_time: int):
-        """ Each timestamp saves the current snapshot of fulfilled_demand, lost_demand, cost and loss values
+        """
+        Capture the current per-agent statistics at a given timestamp.
 
-        Method is called every time a time step occurs"""
+        Parameters
+        ----------
+        current_time : int
+            Current simulation time step (index into time series arrays).
+
+        Side Effects
+        ------------
+        - Updates per-agent time series dictionaries.
+        - Updates per-timestamp sum arrays.
+        """
         time_key = str(int(current_time))
         for i in range(self.number_of_agents):
             agent_key = f"Agent {i}"
@@ -93,7 +157,7 @@ class StatisticsManager:
 
 
     def create_final_snapshot(self):
-        """ Create final snapshot for every agent
+        """ Create a final snapshot for every agent
             The snapshot consists of the sum of all values in the timeseries for that agent
             self.final_snapshot saves final snapshots for every agent
 
@@ -118,7 +182,16 @@ class StatisticsManager:
             self.avg_loss[t] = self.sum_loss[t]/self.number_of_agents
 
     def save_statistics(self):
-        print("SAVINGGGG")
+        """
+        - Build final per-agent snapshot.
+        - Compute aggregated averages and sums across agents.
+        - Write:
+            * average_<metric>.json
+            * sum_<metric>.json
+            * final_snapshot.json
+            * per-agent time series JSON files
+          into the `output_data` directory.
+        """
         self.create_final_snapshot()
         self.aggregate_snapshots()
 
@@ -137,35 +210,13 @@ class StatisticsManager:
         }
 
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        directory = os.path.join(path, 'output')
+        directory = os.path.join(path, 'output_data')
         os.makedirs(directory, exist_ok=True)
 
-        self.save_to_json(average_data, directory, 'average')
-        self.save_to_json(sum_data, directory, 'sum')
-        self.save_to_json(self.final_snapshot, directory, 'final_snapshot')
-        self.save_to_json(self.fulfilled_timeseries, directory, 'fulfilled_timeseries')
-        self.save_to_json(self.lost_timeseries, directory, 'lost_timeseries')
-        self.save_to_json(self.cost_timeseries, directory, 'cost_timeseries')
-        self.save_to_json(self.loss_timeseries, directory, 'loss_timeseries')
-
-    def save_to_json(self, data, directory, file_name):
-        try:
-            aggregated_path = os.path.join(directory, f"{file_name}.json")
-            with open(aggregated_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-
-        except Exception as e:
-            print(f"Failed to save timeseries to disk: {e}")
-
-
-# if __name__ == "__main__":
-#     sm = StatisticsManager(5, 10)
-#     sm.add_snapshot(0)
-#     sm.calculate_loss()
-#     sm.add_snapshot(1)
-#     sm.calculate_loss()
-#     sm.add_snapshot(2)
-#     sm.calculate_loss()
-#     sm.save_statistics()
-#     # print(sm.final_snapshot)
-#     # print(sm.avg_cost)
+        save_to_json(average_data, directory, 'average')
+        save_to_json(sum_data, directory, 'sum')
+        save_to_json(self.final_snapshot, directory, 'final_snapshot')
+        save_to_json(self.fulfilled_timeseries, directory, 'fulfilled_timeseries')
+        save_to_json(self.lost_timeseries, directory, 'lost_timeseries')
+        save_to_json(self.cost_timeseries, directory, 'cost_timeseries')
+        save_to_json(self.loss_timeseries, directory, 'loss_timeseries')

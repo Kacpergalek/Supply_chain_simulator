@@ -7,3 +7,9 @@ def find_delivery_by_agent(deliveries: list[Delivery], agent: ExporterAgent) -> 
         if delivery.start_node_id == agent.node_id:
             return delivery
     return None
+
+def find_delivery_by_starting_node_id(deliveries: list[Delivery], node_id: int) -> Delivery | None:
+    for delivery in deliveries:
+        if delivery.start_node_id == node_id:
+            return delivery
+    return None
