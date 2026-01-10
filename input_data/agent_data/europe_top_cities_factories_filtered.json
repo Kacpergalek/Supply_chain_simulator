@@ -59,6 +59,12 @@
     "Ghent, Belgium",
     "Charleroi, Belgium"
   ],
+  "Greece": [
+    "Athens, Greece",
+    "Thessaloniki, Greece",
+    "Patras, Greece",
+    "Heraklion, Greece"
+  ],
   "Portugal": [
     "Lisbon, Portugal",
     "Porto, Portugal",
@@ -67,6 +73,8 @@
   ],
   "Sweden": [
     "Stockholm, Sweden",
+    "Gothenburg, Sweden",
+    "Malm\u00f6, Sweden",
     "Uppsala, Sweden"
   ],
   "Hungary": [
@@ -98,6 +106,12 @@
     "Bergen, Norway",
     "Trondheim, Norway",
     "Stavanger, Norway"
+  ],
+  "Denmark": [
+    "Copenhagen, Denmark",
+    "Aarhus, Denmark",
+    "Odense, Denmark",
+    "Aalborg, Denmark"
   ],
   "Finland": [
     "Helsinki, Finland",
