@@ -18,10 +18,9 @@ def plot_agent_routes(
     # --- INTERACTIVE BASEMAP OSM ---
     m = folium.Map(location=[52.23, 21.01], zoom_start=6)
 
-    # === 🔥 NIE rysujemy całej sieci dróg — TYLKO TRASY ===
+    # === 🔥 Rysujemy TYLKO trasy agentów ===
+    colors = ['blue','orange','green','red','purple','brown','#000000','gray','olive','cyan']
 
-    # Draw routes
-    colors = ['blue','orange','green','red','purple','brown','pink','gray','olive','cyan']
     for i, path in enumerate(routes):
         coords = [(graph.nodes[n]["y"], graph.nodes[n]["x"]) for n in path]
         folium.PolyLine(
@@ -33,37 +32,37 @@ def plot_agent_routes(
 
     # Exporters
     for n in exporter_nodes:
-        city = graph.nodes[n].get("city")
         folium.CircleMarker(
             location=(graph.nodes[n]["y"], graph.nodes[n]["x"]),
             radius=7,
             color="green",
             fill=True,
             fill_color="green",
-            tooltip=city or "Exporter"
+            tooltip=f"Exporter {graph.nodes[n].get('city','')}"
         ).add_to(m)
 
     # Importers
     for n in importer_nodes:
-        city = graph.nodes[n].get("city")
         folium.CircleMarker(
             location=(graph.nodes[n]["y"], graph.nodes[n]["x"]),
             radius=7,
             color="red",
             fill=True,
             fill_color="red",
-            tooltip=city or "Importer"
+            tooltip=f"Importer {graph.nodes[n].get('city','')}"
         ).add_to(m)
 
-    # Disrupted nodes
+    # === 🔥 RYSUJEMY WYBRANY WĘZEŁ (DISRUPTED NODE) ===
     for n in disrupted_nodes:
         if n in graph.nodes:
             folium.Marker(
                 location=(graph.nodes[n]["y"], graph.nodes[n]["x"]),
-                icon=folium.DivIcon(html=f"<b style='color:black;font-size:22px;'>X</b>"),
-                tooltip="Wyłączony"
+                icon=folium.DivIcon(
+                    html="<b style='color:black;font-size:22px;'>X</b>"
+                ),
+                tooltip=f"Disrupted node {n}"
             ).add_to(m)
 
-    # Save interactive map
+    # Save final map
     save_path = Path(__file__).parent.parent / "static/latest_map.html"
     m.save(save_path)

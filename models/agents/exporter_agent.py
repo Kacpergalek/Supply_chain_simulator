@@ -236,6 +236,12 @@ class ExporterAgent(BaseAgent):
 
         # 3. Dynamic cost function (kept here for flexibility; could be precomputed for even more speed)
         def weight_function(u, v, d):
+            if not sim_graph.nodes[u].get("active", True) or not sim_graph.nodes[v].get("active", True):
+                return float("inf")  # traktuj jako niedostępne
+
+            # Sprawdź czy edge jest aktywny
+            if d.get("active") is False:
+                return float("inf")
             length_m = d.get("length", 0.0)
             dist_km = length_m / 1000.0
 
