@@ -115,6 +115,7 @@ class Simulation:
         self.severity = self.disruption['severity']
         self.disruption_type = self.disruption['disruptionType']
         self.place_of_disruption = int(self.disruption["placeOfDisruption"])
+        self.disruption_nodes = []
         self.disaster_steps_dict = {}
         self.number_of_phases = 0
         self.phase = 1
