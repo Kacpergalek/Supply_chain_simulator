@@ -236,7 +236,7 @@ def parameters_process():
 @app.route("/api/highlight_node/<int:node_id>")
 def highlight_node_api(node_id):
     sim.save_current_map(disrupted_nodes=[node_id])
-    print("MAP_UPDATE")   # aby index2.js wiedział o aktualizacji
+    print("MAP_UPDATE")   # aby index.js wiedział o aktualizacji
     return {"ok": True}
 @app.route("/api/edges")
 def api_edges():
@@ -268,15 +268,25 @@ def api_nodes():
 
 @app.route("/api/map_state")
 def map_state():
-    routes = [d.route for d in sim.deliveries]   # tylko trasy agentów
-    exporters = [e.node_id for e in sim.importer_exporters]
-    importers = [i.node_id for i in sim.product_importers]
+    routes = [d.route for d in sim.deliveries]
+
+    exporters = (
+        [e.node_id for e in sim.material_exporters] +
+        [e.node_id for e in sim.importer_exporters]
+    )
+
+    importers = (
+        [i.node_id for i in sim.product_importers] +
+        [i.node_id for i in sim.importer_exporters]
+    )
+    both = [e.node_id for e in sim.importer_exporters]
     disrupted = getattr(sim, "disruption_nodes", [])
 
     return jsonify({
         "routes": routes,
         "exporters": exporters,
         "importers": importers,
+        "both": both,
         "disrupted": disrupted
     })
 

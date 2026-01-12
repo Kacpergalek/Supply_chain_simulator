@@ -205,6 +205,19 @@ function updateMap(state) {
             importerMarkers.push(marker);
         }
     });
+    // importer-exporter (pomarańczowy)
+    state.both.forEach(n => {
+        if (graphNodes[n]) {
+            const marker = L.circleMarker([graphNodes[n].y, graphNodes[n].x], {
+                radius: 7,
+                color: "orange",
+                fillColor: "orange",
+                fillOpacity: 1
+            }).bindTooltip(graphNodes[n].city || "Importer/Exporter").addTo(map);
+            importerMarkers.push(marker);
+        }
+    });
+
 
     // disrupted nodes
     state.disrupted.forEach(n => {
@@ -230,9 +243,21 @@ function highlightNode(nodeId) {
 }
 
 document.querySelector("#placeOfDisruption").addEventListener("change", function () {
-    let nodeId = this.value;
-    highlightNode(nodeId);
+    let nodeId = parseInt(this.value);          // 🔥 poprawka 1: zawsze liczba
+    const node = graphNodes[String(nodeId)];    // 🔥 poprawka 2: zawsze poprawny klucz
+
+    if (!node) return;
+
+    if (highlightMarker) map.removeLayer(highlightMarker);
+
+    highlightMarker = L.circleMarker([node.y, node.x], {
+        radius: 8,
+        color: "yellow",
+        fillColor: "yellow",
+        fillOpacity: 1
+    }).bindTooltip("Selected node").addTo(map);
 });
+
 async function manageLogs() {
     // open SSE connection for real-time logs
     const loggerEl = document.getElementById('logger');
