@@ -122,6 +122,7 @@ class AgentManager:
         self.factory_manager = FactoryManager()
         self.stores = self.retail_store_manager.stores
         self.factories = self.factory_manager.factories
+        self.index = 0
 
     def initialize_agents(self, graph: SimulationGraph) -> dict[str, list]:
         """
@@ -154,6 +155,8 @@ class AgentManager:
         # self.save_agent_data("product_importers.json", product_importers)
         # self.save_agent_data("material_routes.json", material_routes)
         # self.save_agent_data("product_routes.json", product_routes)
+        # for exp in self.importer_exporters:
+        #     print(exp.to_dict())
         return initialized
 
     def initialize_exporters(self, graph: SimulationGraph, exporter_cities: list[str]) -> list[ExporterAgent]:
@@ -170,7 +173,8 @@ class AgentManager:
         for city in exporter_cities:
             store = self.stores[city]
             closest_node = find_closest_node(graph, store)
-            agent_id = len(exporters + self.importer_exporters)
+            agent_id = self.index
+            self.index += 1
             courier_company = random.choice(list(courier_companies))
             products = self.retail_store_manager.product_manager.initialize_products(store['store_category'])
             finances = random.randrange(1000, 5000)
@@ -192,8 +196,10 @@ class AgentManager:
         for city in product_importer_cities:
             store = self.stores[city]
             closest_node = find_closest_node(graph, store)
-            agent_id = len(self.importer_exporters + self.product_importers + self.material_exporters)
-            importer = BaseAgent(agent_id=agent_id, node_id=closest_node)
+            agent_id = self.index
+            self.index += 1
+            country = city.split(",")[1]
+            importer = BaseAgent(agent_id=agent_id, node_id=closest_node, country=country)
             self.product_importers.append(importer)
         return self.product_importers
 
@@ -220,20 +226,20 @@ class AgentManager:
         """
         results = []
 
-        graph_undirected = SimulationGraph(default_capacity=graph.default_capacity,
-                                           default_price=graph.default_price,
-                                           incoming_graph_data=graph)
+        # graph_undirected = SimulationGraph(default_capacity=graph.default_capacity,
+        #                                    default_price=graph.default_price,
+        #                                    incoming_graph_data=graph)
 
-        for i, (exp, imp) in enumerate(zip(exporters, importers), start=0):
+        for _, (exp, imp) in enumerate(zip(exporters, importers), start=0):
             # print(exp)
             try:
                 params = {
                     "default_unit_cost": courier_companies[exp.courier_company]
                 }
                 result = exp.find_cheapest_path(
-                    graph_undirected, dest_node=imp.node_id, params=params)
+                    graph, dest_node=imp.node_id, params=params)
                 results.append({
-                    "agent_id": i,
+                    "agent_id": exp.agent_id,
                     "exporter_node": exp.node_id,
                     "importer_node": imp.node_id,
                     **result

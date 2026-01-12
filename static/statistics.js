@@ -305,3 +305,8 @@ if (aggToggleBtn) {
 /* ============================ RENDER GRAPH ON LOAD ============================ */
 
 plotAggregationGraph("/api/average_stats", '#average', "avg");
+
+/* ============================ BACK TO SIMULATION ============================ */
+document.getElementById('back-btn').addEventListener('click', function (e) {
+    window.location.href = '/';
+})

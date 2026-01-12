@@ -116,7 +116,7 @@ class Delivery:
         self.cost = 0
         self.lead_time = 0
 
-    def update_delivery(self, node_to_exporter: dict[int, ExporterAgent], network: SimulationGraph) -> None:
+    def update_delivery(self, node_to_exporter: dict[int, ExporterAgent], network: SimulationGraph, disruption: bool) -> None:
         """
         Updates `route`, `capacity`, `length`, `cost` and `lead_time` in-place based on
         the cheapest path to `end_node_id`.
@@ -129,12 +129,18 @@ class Delivery:
             Directed simulation graph providing distances, costs and capacities.
         """
         exporter = node_to_exporter[self.start_node_id]
-        graph_undirected = SimulationGraph(default_capacity=network.default_capacity,
-                                           default_price=network.default_price,
-                                           incoming_graph_data=network)
-        path = exporter.find_cheapest_path(graph_undirected, self.end_node_id)
-        self.route = path['path']
-        self.capacity = self.find_minimum_capacity(network)
+        # graph_undirected = SimulationGraph(default_capacity=network.default_capacity,
+        #                                    default_price=network.default_price,
+        #                                    incoming_graph_data=network)
+        path = exporter.find_cheapest_path(network, self.end_node_id)
+        # if self.cost > path['estimated_cost'] and disruption:
+        #     self.cost = self.cost + (self.cost - path['estimated_cost'])
+        #     self.length = self.length + (self.length - path['total_distance_km'])
+        #     self.lead_time = self.lead_time + (self.lead_time - path['estimated_lead_time_days'])
+        # else:
         self.length = path['total_distance_km']
         self.cost = path['estimated_cost']
         self.lead_time = path['estimated_lead_time_days']
+        self.route = path['path']
+        self.capacity = self.find_minimum_capacity(network)
+        #print(f"New length: {self.length}, new cost: {self.cost}")

@@ -65,6 +65,7 @@ class DeliveryManager:
         for agent_dict in paths:
             agent = node_to_exporter[agent_dict['exporter_node']]
 
+            #print(agent_dict)
             number_of_products = random.randrange(int(agent_dict['total_distance_km'] / 10.0),
                                                   int(agent_dict['total_distance_km'] / 5.0))
             if product_delivery:
@@ -132,6 +133,6 @@ class DeliveryManager:
             m_category = product.category + "_raw_material"
             m_price = product.retail_price * 0.1
             material = RawMaterial(product.product_id, m_name, m_category, m_price)
-            qty_kg = quantity * 0.2
+            qty_kg = quantity * 0.4
             batch.append((material, qty_kg))
         return batch

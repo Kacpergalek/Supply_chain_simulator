@@ -7,6 +7,7 @@ import sys
 import os
 import json
 from pathlib import Path
+from threading import Thread
 
 from models.agents.agent_manager import AgentManager
 from models.delivery.delivery import Delivery
@@ -61,6 +62,9 @@ class Simulation:
     """
     def __init__(self):
         """ Time and path initialization """
+        self.initializing = True
+        thread = Thread(target=self.loading_screen)
+        thread.start()
         self.disruption = {}
         self.current_time = 0
         self.max_time = 15
@@ -77,7 +81,7 @@ class Simulation:
         # seaport_graph = network_manager.load_seaports_graph(default_capacity=5, default_price=3)
         # self.network.compose(seaport_graph)
         # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
-        self.network = network_manager.get_graph_from_file("world", road_type="")
+        #self.network = network_manager.get_graph_from_file("world", road_type="")
         # print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
         self.network = network_manager.get_graph_from_file("europe")
         airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
@@ -93,6 +97,8 @@ class Simulation:
         self.material_paths = initialized["material_routes"]
         self.product_paths = initialized["product_routes"]
         self.node_to_exporter = {int(agent.node_id): agent for agent in self.importer_exporters + self.material_exporters}
+        # for imp in self.product_importers:
+        #     print(f"Product importer: {imp.to_dict()}")
 
         """ Deliveries initialization """
         self.product_deliveries = self.agent_manager.delivery_manager.initialize_deliveries(self.network,
@@ -104,9 +110,12 @@ class Simulation:
         self.deliveries = []
         for delivery in self.product_deliveries:
             self.deliveries.append(delivery)
+            # print(f"Product delivery: {delivery.delivery_id}, agent id: {self.node_to_exporter[delivery.start_node_id].agent_id}")
         for delivery in self.material_deliveries:
             self.deliveries.append(delivery)
             #print(delivery.to_dict())
+        # for d in self.deliveries:
+        #     print(d.to_dict())
 
         """ Disruption parameters """
         self.load_disruption_parameters()
@@ -129,7 +138,20 @@ class Simulation:
             cost = find_delivery_by_agent(self.deliveries, exporter).cost
             self.statistics_manager.cost[exporter.agent_id] = cost
 
+        self.delete_parameter_files()
+        self.initializing = False
+        time.sleep(1)
         self.initialize()
+
+    def loading_screen(self):
+        print("Initializing simulation...")
+        print("[", end="")
+        while True:
+            print("=", end="")
+            time.sleep(1)
+            if not self.initializing:
+                print("]")
+                break
 
     def load_disruption_parameters(self):
         full_path = self.path / "input_data" / "disruption_parameters.pkl"
@@ -153,8 +175,9 @@ class Simulation:
         - Record statistics each time step.
         - Save statistics at the end and print summary information.
         """
+        if self.current_time > 0:
+            self.reset()
         print("Starting simulation")
-        time.sleep(1)
 
         try:
             while self.should_continue():
@@ -178,7 +201,7 @@ class Simulation:
         - Compute and store initial costs for all product deliveries.
         - Save deliveries and an initial route map to disk.
         """
-        #find_nodes_to_disrupt(self.network, self.deliveries, 50)
+        #find_nodes_to_disrupt(self.network, self.product_deliveries, 50)
         self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
         self.save_deliveries()
         self.save_current_map()
@@ -222,8 +245,12 @@ class Simulation:
         print(f" =========== Executing time step {t} ===========")
         """ Send first parcel """
         if self.current_time == 1:
-            for agent in self.importer_exporters + self.material_exporters:
+            material_cost = []
+            for agent in self.material_exporters:
+                material_cost.append(find_delivery_by_agent(self.material_deliveries, agent).cost)
                 agent.send_parcel()
+            for i, agent in enumerate(self.importer_exporters):
+                agent.send_parcel(material_cost[i])
 
         """ Start a disruption """
         if self.start_day == t:
@@ -246,11 +273,12 @@ class Simulation:
         deactivated_deliveries = self.find_deactivated_deliveries()
         disrupted_deliveries = self.mark_deliveries_disrupted(deactivated_deliveries, disrupted=True)
 
-        self.update_deliveries(disrupted_deliveries)
+        self.update_deliveries(disrupted_deliveries, True)
         self.reset_parcels(disrupted_deliveries)
 
         self.save_current_map(self.place_of_disruption)
-        print(f"Disruption started at node {self.place_of_disruption}, deactivated nodes: {deactivated_nodes}")
+        # print(f"Disruption started at node {self.place_of_disruption}, deactivated nodes: {deactivated_nodes}")
+
     def deactivate_nodes(self, places_of_disruption: list[int]) -> list[int]:
         exporter_nodes = {e.node_id for e in self.material_exporters}
         importer_exporter_nodes = {ie.node_id for ie in self.importer_exporters}
@@ -304,7 +332,7 @@ class Simulation:
 
         self.mark_deliveries_disrupted(fixed_deliveries, disrupted=False)
 
-        self.update_deliveries(currently_disrupted_deliveries)
+        self.update_deliveries(currently_disrupted_deliveries, False)
         self.reset_parcels(currently_disrupted_deliveries)
 
         self.load_deliveries(fixed_deliveries)
@@ -356,7 +384,7 @@ class Simulation:
             delivery.disrupted = disrupted
         return deliveries
 
-    def update_deliveries(self, disrupted_deliveries: list[Delivery]) -> None:
+    def update_deliveries(self, disrupted_deliveries: list[Delivery], disrupted: bool) -> None:
         """
         In both material and product deliveries update:
             * route
@@ -372,8 +400,8 @@ class Simulation:
         old_cost = [d.cost for d in disrupted_product_deliveries]
 
         for delivery in disrupted_deliveries:
-            delivery.reset_delivery()
-            delivery.update_delivery(self.node_to_exporter, active_network)
+            # print(f"Old length: {delivery.length}, old cost: {delivery.cost}")
+            delivery.update_delivery(self.node_to_exporter, active_network, disrupted)
         self.statistics_manager.update_cost(disrupted_product_deliveries, self.node_to_exporter)
         self.statistics_manager.update_loss(disrupted_product_deliveries, self.node_to_exporter, old_cost)
         self.statistics_manager.update_lost_demand(disrupted_product_deliveries, self.node_to_exporter, True)
@@ -449,14 +477,26 @@ class Simulation:
                 delivery.parcel = new_parcel
             else:
                 delivery.parcel = new_batch
-            agent.send_parcel()
+
+            material_cost = 0
+            for d in self.deliveries:
+                if d.end_node_id == delivery.start_node_id:
+                    material_cost = d.cost
+                    break
+            agent.send_parcel(material_cost)
+
+    def delete_parameter_files(self):
+        full_path = self.path / "input_data" / "disruption_parameters.pkl"
+
+        if full_path.exists():
+            full_path.unlink()
 
     def reset(self) -> None:
         self.current_time = 0
 
         """ Disruption reinitialization """
-        with open(self.path, 'rb') as f:
-            self.disruption = pickle.load(f)
+        self.delete_parameter_files()
+        self.load_disruption_parameters()
         self.start_day = int(self.disruption['dayOfStart'])
         self.end_day = self.start_day + int(self.disruption['duration'])
         self.severity = self.disruption['severity']

@@ -45,7 +45,7 @@ class NetworkManager():
             for node, data in sim_graph.nodes(data=True):
                 if "country" not in data:
                     data["country"] = unidecode(country).lower().replace(" ", "_")
-        # sim_graph = self.merge_graph_components(sim_graph, max_dist_km=70)
+        sim_graph = self.merge_graph_components(sim_graph, max_dist_km=200)
         return sim_graph
 
 
@@ -206,7 +206,7 @@ class NetworkManager():
         # 1. Get all weakly connected components (directed graph needs weakly connected)
         # Sort them by size (number of nodes), largest first.
         components = sorted(nx.connected_components(graph), key=len, reverse=True)
-        print(f"Found {len(components)} connected components.")
+        #print(f"Found {len(components)} connected components.")
 
         if len(components) < 2:
             return graph
@@ -268,15 +268,15 @@ class NetworkManager():
 
                 # Add bidirectional edge (motorway connection)
                 # We add 'artificial_link' tag so we can identify these later if needed
-                graph.add_edge(u, v, length=dist_m, type="artificial_connection")
-                graph.add_edge(v, u, length=dist_m, type="artificial_connection")
+                graph.add_edge(u, v, length=dist_m, type="motorway", capacity=graph.default_capacity)
+                graph.add_edge(v, u, length=dist_m, type="motorway", capacity=graph.default_capacity)
 
-                print(f"Connected component (size {len(comp_nodes)}) to main graph. Dist: {dist_km:.2f}km")
+                #print(f"Connected component (size {len(comp_nodes)}) to main graph. Dist: {dist_km:.2f}km")
                 links_created += 1
-            else:
-                print(f"Could not connect component (size {len(comp_nodes)}) - closest node > {max_dist_km}km")
+            # else:
+            #     print(f"Could not connect component (size {len(comp_nodes)}) - closest node > {max_dist_km}km")
 
-        print(f"Merge complete. Created {links_created} new connections.")
+        #print(f"Merge complete. Created {links_created} new connections.")
         return graph
 
 

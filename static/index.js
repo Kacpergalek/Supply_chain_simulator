@@ -43,8 +43,6 @@ readJSON("/api/duration", "#duration");
 readJSON("/api/day_of_start", "#dayOfStart");
 readJSON("/api/place_of_disruption", "#placeOfDisruption");
 
-const baseUrl = window.location.pathname;
-
 function sendData() {
     console.log("Sending simulation parameters.")
     var text = "";
@@ -63,8 +61,9 @@ function sendData() {
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(dict),
-        success: function (response) {
-            alert("Data submitted successfully.")
+        success: async function (response) {
+            await new Promise(r => setTimeout(r, 500));
+            alert("Data submitted successfully. You can start the simulation")
             // document.getElementById('output').innerHTML = JSON.stringify(response, null, 2);
         },
         error: function (error) {
@@ -90,14 +89,14 @@ function startSimulation() {
             document.getElementById('response').innerText = 'Error starting simulation'
             console.error(err)
         })
-
-    let goToStatisticsBtn = document.getElementById('go-to-stat');
-    goToStatisticsBtn.disabled = false;
 }
 
 function goToStatistics() {
     window.location.href = '/category/statistics';
 }
+
+document.getElementById('go-to-stat').addEventListener('click', goToStatistics);
+
 const map = L.map('map').setView([52.23, 21.01], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
@@ -291,20 +290,3 @@ toggleBtn.addEventListener("click", () => {
 
 
 manageLogs();
-
-//  Odświeżanie obrazu mapy co 5 sekund
-/*
-function refreshMap() {
-    const img = document.querySelector('.map-section img');
-    if (!img) return;
-    const timestamp = new Date().getTime();  // cache-buster
-    img.src = `/assets/latest_map.png?${timestamp}`;
-}
-
-// odświeżanie co 5 sekund
-setInterval(refreshMap, 5000);
-*/
-// document.getElementById('statistics-btn').addEventListener('click', function (event) {
-//     window.location.href = '/category/statistics';
-// });
-

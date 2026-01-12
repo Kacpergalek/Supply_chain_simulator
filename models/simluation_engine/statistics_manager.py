@@ -112,7 +112,6 @@ class StatisticsManager:
     def update_cost(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent]) -> None:
         for delivery in deliveries:
             agent = node_to_exporter[delivery.start_node_id]
-            print(agent.to_dict())
             self.cost[agent.agent_id] = delivery.cost
 
     def reset_loss(self, deliveries: list[Delivery], node_to_exporter: dict[int, ExporterAgent]) -> None:

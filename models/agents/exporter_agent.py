@@ -82,7 +82,7 @@ class ExporterAgent(BaseAgent):
             product_dict[product.product_id] = inventory
         return product_dict
 
-    def send_parcel(self):
+    def send_parcel(self, material_cost: float = 0):
         # Defensive checks: ensure delivery exists and parcel is iterable
         if self.delivery is None:
             raise RuntimeError(
@@ -115,9 +115,7 @@ class ExporterAgent(BaseAgent):
             pass
 
         try:
-            parcel_cost = getattr(
-                self.delivery, 'find_parcel_cost', lambda: 0)()
-            self.finances -= parcel_cost * getattr(self.delivery, 'cost', 0)
+            self.finances -= material_cost
         except Exception:
             pass
 
@@ -265,12 +263,15 @@ class ExporterAgent(BaseAgent):
                 raise nx.NetworkXNoPath(f"target node {dest_node} not in routing graph")
 
             # Dijkstra-style shortest path on routing_graph with custom weight
-            path = nx.shortest_path(
-                sim_graph,
-                source=self.node_id,
-                target=dest_node,
-                weight=weight_function
-            )
+            # path = nx.shortest_path(
+            #     sim_graph,
+            #     source=self.node_id,
+            #     target=dest_node,
+            #     weight='cost',
+            #     method="dijkstra"
+            # )
+            path = nx.dijkstra_path(sim_graph, self.node_id, dest_node, weight="cost")
+            # cost_test = nx.shortest_path_length(sim_graph, self.node_id, dest_node, weight="cost")
 
             #path = sim_graph.astar(start_node=self.node_id, end_node=dest_node)
 
@@ -278,7 +279,7 @@ class ExporterAgent(BaseAgent):
             total_distance_km = 0.0
             total_money_cost = 0.0
             total_lead_time_days = 0.0
-            print(len(path))
+            #print(len(path))
 
             for i in range(len(path) - 1):
                 u = path[i]
@@ -334,40 +335,6 @@ class ExporterAgent(BaseAgent):
             }
 
         except nx.NetworkXNoPath:
-            # 6. Robust diagnostics:
-            #    Distinguish between:
-            #    - graph disconnected even without disruptions
-            #    - only active graph disconnected (disruption effect)
-            # src_in_routing = self.node_id in sim_graph
-            # dst_in_routing = dest_node in sim_graph
-            # src_in_full = self.node_id in full_graph
-            # dst_in_full = dest_node in full_graph
-            #
-            # reachable_in_full = False
-            # if src_in_full and dst_in_full:
-            #     try:
-            #         reachable_in_full = nx.has_path(full_graph, self.node_id, dest_node)
-            #     except Exception:
-            #         reachable_in_full = False
-            #
-            # if reachable_in_full and not (src_in_routing and dst_in_routing):
-            #     # One of endpoints was stripped out from active graph (e.g. deactivated node)
-            #     reason = "endpoint_removed_from_active_graph"
-            # elif reachable_in_full and (src_in_routing and dst_in_routing):
-            #     # Both endpoints still present but active graph substructure broke connectivity
-            #     reason = "disruption_disconnected_components"
-            # else:
-            #     reason = "no_path_even_in_full_graph"
-
-            # print(
-            #     f"No path found for agent {self.agent_id} from {self.node_id} to {dest_node}. "
-            #     f"reason={reason}, "
-            #     f"src_in_routing={src_in_routing}, dst_in_routing={dst_in_routing}, "
-            #     f"src_in_full={src_in_full}, dst_in_full={dst_in_full}, "
-            #     f"reachable_in_full={reachable_in_full}"
-            # )
-
-            # Return structured "no path" result instead of empty dict
             return {}
 
         except Exception as e:
