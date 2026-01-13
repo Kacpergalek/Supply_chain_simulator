@@ -3,14 +3,6 @@
 <head>
     
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -25,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_54909df3c9c5e8515aa48e0ae117cd48 {
+                #map_d16165a8b0068864182abc9e6641504d {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -34,19 +26,42 @@
                 }
                 .leaflet-container { font-size: 1rem; }
             </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
         
 </head>
 <body>
     
     
-            <div class="folium-map" id="map_54909df3c9c5e8515aa48e0ae117cd48" ></div>
+            <div class="folium-map" id="map_d16165a8b0068864182abc9e6641504d" ></div>
         
 </body>
 <script>
     
     
-            var map_54909df3c9c5e8515aa48e0ae117cd48 = L.map(
-                "map_54909df3c9c5e8515aa48e0ae117cd48",
+            var map_d16165a8b0068864182abc9e6641504d = L.map(
+                "map_d16165a8b0068864182abc9e6641504d",
                 {
                     center: [52.23, 21.01],
                     crs: L.CRS.EPSG3857,
@@ -63,7 +78,7 @@
 
         
     
-            var tile_layer_b53b9d000fba85f3cbb89c55137d7733 = L.tileLayer(
+            var tile_layer_d6c9cd9bf2baf09139b90820011d1ae4 = L.tileLayer(
                 "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {
   "minZoom": 0,
@@ -80,7 +95,7 @@
             );
         
     
-            tile_layer_b53b9d000fba85f3cbb89c55137d7733.addTo(map_54909df3c9c5e8515aa48e0ae117cd48);
+            tile_layer_d6c9cd9bf2baf09139b90820011d1ae4.addTo(map_d16165a8b0068864182abc9e6641504d);
         
 </script>
 </html>
