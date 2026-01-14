@@ -1,19 +1,17 @@
-import json
 import math
-import os
 import pickle
 import random
 from pathlib import Path
 import pandas as pd
 
-from input_data.agent_data.material_exporter_cities import material_exporter_cities
+from data.input_data.agent_data.agent_localization_data.material_exporter_cities import material_exporter_cities
 from models.agents.base_agent import BaseAgent
-from input_data.delivery_data.courier_companies import courier_companies
-from input_data.agent_data.product_importer_cities import product_importer_cities
-from input_data.agent_data.importer_exporter_cities import importer_exporter_cities
+from data.input_data.delivery_data.courier_companies import courier_companies
+from data.input_data.agent_data.agent_localization_data.product_importer_cities import product_importer_cities
+from data.input_data.agent_data.agent_localization_data.importer_exporter_cities import importer_exporter_cities
 from models.agents.exporter_agent import ExporterAgent
-from models.agents.factory_manager import FactoryManager
-from models.agents.retail_store_manager import RetailStoreManager
+from models.industrial_building.factory_manager import FactoryManager
+from models.industrial_building.retail_store_manager import RetailStoreManager
 from models.delivery.delivery_manager import DeliveryManager
 
 from network.simulation_graph import SimulationGraph
@@ -30,18 +28,17 @@ def haversine_km(lat1, lon1, lat2, lon2) -> float:
 
 
 def _is_airport_node(graph: SimulationGraph, node_id: int) -> bool:
-    """
-    Heuristic check whether a node represents an airport / airport-only route.
-
-    Returns
-    -------
-    bool
-        True if the node is interpreted as an airport, False otherwise.
-    """
     data = graph.nodes[node_id]
 
-    # 1) Direct node tags commonly used for airports
     if data.get("type") == "airport":
+        return True
+    else:
+        return False
+
+def _is_seaport_node(graph: SimulationGraph, node_id: int) -> bool:
+    data = graph.nodes[node_id]
+
+    if data.get("type") == "seaport":
         return True
     else:
         return False
@@ -76,7 +73,7 @@ def find_closest_node(graph: SimulationGraph, store: pd.Series):
     )
 
     for node_id in sorted_nodes:
-        if not _is_airport_node(graph, node_id):
+        if not _is_airport_node(graph, node_id) and not _is_seaport_node(graph, node_id):
             return node_id
 
     return sorted_nodes[0]
@@ -155,13 +152,6 @@ class AgentManager:
         initialized = {"material_exporters": self.material_exporters, "importer_exporters": self.importer_exporters,
                        "product_importers": self.product_importers, "material_routes": self.material_routes,
                        "product_routes": self.product_routes}
-        # self.save_agent_data("material_exporters.json", material_exporters)
-        # self.save_agent_data("importer_exporters.json", importer_exporters)
-        # self.save_agent_data("product_importers.json", product_importers)
-        # self.save_agent_data("material_routes.json", material_routes)
-        # self.save_agent_data("product_routes.json", product_routes)
-        # for exp in self.importer_exporters:
-        #     print(exp.to_dict())
         return initialized
 
     def initialize_exporters(self, graph: SimulationGraph, exporter_cities: list[str]) -> list[ExporterAgent]:
@@ -259,76 +249,11 @@ class AgentManager:
             "results": results
         }
         self.save_paths_to_pkl(data)
+        #print(results)
 
         return results
 
     def save_paths_to_pkl(self, data: dict):
-        path = Path(__file__).parent.parent.parent / "input_data" / "network_data" / "paths.pkl"
+        path = Path(__file__).parent.parent.parent / "data" / "input_data" / "network_data" / "paths.pkl"
         with open(path, "wb") as f:
             pickle.dump(data, f)
-
-    def save_agent_data(self, file_name: str, data) -> None:
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
-        if not os.path.exists(data_path):
-            os.makedirs(data_path)
-
-        full_path = os.path.join(data_path, file_name)
-        if not isinstance(data[0], dict):
-            with open(full_path, "w", encoding="utf-8") as json_file:
-                json.dump([d.to_dict() for d in data], json_file, indent=4, ensure_ascii=False)
-        else:
-            with open(full_path, "w", encoding="utf-8") as json_file:
-                json.dump([d for d in data], json_file, indent=4, ensure_ascii=False)
-
-    def load_exporters(self, file_name: str) -> list[ExporterAgent]:
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
-        if not os.path.exists(data_path):
-            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
-        full_path = os.path.join(data_path, file_name)
-        agent_list = []
-        with open(full_path, "r", encoding="utf-8") as json_file:
-            try:
-                data = json.load(json_file)
-            except json.JSONDecodeError as e:
-                print(f"Json loading error: {str(e)}")
-                return agent_list
-        for o in data:
-            try:
-                agent = ExporterAgent(o["agent_id"], int(o["node_id"]), o["store_name"], o["store_category"],
-                                      o["city"], o["courier_company"], o["products"])
-                agent_list.append(agent)
-            except TypeError as e:
-                print(f"Error while deserializing delivery object: {str(e)}")
-        return agent_list
-
-    def load_importers(self, file_name: str) -> list[BaseAgent]:
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
-        if not os.path.exists(data_path):
-            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
-        full_path = os.path.join(data_path, file_name)
-        agent_list = []
-        with open(full_path, "r", encoding="utf-8") as json_file:
-            try:
-                data = json.load(json_file)
-            except json.JSONDecodeError as e:
-                print(f"Json loading error: {str(e)}")
-                return agent_list
-        for o in data:
-            try:
-                agent = BaseAgent(o["agent_id"], int(o["node_id"]), o["country"])
-                agent_list.append(agent)
-            except TypeError as e:
-                print(f"Error while deserializing delivery object: {str(e)}")
-        return agent_list
-
-    def load_routes(self, file_name: str) -> list[dict]:
-        data_path = os.path.join(Path(__file__).parent.parent.parent, "input_data/simulation_data/agents")
-        if not os.path.exists(data_path):
-            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
-        full_path = os.path.join(data_path, file_name)
-        with open(full_path, "r", encoding="utf-8") as json_file:
-            try:
-                data = json.load(json_file)
-            except json.JSONDecodeError as e:
-                print(f"Json loading error: {str(e)}")
-        return data

@@ -2,7 +2,7 @@ from models.agents.base_agent import BaseAgent
 from typing import Optional, Dict, Any, Union
 import networkx as nx
 
-from models.delivery.product import Product
+from models.product.product import Product
 from utils.find_quantity_by_product import find_quantity_by_product
 
 
@@ -34,12 +34,6 @@ class ExporterAgent(BaseAgent):
         self.unit_demand = 0
         self.finances = float(finances)
 
-        # self.production_price = 0
-        # self.retail_price = 0
-        # # self.quantity = int(quantity)
-
-        # self.inventory = 0  # ile aktualnie ma w magazynie
-
     def to_dict(self):
         return {
             "agent_id": self.agent_id,
@@ -48,34 +42,9 @@ class ExporterAgent(BaseAgent):
             "store_category": self.store_category,
             "city": self.city,
             "courier_company": self.courier_company,
-            "products": [product for product, _ in self.inventory],
             "finances": self.finances
         }
 
-    # def __repr__(self):
-    #     return (f"ExporterAgent(id={self.agent_id}, node={self.node_id}"
-    #             f"retail_price={self.retail_price}, finances={self.finances}, inventory={self.inventory})")
-
-    # def produce(self, quantity: int = 1):
-    #     for product, inventory in self.inventory:
-    #         inventory += quantity
-    #         self.finances -= product.production_price * quantity
-
-    # def create_offer(self, qty=None):
-    #     """
-    #     Tworzy ofertę sprzedaży. Jeśli qty nie podane -> proponuje max możliwy (min(inventory, quantity)).
-    #     Zwraca dict: {'agent_id', 'node_id', 'qty', 'unit_price'}.
-    #     """
-    #     if qty is None:
-    #         qty = min(self.inventory, self.quantity)
-    #     qty = int(min(qty, self.inventory))
-    #     return {
-    #         "agent_id": self.agent_id,
-    #         "node_id": self.node_id,
-    #         "qty": qty,
-    #         "unit_price": self.retail_price
-    #     }
-    #
     def products_to_dict(self):
         product_dict = {}
         for product, inventory in self.inventory:
@@ -83,7 +52,6 @@ class ExporterAgent(BaseAgent):
         return product_dict
 
     def send_parcel(self, material_cost: float = 0):
-        # Defensive checks: ensure delivery exists and parcel is iterable
         if self.delivery is None:
             raise RuntimeError(
                 f"Exporter {self.agent_id} has no delivery assigned")
@@ -94,7 +62,6 @@ class ExporterAgent(BaseAgent):
 
         for product, inv in self.inventory:
             quantity = find_quantity_by_product(parcel, product)
-            # Ensure quantity is an int and clamp to available inventory
             try:
                 quantity = int(quantity or 0)
             except Exception:
@@ -105,41 +72,12 @@ class ExporterAgent(BaseAgent):
             demand += sold
             new_inventory.append((product, inv))
 
-        # Persist updated inventory
         self.inventory = new_inventory
 
-        # Update finances defensively (guard if delivery methods/attrs missing)
-        try:
-            self.finances += self.delivery.find_parcel_retail_price()
-        except Exception:
-            pass
-
-        try:
-            self.finances -= material_cost
-        except Exception:
-            pass
+        self.finances += self.delivery.find_parcel_retail_price()
+        self.finances -= material_cost
 
         self.unit_demand = demand
-        # """
-        # Realizuje sprzedaż: zmniejsza inventory i zwiększa finances.
-        # Zwraca revenue (float). Jeśli qty > inventory -> sprzedaje tyle ile ma.
-        # """
-        # qty = int(qty)
-        # sold = min(qty, self.inventory)
-        # revenue = sold * self.retail_price
-        # self.inventory -= sold
-        # self.finances += revenue
-        # return sold, revenue
-
-    # def to_dict(self):
-    #     d = super().to_dict()
-    #     d.update({
-    #         # "quantity": self.quantity,
-    #         "price": self.retail_price,
-    #         "finances": self.finances,
-    #         "inventory": self.inventory
-    #     })
-    #     return d
 
     @staticmethod
     def _parse_maxspeed(ms: Union[str, float, list, None]) -> Optional[float]:
@@ -163,17 +101,14 @@ class ExporterAgent(BaseAgent):
             s = s.replace("[", "").replace("]", "").replace(
                 "(", "").replace(")", "").replace(" ", "")
 
-            # Helper to extract number from string
             def get_num(val_str):
                 try:
                     return float(''.join(c for c in val_str if (c.isdigit() or c == '.')))
                 except ValueError:
                     return None
 
-            # Handle mph
             is_mph = "mph" in s
 
-            # Handle separators like ';' or ',' or '|'
             for sep in [";", ",", "|"]:
                 if sep in s:
                     parts = [get_num(p) for p in s.split(sep) if p]
@@ -181,7 +116,6 @@ class ExporterAgent(BaseAgent):
                     val = max(valid) if valid else None
                     return val * 1.60934 if (val and is_mph) else val
 
-            # Single value string
             val = get_num(s)
             if val is not None:
                 return val * 1.60934 if is_mph else val
@@ -199,9 +133,8 @@ class ExporterAgent(BaseAgent):
         if params is None:
             params = {}
 
-        # 1. Configuration
         driving_hours = float(params.get("driving_hours_per_day", 8.0))
-        default_speed = float(params.get("default_speed_kmh", 60.0))
+        # default_speed = float(params.get("default_speed_kmh", 60.0))
 
         prices = {
             "price_per_km_land": 1.0,
@@ -209,7 +142,7 @@ class ExporterAgent(BaseAgent):
             "price_per_km_sea": 0.5
         }
         speed_land_default = 60.0
-        speed_air_default = 800.0  # Avg cruising speed
+        speed_air_default = 800.0
         speed_sea_default = 35.0
 
         if sim_graph is None or nx is None:
@@ -217,31 +150,25 @@ class ExporterAgent(BaseAgent):
 
         def get_edge_mode(edge_data):
             """Returns 'air', 'sea', or 'land' based on OSM tags."""
-            # Explicit override
             if edge_data.get("mode") in ["air", "flight"]:
                 return "air"
             if edge_data.get("mode") in ["sea", "shipping"]:
                 return "sea"
 
-            # OSM standard tags
             if edge_data.get("route") == "ferry":
                 return "sea"
             if "aeroway" in edge_data:
                 return "air"
 
-            # Default to land (highway, railway, etc.)
             return "land"
 
-        # 3. Dynamic cost function (kept here for flexibility; could be precomputed for even more speed)
         def weight_function(u, v, d):
-            if not sim_graph.nodes[u].get("active", True) or not sim_graph.nodes[v].get("active", True):
+            if not sim_graph.nodes[u].get("active", True) or not sim_graph.nodes[v].get("active", True)\
+                    or not d.get("active", True):
                 return float("inf")  # traktuj jako niedostępne
 
-            # Sprawdź czy edge jest aktywny
             if d.get("active") is False:
                 return float("inf")
-            length_m = d.get("length", 0.0)
-            dist_km = length_m / 1000.0
 
             mode = get_edge_mode(d)
             if mode == "air":
@@ -251,31 +178,24 @@ class ExporterAgent(BaseAgent):
             else:
                 unit_cost = prices["price_per_km_land"]
 
-            # If edge has its own "cost" attribute, use it as a multiplier; otherwise use unit_cost
             return d.get('cost', unit_cost)
 
-        # 4. Path finding
         try:
-            # Defensive presence checks on the routing graph (active or full)
             if self.node_id not in sim_graph:
                 raise nx.NetworkXNoPath(f"source node {self.node_id} not in routing graph")
             if dest_node not in sim_graph:
                 raise nx.NetworkXNoPath(f"target node {dest_node} not in routing graph")
 
-            # Dijkstra-style shortest path on routing_graph with custom weight
             # path = nx.shortest_path(
             #     sim_graph,
             #     source=self.node_id,
             #     target=dest_node,
             #     weight='cost',
-            #     method="dijkstra"
             # )
             path = nx.dijkstra_path(sim_graph, self.node_id, dest_node, weight="cost")
-            # cost_test = nx.shortest_path_length(sim_graph, self.node_id, dest_node, weight="cost")
 
             #path = sim_graph.astar(start_node=self.node_id, end_node=dest_node)
 
-            # 5. Aggregate metrics
             total_distance_km = 0.0
             total_money_cost = 0.0
             total_lead_time_days = 0.0
@@ -288,7 +208,6 @@ class ExporterAgent(BaseAgent):
                 if not edges_data:
                     continue  # Should not happen, but be defensive
 
-                # Find best edge between u and v by our weight_function
                 best_edge = None
                 best_cost_val = float("inf")
                 for key, attr in edges_data.items():

@@ -1,24 +1,3 @@
-// const nav = document.querySelector(".nav-bar-list");
-// const navButtons = nav.querySelectorAll("button");
-// const content = document.getElementById("content");
-// const simulation = content.querySelector(".simulation");
-// const statsContainer = content.querySelector(".panel-container");
-
-// simulation.classList.add("hidden");
-// statsContainer.classList.add("hidden");
-
-// navButtons.forEach(btn => {
-//     btn.addEventListener("click", async () => {
-//         const page = btn.getAttribute("data-page");
-//
-//         content.querySelectorAll(".content-page").forEach(page => {
-//             page.classList.add("hidden");
-//         })
-//
-//         content.querySelector(`.${page}`).classList.remove("hidden");
-//     });
-// });
-
 async function readJSON(appRoute, query) {
 
     const response = await fetch(appRoute);
@@ -32,14 +11,13 @@ async function readJSON(appRoute, query) {
         option.value = word;
         option.textContent = word;
         select.appendChild(option);
-
-        
     });
 }
 
 readJSON("/api/disruption_type", "#disruptionType");
 readJSON("/api/disruption_severity", "#severity");
-readJSON("/api/duration", "#duration");
+readJSON("/api/disruption_duration", "#disruptionDuration");
+readJSON("/api/simulation_duration", "#simulationDuration");
 readJSON("/api/day_of_start", "#dayOfStart");
 readJSON("/api/place_of_disruption", "#placeOfDisruption");
 
@@ -47,7 +25,7 @@ function sendData() {
     console.log("Sending simulation parameters.")
     var text = "";
     var dict = {}
-    var listOfForms = ["disruptionType", "severity", "duration", "dayOfStart", "placeOfDisruption"];
+    var listOfForms = ["disruptionType", "severity", "disruptionDuration", "simulationDuration", "dayOfStart", "placeOfDisruption"];
     for (index in listOfForms) {
 
         var e = document.getElementById(listOfForms[index]);
@@ -143,9 +121,6 @@ function updateMap(state) {
         return `hsl(${hue}, 60%, 55%)`;
     }
 
-
-
-
     // trasy agentów
     state.routes.forEach((path, i) => {
         const coords = path.filter(n => graphNodes[n])
@@ -217,7 +192,6 @@ function updateMap(state) {
             importerMarkers.push(marker);
         }
     });
-
 
     // disrupted nodes
     state.disrupted.forEach(n => {
@@ -312,6 +286,5 @@ toggleBtn.addEventListener("click", () => {
         toggleBtn.textContent = "Logs ▲";
     }
 });
-
 
 manageLogs();

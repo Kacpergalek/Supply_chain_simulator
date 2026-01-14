@@ -6,6 +6,7 @@
     background-color: #fff;
     box-sizing: border-box;
     overflow-y: auto;
+    font-family: Inter, -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 #content {
@@ -36,8 +37,8 @@ h1 {
 }
 
 h2 {
-    min-width: 400px;
     flex-wrap: nowrap;
+    text-align: center;
 }
 
 .form-group {
@@ -62,18 +63,7 @@ select, input[type="number"] {
 
 .form-button {
     width: 100%;
-    padding: 12px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    cursor: pointer;
     margin-top: 10px;
-}
-
-.form-button:hover {
-    background-color: #45a049;
 }
 
 .message {

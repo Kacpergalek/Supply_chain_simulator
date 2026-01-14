@@ -7,7 +7,7 @@ import osmnx as ox
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..\\..')))
 
 from network.europe import europe_countries
-from models.simluation_engine.engine import Simulation
+from models.simluation.engine import Simulation
 from network.graph_reader import GraphManager
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 from dashboard.dashboards_manager import DashboardsManager
