@@ -244,7 +244,7 @@ class AgentManager:
             "results": results
         }
         self.save_paths_to_pkl(data)
-        print(results)
+        #print(results)
 
         return results
 

@@ -77,9 +77,9 @@ class Simulation:
         # self.network.compose(seaport_graph)
         # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
         #self.network = network_manager.get_graph_from_file("world", road_type="")
-        self.network = network_manager.get_graph_from_file("europe")
-        airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
-        self.network.compose(airplane_graph)
+        self.network = network_manager.get_graph_from_file("world", road_type="")
+        # airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
+        # self.network.compose(airplane_graph)
 
         """ Agents initialization """
         self.initializing = 2
@@ -117,6 +117,7 @@ class Simulation:
         self.number_of_phases = 0
         self.phase = 1
         self.depth = 0
+        #find_nodes_to_disrupt(self.network, self.product_deliveries, 50)
 
         """ Statistics initialization"""
         self.statistics_manager = None
@@ -192,7 +193,6 @@ class Simulation:
         - Compute and store initial costs for all product deliveries.
         - Save deliveries and an initial route map to disk.
         """
-        #find_nodes_to_disrupt(self.network, self.product_deliveries, 50)
         self.fetch_disruption_parameters()
         self.initialize_statistics()
         self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
