@@ -75,7 +75,7 @@ function goToStatistics() {
 
 document.getElementById('go-to-stat').addEventListener('click', goToStatistics);
 
-const map = L.map('map').setView([52.23, 21.01], 6);
+const map = L.map('map').setView([49.5, 15.5], 5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
