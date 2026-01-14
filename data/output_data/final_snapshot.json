@@ -1,0 +1,72 @@
+{
+  "Agent 0": {
+    "final_fulfilled_demand": 64896.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 17336.4,
+    "final_loss": 0.0,
+    "final_lead_time": 51.8
+  },
+  "Agent 1": {
+    "final_fulfilled_demand": 99560.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 16245.0,
+    "final_loss": 0.0,
+    "final_lead_time": 36.2
+  },
+  "Agent 2": {
+    "final_fulfilled_demand": 165256.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 36297.68,
+    "final_loss": 77.24,
+    "final_lead_time": 89.8
+  },
+  "Agent 3": {
+    "final_fulfilled_demand": 118092.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 23060.0,
+    "final_loss": 0.0,
+    "final_lead_time": 51.4
+  },
+  "Agent 4": {
+    "final_fulfilled_demand": 60588.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 12240.6,
+    "final_loss": 0.0,
+    "final_lead_time": 27.2
+  },
+  "Agent 5": {
+    "final_fulfilled_demand": 46038.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 10053.4,
+    "final_loss": 0.0,
+    "final_lead_time": 21.2
+  },
+  "Agent 6": {
+    "final_fulfilled_demand": 72600.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 39206.2,
+    "final_loss": 0.0,
+    "final_lead_time": 93.2
+  },
+  "Agent 7": {
+    "final_fulfilled_demand": 50266.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 9955.4,
+    "final_loss": 0.0,
+    "final_lead_time": 22.0
+  },
+  "Agent 8": {
+    "final_fulfilled_demand": 112392.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 36342.8,
+    "final_loss": 0.0,
+    "final_lead_time": 103.6
+  },
+  "Agent 9": {
+    "final_fulfilled_demand": 67760.0,
+    "final_lost_demand": 0.0,
+    "final_cost": 48991.4,
+    "final_loss": 0.0,
+    "final_lead_time": 116.2
+  }
+}

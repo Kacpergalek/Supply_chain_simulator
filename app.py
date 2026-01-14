@@ -4,21 +4,19 @@ import sys
 import logging
 import queue
 
-from flask import Flask, render_template, jsonify, send_from_directory, request, url_for, Response, stream_with_context
+from flask import Flask, render_template, jsonify, send_from_directory, request, Response, stream_with_context
 from pathlib import Path
 import json
 import plotly.graph_objs as go
-from dashboard.dashboards_manager import DashboardsManager
-from models.simluation_engine.engine import Simulation
+from models.simluation.engine import Simulation
 import threading
 from network.empty_visualization import plot_empty_map
 
 app = Flask(__name__)
-dash_manager = DashboardsManager()
 plot_empty_map()
 
-RESULTS_PATH = Path('input_data/form_data')
-OUTPUT_PATH = Path('output_data')
+RESULTS_PATH = Path('data/input_data/form_data')
+OUTPUT_PATH = Path('data/output_data')
 
 # --- Logging queue + SSE setup ---
 log_queue = queue.Queue()
@@ -51,7 +49,7 @@ class SimulationFilter(logging.Filter):
         # accept records from the simulation engine module or from the
         # temporary 'simulation_stream' logger used to capture print()
         name = getattr(record, "name", "")
-        return name.startswith("models.simluation_engine") or name == "simulation_stream"
+        return name.startswith("models.simulation_engine") or name == "simulation_stream"
 
 
 handler.addFilter(SimulationFilter())
@@ -119,9 +117,13 @@ def jsonify_severity():
     return jsonify(json.loads((RESULTS_PATH / "disruption_severity.json").read_text()))
 
 
-@app.route("/api/duration")
-def jsonify_duration():
-    return jsonify(json.loads((RESULTS_PATH / "duration.json").read_text()))
+@app.route("/api/disruption_duration")
+def jsonify_disruption_duration():
+    return jsonify(json.loads((RESULTS_PATH / "disruption_duration.json").read_text()))
+
+@app.route("/api/simulation_duration")
+def jsonify_simulation_duration():
+    return jsonify(json.loads((RESULTS_PATH / "simulation_duration.json").read_text()))
 
 
 @app.route("/api/day_of_start")
@@ -162,6 +164,14 @@ def jsonify_cost_stats():
 @app.route("/api/loss_stats")
 def jsonify_loss_stats():
     file_path = OUTPUT_PATH / 'loss_timeseries.json'
+    if file_path.exists():
+        return jsonify(json.loads(file_path.read_text()))
+    else:
+        return jsonify({}), 404
+
+@app.route("/api/lead_time_stats")
+def jsonify_lead_time_stats():
+    file_path = OUTPUT_PATH / 'lead_time_timeseries.json'
     if file_path.exists():
         return jsonify(json.loads(file_path.read_text()))
     else:
@@ -211,8 +221,10 @@ def process():
     # sim.reset()
     data = request.get_json()
 
-    with open('input_data/disruption_parameters.pkl', 'wb') as f:
+    with open('data/input_data/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
+
+    sim.initialize()
 
     return jsonify(data)
 
@@ -222,7 +234,7 @@ def parameters_process():
     data = request.get_json()
 
     # print("Received disruption data from dashboard:\n", data)
-    with open('input_data/disruption_parameters.pkl', 'wb') as f:
+    with open('data/input_data/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
 
     fig = go.Figure()
@@ -301,29 +313,32 @@ def start_simulation():
     # app.logger.info("Start simulation? %s", start_flag)
 
     if start_flag:
-        def run_simulation():
-            # redirect stdout/stderr to a dedicated simulation logger so
-            # only outputs from the simulation are queued and streamed
-            sim_logger = logging.getLogger('simulation_stream')
-            orig_stdout = sys.stdout
-            orig_stderr = sys.stderr
-            sys.stdout = StreamToLogger(sim_logger, level=logging.INFO)
-            sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
-            try:
-                # sim = Simulation(max_time=15, time_resolution="day")
-                # sim.inject_parameters()
-                
-                sim.run()
-            except Exception as e:
-                app.logger.exception("Simulation failed: %s", e)
-            finally:
-                # restore original streams
-                sys.stdout = orig_stdout
-                sys.stderr = orig_stderr
+        if Path('data/input_data/disruption_parameters.pkl').exists():
+            def run_simulation():
+                # redirect stdout/stderr to a dedicated simulation logger so
+                # only outputs from the simulation are queued and streamed
+                sim_logger = logging.getLogger('simulation_stream')
+                orig_stdout = sys.stdout
+                orig_stderr = sys.stderr
+                sys.stdout = StreamToLogger(sim_logger, level=logging.INFO)
+                sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
+                try:
+                    # sim = Simulation(max_time=15, time_resolution="day")
+                    # sim.inject_parameters()
 
-        thread = threading.Thread(target=run_simulation, daemon=True)
-        thread.start()
-        return jsonify({"message": "Simulation started successfully. Please wait."}), 200
+                    sim.run()
+                except Exception as e:
+                    app.logger.exception("Simulation failed: %s", e)
+                finally:
+                    # restore original streams
+                    sys.stdout = orig_stdout
+                    sys.stderr = orig_stderr
+
+            thread = threading.Thread(target=run_simulation, daemon=True)
+            thread.start()
+            return jsonify({"message": "Simulation started successfully. Please wait."}), 200
+        else:
+            return jsonify({"message": "No parameters provided. Please provide parameters first."}), 400
 
     return jsonify({"message": "No action taken"}), 400
 

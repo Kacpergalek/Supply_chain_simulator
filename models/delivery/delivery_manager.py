@@ -4,12 +4,11 @@ import pandas as pd
 
 from models.agents.exporter_agent import ExporterAgent
 from models.delivery.delivery import Delivery
-from models.delivery.product import Product
-from models.delivery.product_manager import ProductManager
-from models.delivery.raw_material import RawMaterial
+from models.product.product import Product
+from models.product.product_manager import ProductManager
+from models.product.raw_material import RawMaterial
 from network.simulation_graph import SimulationGraph
 from utils.find_delivery import find_delivery_by_starting_node_id
-# from utils.find_exporter import find_exporter_by_node_id
 from utils.get_dataframe_from_csv import get_dataframe_from_csv
 
 
@@ -96,7 +95,7 @@ class DeliveryManager:
         list[tuple[Product, int]]
             A list of `(product, quantity)` pairs representing the parcel.
         """
-        path = Path(__file__).parent.parent.parent / "input_data"
+        path = Path(__file__).parent.parent.parent / "data" / "input_data"
         columns = ["Product ID", "Quantity"]
         products_df = pd.DataFrame(get_dataframe_from_csv(f"{path}/products.csv", columns))
         products_df = products_df.groupby("Product ID").sum().reset_index()
@@ -132,6 +131,6 @@ class DeliveryManager:
             m_category = product.category + "_raw_material"
             m_price = product.retail_price * 0.1
             material = RawMaterial(product.product_id, m_name, m_category, m_price)
-            qty_kg = quantity * 0.2
+            qty_kg = quantity * 0.4
             batch.append((material, qty_kg))
         return batch

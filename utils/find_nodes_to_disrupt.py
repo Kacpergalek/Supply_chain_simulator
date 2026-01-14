@@ -5,8 +5,6 @@ import json
 
 from pathlib import Path
 from collections import Counter, deque
-from networkx.classes import MultiGraph
-
 
 def get_edge_cost(u, v, d, prices):
     mode = "land"  # Default
@@ -23,10 +21,6 @@ def get_edge_cost(u, v, d, prices):
         unit_cost = prices.get("price_per_km_land", 1.0)
 
     return d.get('cost', unit_cost)
-
-# def radius_search(graph: MultiGraph, center_node: int, radius_meters: float):
-#     sub = nx.ego_graph(nx.MultiGraph(graph), center_node, radius=radius_meters, distance='length')
-#     return list(sub.nodes)
 
 def find_nodes_to_disrupt(graph, deliveries, max_depth):
     """
@@ -106,7 +100,7 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth):
             safe_centers.append(n)
 
     path = Path(__file__).parent.parent
-    output_path = path / "input_data" / "form_data" / "place_of_disruption.json"
+    output_path = path / "data" / "input_data" / "form_data" / "place_of_disruption.json"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:

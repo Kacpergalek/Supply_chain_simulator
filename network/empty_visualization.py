@@ -1,4 +1,3 @@
-# network/empty_visualization.py
 import folium
 from pathlib import Path
 from network.graph_reader import GraphManager

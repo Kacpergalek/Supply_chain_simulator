@@ -3,6 +3,7 @@ const GRAPH_ENDPOINTS = {
     'lost': '/api/lost_demand_stats',
     'cost': '/api/cost_stats',
     'loss': '/api/loss_stats',
+    'time': '/api/lead_time_stats',
     'final': '/api/final_stats'
 };
 
@@ -152,6 +153,7 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const lost = data[`${agg_type}_lost_demand`];
         const cost = data[`${agg_type}_cost`];
         const loss = data[`${agg_type}_loss`];
+        const lead = data[`${agg_type}_lead_time`];
 
         function normalizeSeries(s) {
             // if it's already an object with x/y
@@ -181,6 +183,7 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const lst = normalizeSeries(lost);
         const cst = normalizeSeries(cost);
         const lss = normalizeSeries(loss);
+        const ldt = normalizeSeries(lead);
 
         const w1 = document.createElement('div');
         w1.className = 'chart-wrapper';
@@ -210,11 +213,20 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         w3.style.background = 'transparent';
         container.appendChild(w3);
 
+        const w4 = document.createElement('div');
+        w4.className = 'chart-wrapper';
+        w4.id = `${agg_type}-lead-time-chart`;
+        w4.style.width = '90%';
+        w4.style.maxWidth = '1000px';
+        w4.style.minHeight = '360px';
+        w4.style.background = 'transparent';
+        container.appendChild(w4);
+
         // green palette
         const trace1 = {x: flf.x, y: flf.y, mode: 'lines+markers', name: 'Fulfilled', line: {color: '#08A045'}};
         const trace2 = {x: lst.x, y: lst.y, mode: 'lines+markers', name: 'Lost', line: {color: '#0B6E4F'}};
         const layout1 = {
-            title: 'Fulfilled vs lost demand',
+            title: 'Fulfilled vs lost demand over Time',
             xaxis: {title: 'day'},
             yaxis: {title: 'value'},
             legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
@@ -226,7 +238,7 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
 
         const trace3 = {x: cst.x, y: cst.y, mode: 'lines+markers', name: 'Cost', line: {color: '#21D375'}};
         const layout2 = {
-            title: 'Cost',
+            title: 'Cost over Time',
             xaxis: {title: 'day'},
             yaxis: {title: 'value'},
             legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
@@ -238,7 +250,7 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
 
         const trace4 = {x: lss.x, y: lss.y, mode: 'lines+markers', name: 'Loss', line: {color: '#6BBF59'}};
         const layout3 = {
-            title: 'Loss',
+            title: 'Additional Cost (Loss) over Time',
             xaxis: {title: 'day'},
             yaxis: {title: 'value'},
             legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
@@ -247,6 +259,18 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
             margin: {t: 50}
         };
         Plotly.newPlot(`${agg_type}-loss-chart`, [trace4], layout3, {responsive: true});
+
+        const trace5 = {x: ldt.x, y: ldt.y, mode: 'lines+markers', name: 'Lead time', line: {color: '#3D9970'}};
+        const layout4 = {
+            title: 'Lead Time over Time',
+            xaxis: {title: 'Day'},
+            yaxis: {title: 'Lead Time (days)'},
+            legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
+            plot_bgcolor: '#f5f5f5',
+            paper_bgcolor: 'transparent',
+            margin: {t: 50}
+        };
+        Plotly.newPlot(`${agg_type}-lead-time-chart`, [trace5], layout4, {responsive: true});
 
         // ensure container is centered and spaced and pushed below navbar
         container.style.display = 'flex';
@@ -305,3 +329,8 @@ if (aggToggleBtn) {
 /* ============================ RENDER GRAPH ON LOAD ============================ */
 
 plotAggregationGraph("/api/average_stats", '#average', "avg");
+
+/* ============================ BACK TO SIMULATION ============================ */
+document.getElementById('back-btn').addEventListener('click', function (e) {
+    window.location.href = '/';
+})

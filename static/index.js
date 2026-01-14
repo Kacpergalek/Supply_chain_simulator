@@ -1,24 +1,3 @@
-// const nav = document.querySelector(".nav-bar-list");
-// const navButtons = nav.querySelectorAll("button");
-// const content = document.getElementById("content");
-// const simulation = content.querySelector(".simulation");
-// const statsContainer = content.querySelector(".panel-container");
-
-// simulation.classList.add("hidden");
-// statsContainer.classList.add("hidden");
-
-// navButtons.forEach(btn => {
-//     btn.addEventListener("click", async () => {
-//         const page = btn.getAttribute("data-page");
-//
-//         content.querySelectorAll(".content-page").forEach(page => {
-//             page.classList.add("hidden");
-//         })
-//
-//         content.querySelector(`.${page}`).classList.remove("hidden");
-//     });
-// });
-
 async function readJSON(appRoute, query) {
 
     const response = await fetch(appRoute);
@@ -32,24 +11,21 @@ async function readJSON(appRoute, query) {
         option.value = word;
         option.textContent = word;
         select.appendChild(option);
-
-        
     });
 }
 
 readJSON("/api/disruption_type", "#disruptionType");
 readJSON("/api/disruption_severity", "#severity");
-readJSON("/api/duration", "#duration");
+readJSON("/api/disruption_duration", "#disruptionDuration");
+readJSON("/api/simulation_duration", "#simulationDuration");
 readJSON("/api/day_of_start", "#dayOfStart");
 readJSON("/api/place_of_disruption", "#placeOfDisruption");
-
-const baseUrl = window.location.pathname;
 
 function sendData() {
     console.log("Sending simulation parameters.")
     var text = "";
     var dict = {}
-    var listOfForms = ["disruptionType", "severity", "duration", "dayOfStart", "placeOfDisruption"];
+    var listOfForms = ["disruptionType", "severity", "disruptionDuration", "simulationDuration", "dayOfStart", "placeOfDisruption"];
     for (index in listOfForms) {
 
         var e = document.getElementById(listOfForms[index]);
@@ -63,8 +39,9 @@ function sendData() {
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(dict),
-        success: function (response) {
-            alert("Data submitted successfully.")
+        success: async function (response) {
+            await new Promise(r => setTimeout(r, 500));
+            alert("Data submitted successfully. You can start the simulation")
             // document.getElementById('output').innerHTML = JSON.stringify(response, null, 2);
         },
         error: function (error) {
@@ -90,15 +67,15 @@ function startSimulation() {
             document.getElementById('response').innerText = 'Error starting simulation'
             console.error(err)
         })
-
-    let goToStatisticsBtn = document.getElementById('go-to-stat');
-    goToStatisticsBtn.disabled = false;
 }
 
 function goToStatistics() {
     window.location.href = '/category/statistics';
 }
-const map = L.map('map').setView([49.5, 15.5], 5);
+
+document.getElementById('go-to-stat').addEventListener('click', goToStatistics);
+
+const map = L.map('map').setView([52.23, 21.01], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
@@ -143,9 +120,6 @@ function updateMap(state) {
         const hue = (i * (360 / total)) % 360;
         return `hsl(${hue}, 60%, 55%)`;
     }
-
-
-
 
     // trasy agentów
     state.routes.forEach((path, i) => {
@@ -218,7 +192,6 @@ function updateMap(state) {
             importerMarkers.push(marker);
         }
     });
-
 
     // disrupted nodes
     state.disrupted.forEach(n => {
@@ -314,22 +287,4 @@ toggleBtn.addEventListener("click", () => {
     }
 });
 
-
 manageLogs();
-
-//  Odświeżanie obrazu mapy co 5 sekund
-/*
-function refreshMap() {
-    const img = document.querySelector('.map-section img');
-    if (!img) return;
-    const timestamp = new Date().getTime();  // cache-buster
-    img.src = `/assets/latest_map.png?${timestamp}`;
-}
-
-// odświeżanie co 5 sekund
-setInterval(refreshMap, 5000);
-*/
-// document.getElementById('statistics-btn').addEventListener('click', function (event) {
-//     window.location.href = '/category/statistics';
-// });
-

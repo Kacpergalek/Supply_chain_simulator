@@ -20,7 +20,51 @@ strategies to minimize losses (e.g., rerouting, buffers, alternative suppliers).
 * Company **losses**
 * Heatmap of **nodes** and **edges** that are **most sensitive** to disruptions
 
+## Setup Instructions 🔧
+
+### 1. Clone the repository
+
+```bash
+git clone <repository-url>
+cd Supply_Chain_Simulator
+```
+
+### 2. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Running the Application 🏃
+
+### 1. Run the program and wait for it to initialize
+
+```bash
+python app.py
+```
+The application will be available at `http://localhost:5173`
+
+### 2. Tune parameters and submit the form
+
+### 3. Start the simulation
+
+### 4. Check out the results
+
+## Changing internal parameters 🪛
+
+### Changing agent localization
+Go to "data/input_data/agent_data/agent_localization_data" and pick which cities you want to use.
+You can choose any city from the available countries in Europe, since global cities are only connected via airports.
+
+### Adding cities
+You can choose any city from the available countries in Europe. If you want to select a city to be an exporter you must search for factory or
+retail store data in that city. Delete .pkl files from "data/input_data/store_data" or "data/input_data/factory_data" and run
+the program. It's going to take a while to load all the data.
+
+## File structure 📝
+work in progress
+
 ## Contributors ✋
 **Berenike Banek** - berenike@student.agh.edu.pl  
-**Konrad Ćwięka** - kcwieka@student.agh.edu.pl 
-**Kacper Gałek** - [email]
+**Konrad Ćwięka** - kcwieka@student.agh.edu.pl  
+**Kacper Gałek** - kagalek@student.agh.edu.pl

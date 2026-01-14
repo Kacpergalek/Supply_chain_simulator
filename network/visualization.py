@@ -1,4 +1,3 @@
-# network/visualization.py
 import folium
 from pathlib import Path
 
@@ -15,7 +14,6 @@ def plot_agent_routes(
     if disrupted_nodes is None:
         disrupted_nodes = []
 
-    # --- INTERACTIVE BASEMAP OSM ---
     m = folium.Map(location=[52.23, 21.01], zoom_start=6)
 
     # === 🔥 Rysujemy TYLKO trasy agentów ===

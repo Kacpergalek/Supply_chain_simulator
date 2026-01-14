@@ -1,6 +1,5 @@
 import networkx as nx
 import osmnx as ox
-from queue import PriorityQueue, Queue
 from scipy.spatial import cKDTree
 import heapq
 import math
@@ -18,6 +17,7 @@ from utils.graph_helper import convert_speed
 AVG_FLIGHT_SPEED_KMH = 700
 MAX_TRUCK_SPEED_KMH = 90
 DEFAULT_SPEED_KMH = 50
+AVERAGE_MOTORWAYS_TRUCK_SPEED_KMH = 80
 
 class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, type : str = "road", **attr):
@@ -37,6 +37,8 @@ class SimulationGraph(nx.MultiGraph):
                 data["max_capacity"] = self.default_capacity
             if "maxspeed" not in data or str(data.get("maxspeed")).strip().lower() in ("none", "null", "nan"):
                 data["maxspeed"] = DEFAULT_SPEED_KMH
+            if "average_speed" not in data:
+                data["average_speed"] = AVERAGE_MOTORWAYS_TRUCK_SPEED_KMH
             if "length" not in data:
                 data["length"] = self.haversine_nodes(u, v, "length")
         
@@ -87,23 +89,23 @@ class SimulationGraph(nx.MultiGraph):
 
 
     def deactivate_nodes(self, nodes : list[int | str]):
-        # for node, data in self.nodes(data=True):
-        #     if node in nodes:
-        #         data["active"] = False
-        for node in nodes:
-            if node in self.nodes:
-                data = self.nodes[node]
+        for node, data in self.nodes(data=True):
+            if node in nodes:
                 data["active"] = False
+        # for node in nodes:
+        #     if node in self.nodes:
+        #         data = self.nodes[node]
+        #         data["active"] = False
 
 
     def activate_nodes(self, nodes : list[int | str]):
-        # for node, data in self.nodes(data=True):
-        #     if node in nodes:
-        #         data["active"] = True
-        for node in nodes:
-            if node in self.nodes:
-                data = self.nodes[node]
+        for node, data in self.nodes(data=True):
+            if node in nodes:
                 data["active"] = True
+        # for node in nodes:
+        #     if node in self.nodes:
+        #         data = self.nodes[node]
+        #         data["active"] = True
 
 
     def safe_shortest_path(self, start_node : int | str, end_node : int | str, weight : str = "cost"):
@@ -157,7 +159,7 @@ class SimulationGraph(nx.MultiGraph):
     def display(self, coordinates : tuple = None):
         graph = nx.MultiGraph(self)
 
-        if coordinates == None:
+        if coordinates is None:
             ox.plot_graph(graph)
         else:
             north = coordinates[0]
@@ -222,13 +224,6 @@ class SimulationGraph(nx.MultiGraph):
                     heapq.heappush(entry_queue, (neighbour_f, neighbour_g, neighbour))
         return None
 
-
-    # def get_road_length(self, node_start : int, node_end : int, metric : str = "length"):
-    #     if metric == "length":
-    #         edges = list(self[node_start][node_end].values())
-    #         print(edges)
-
-
     def heuristic(self, start_node : int | str, end_node : int | str, metric : str, mode : str = "euclidean"):
         if mode == "euclidean":
             return self.haversine_nodes(start_node, end_node, metric)
@@ -238,7 +233,7 @@ class SimulationGraph(nx.MultiGraph):
 
 
     def haversine_nodes(self, node1 : int | str, node2 : int | str, metric : str):
-        if ((self.nodes()[node1]["type"] == "seaport" and self.nodes()[node2]["type"] == "seaport") or \
+        if ((self.nodes()[node1]["type"] == "seaport" and self.nodes()[node2]["type"] == "seaport") or
             (self.nodes()[node1]["type"] == "airport" and self.nodes()[node2]["type"] == "airport")) and \
             (metric in ("length", "cost")):
             min_metric = float("inf")
@@ -274,7 +269,7 @@ class SimulationGraph(nx.MultiGraph):
 
         
         
-    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int | str = None):
+    def get_nearest_node(self, lattitude : float = None, longitude : float = None, node : int | str = None) -> int | str:
         min_dist = float("inf")
         nearest_node = None
         if longitude is None and lattitude is None and node is not None:
@@ -315,7 +310,7 @@ class SimulationGraph(nx.MultiGraph):
         self.add_edges_from(G_final.edges(data=True, keys=True))
     
 
-    def coherence(self, threshold: float = 100, type : str = "country"):
+    def coherence(self, threshold: float = 100, type : str = "country") -> nx.MultiGraph:
         G_proj = ox.project_graph(nx.MultiGraph(self))
 
         empty_graph = nx.MultiGraph()
@@ -326,7 +321,7 @@ class SimulationGraph(nx.MultiGraph):
         
         if not end_nodes:
             print("Brak wiszących węzłów do naprawy.")
-            return
+            return empty_graph
 
         node_coords = np.array([[G_proj.nodes[n]['x'], G_proj.nodes[n]['y']] for n in all_nodes])
         tree = cKDTree(node_coords)
@@ -390,7 +385,7 @@ class SimulationGraph(nx.MultiGraph):
                 shortest_distance = node_dist
                 closest_node = all_nodes[idx]
         
-        return (closest_node, shortest_distance)
+        return closest_node, shortest_distance
     
 
     def get_border_polygon(self):
