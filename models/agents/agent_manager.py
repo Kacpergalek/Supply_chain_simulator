@@ -60,13 +60,18 @@ def find_closest_node(graph: SimulationGraph, store: pd.Series):
     lon_c = store['geometry'].x
     lat_c = store['geometry'].y
 
+    available_nodes = {}
+    for node, data in graph.nodes(data=True):
+        if data.get("type") not in ["airport", "seaport"]:
+            available_nodes[node] = data
+
     sorted_nodes = sorted(
-        graph.nodes,
+        available_nodes,
         key=lambda n: haversine_km(
             lat_c,
             lon_c,
-            graph.nodes[n].get("y", 0),
-            graph.nodes[n].get("x", 0),
+            available_nodes[n].get("y", 0),
+            available_nodes[n].get("x", 0),
         ),
     )
 
