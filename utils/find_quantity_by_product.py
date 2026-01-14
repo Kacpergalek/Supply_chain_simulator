@@ -1,5 +1,4 @@
-from models.delivery.product import Product
-
+from models.product.product import Product
 
 def find_quantity_by_product(parcel: list[tuple[Product, int]] | None, product: Product) -> int:
     if not parcel:

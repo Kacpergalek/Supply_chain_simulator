@@ -28,7 +28,7 @@
     <section class="main-app">
         <!-- ZMIANA: panel disruption po lewej -->
         <section class="form-wrapper">
-            <h1>Choose simulation parameters</h1>
+            <h2>Choose simulation parameters</h2>
             <div class="form-container">
                 <form id="disruptionForm">
                     <div class="form-group">
@@ -40,8 +40,12 @@
                         <select id="severity" name="severity" required></select>
                     </div>
                     <div class="form-group">
-                        <label for="duration">Duration:</label>
-                        <select id="duration" name="duration" required></select>
+                        <label for="disruptionDuration">Disruption duration:</label>
+                        <select id="disruptionDuration" name="disruptionDuration" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="simulationDuration">Simulation Duration:</label>
+                        <select id="simulationDuration" name="simulationDuration" required></select>
                     </div>
                     <div class="form-group">
                         <label for="dayOfStart">Day of Start:</label>
@@ -53,7 +57,7 @@
                     </div>
                 </form>
 
-                <button class="form-button" onclick="sendData()">Submit</button>
+                <button class="form-button primary-btn" onclick="sendData()">Submit</button>
                 <div id="output"></div>
                 <div id="message" class="message"></div>
             </div>

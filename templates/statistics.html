@@ -15,6 +15,7 @@
 <main>
     <button class="secondary-btn" id="back-btn">Go back</button>
     <div class="panel-container content-page">
+        <h2>Per-agent statistics</h2>
         <div class="controls">
 
             <label for="dataset-select"></label>
@@ -23,6 +24,7 @@
                 <option value="lost">Lost demand</option>
                 <option value="cost">Cost</option>
                 <option value="loss">Loss</option>
+                <option value="time">Lead time</option>
                 <option value="final">Final snapshot</option>
             </select>
             <button id="download-stats" class="primary-btn" type="button">Download</button>
@@ -35,6 +37,8 @@
     </div>
 
     <div id="chartsContainer">
+        <h2>Aggregated statistics over time</h2>
+        <p>Select whether to view average or sum of all agents.</p>
         <label for="agg-toggle-btn"></label>
         <button id="agg-toggle-btn" class="secondary-btn" type="button">Average</button>
 

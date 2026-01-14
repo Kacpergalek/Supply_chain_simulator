@@ -13,8 +13,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from network.simulation_graph import SimulationGraph
 
 
-class GraphManager():
-    def __init__(self, folder : str = os.path.join("input_data", "network_data")):
+class GraphManager:
+    def __init__(self, folder : str = os.path.join("data", "input_data", "network_data")):
         self.folder = folder
         self.graph = None
 

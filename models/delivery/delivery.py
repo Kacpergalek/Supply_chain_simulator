@@ -1,7 +1,7 @@
 import numpy as np
 
 from models.agents.exporter_agent import ExporterAgent
-from models.delivery.product import Product
+from models.product.product import Product
 from network.simulation_graph import SimulationGraph
 
 
@@ -133,14 +133,8 @@ class Delivery:
         #                                    default_price=network.default_price,
         #                                    incoming_graph_data=network)
         path = exporter.find_cheapest_path(network, self.end_node_id)
-        # if self.cost > path['estimated_cost'] and disruption:
-        #     self.cost = self.cost + (self.cost - path['estimated_cost'])
-        #     self.length = self.length + (self.length - path['total_distance_km'])
-        #     self.lead_time = self.lead_time + (self.lead_time - path['estimated_lead_time_days'])
-        # else:
         self.length = path['total_distance_km']
         self.cost = path['estimated_cost']
         self.lead_time = path['estimated_lead_time_days']
         self.route = path['path']
         self.capacity = self.find_minimum_capacity(network)
-        #print(f"New length: {self.length}, new cost: {self.cost}")

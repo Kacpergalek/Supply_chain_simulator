@@ -4,12 +4,11 @@ import pandas as pd
 
 from models.agents.exporter_agent import ExporterAgent
 from models.delivery.delivery import Delivery
-from models.delivery.product import Product
-from models.delivery.product_manager import ProductManager
-from models.delivery.raw_material import RawMaterial
+from models.product.product import Product
+from models.product.product_manager import ProductManager
+from models.product.raw_material import RawMaterial
 from network.simulation_graph import SimulationGraph
 from utils.find_delivery import find_delivery_by_starting_node_id
-# from utils.find_exporter import find_exporter_by_node_id
 from utils.get_dataframe_from_csv import get_dataframe_from_csv
 
 
@@ -65,7 +64,6 @@ class DeliveryManager:
         for agent_dict in paths:
             agent = node_to_exporter[agent_dict['exporter_node']]
 
-            #print(agent_dict)
             number_of_products = random.randrange(int(agent_dict['total_distance_km'] / 10.0),
                                                   int(agent_dict['total_distance_km'] / 5.0))
             if product_delivery:
@@ -97,7 +95,7 @@ class DeliveryManager:
         list[tuple[Product, int]]
             A list of `(product, quantity)` pairs representing the parcel.
         """
-        path = Path(__file__).parent.parent.parent / "input_data"
+        path = Path(__file__).parent.parent.parent / "data" / "input_data"
         columns = ["Product ID", "Quantity"]
         products_df = pd.DataFrame(get_dataframe_from_csv(f"{path}/products.csv", columns))
         products_df = products_df.groupby("Product ID").sum().reset_index()
