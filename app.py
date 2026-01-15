@@ -205,6 +205,8 @@ def process():
 
     with open('data/input_data/disruption_parameters.pkl', 'wb') as f:
         pickle.dump(data, f)
+    # with open('data/input_data/disruption_parameters.json', "w", encoding="utf-8") as f:
+    #     json.dump(data, f)
 
     sim.initialize()
 

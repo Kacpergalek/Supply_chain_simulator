@@ -10,11 +10,12 @@ from network.europe import europe_countries
 from models.simluation.engine import Simulation
 from network.graph_reader import GraphManager
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
-from dashboard.dashboards_manager import DashboardsManager
 from utils.find_nodes_to_disrupt import bfs_limited
 from utils.find_nodes_to_disrupt import find_random_nodes_to_disrupt
 from network.network import NetworkManager
 from models.agents.exporter_agent import ExporterAgent
+from models.agents.agent_manager import AgentManager
+from utils.graph_helper import normalize_country
 
 # reader = GraphManager()
 # dash = DashboardsManager()
@@ -122,7 +123,7 @@ print(f"Liczba nodów: {len(path_cost)}, czas wykonywania astara: {round(time.ti
 print(path_cost) """
 
 network = NetworkManager()
-graph = network.get_graph_from_file("europe")
+""" graph = network.get_graph_from_file("europe")
 airplane_graph = network.load_airports_graph(default_capacity=10, default_price=7)
 graph.compose(airplane_graph)
 seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)
@@ -130,4 +131,43 @@ graph.compose(seaport_graph)
 graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
 
 reader = GraphManager()
-reader.save_pickle_file("world_.pkl", graph)
+reader.save_pickle_file("world_.pkl", graph) """
+
+""" graph = network.get_graph_from_file("world", road_type="")
+agent_manager = AgentManager()
+initialized = agent_manager.initialize_agents(graph)
+material_exporters = initialized["material_exporters"]
+importer_exporters = initialized["importer_exporters"]
+product_importers = initialized["product_importers"]
+material_paths = initialized["material_routes"]
+product_paths = initialized["product_routes"]
+node_to_exporter = {int(agent.node_id): agent for agent in importer_exporters + material_exporters}
+product_deliveries = agent_manager.delivery_manager.initialize_deliveries(graph, node_to_exporter, product_paths, True)
+
+find_nodes_to_disrupt(graph, product_deliveries, 50) """
+
+
+
+""" time_start = time.time()
+network = NetworkManager()
+reader = GraphManager()
+
+
+graph = network.create_graph(region="world")
+print(f"Czas inicjalizowania grafu: {time.time() - time_start}")
+consolidate_start_time = time.time()
+graph.consolidate_roads(tolerance=15)
+
+
+
+empty_graph = graph.coherence(threshold=10000)
+reader.save_pickle_file("added_world_edges_motorway.pkl", empty_graph)
+print(f"Consolidation time: {time.time() - consolidate_start_time}")
+airplane_graph = network.load_airports_graph(default_capacity=10, default_price=7)
+graph.compose(airplane_graph)
+seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)
+graph.compose(seaport_graph)
+graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
+
+reader.save_pickle_file("world_test.pkl", graph) """
+

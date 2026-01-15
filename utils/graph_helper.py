@@ -1,5 +1,7 @@
 import math
 
+import unicodedata
+
 def haversine_coordinates(lat1, lon1, lat2, lon2, metric : str):
     if metric == "length":
         R = 6371  # promień Ziemi
@@ -81,3 +83,20 @@ def convert_speed(data: str | list | int | float | None, output_type: str = "flo
 
     except (ValueError, TypeError):
         return None
+
+
+def normalize_country(country: str) -> str:
+    country = country.replace("ł", "l").replace("Ł", "L")
+
+    normalized = unicodedata.normalize('NFKD', country)
+
+    # 3. Odfiltrowanie znaków diakrytycznych (ogonków, kresek)
+    ascii_text = "".join([c for c in normalized if not unicodedata.combining(c)])
+
+    return (
+        ascii_text
+        .lower()
+        .strip()
+        .replace(" ", "_")
+        .replace(",", "")
+    )

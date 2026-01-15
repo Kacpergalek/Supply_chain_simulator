@@ -17,6 +17,7 @@ from utils.graph_helper import convert_speed
 AVG_FLIGHT_SPEED_KMH = 700
 MAX_TRUCK_SPEED_KMH = 90
 DEFAULT_SPEED_KMH = 50
+AVERAGE_MOTORWAYS_TRUCK_SPEED_KMH = 80
 
 class SimulationGraph(nx.MultiGraph):
     def __init__(self, default_capacity, default_price, incoming_graph_data=None, multigraph_input = None, type : str = "road", **attr):
@@ -36,6 +37,8 @@ class SimulationGraph(nx.MultiGraph):
                 data["max_capacity"] = self.default_capacity
             if "maxspeed" not in data or str(data.get("maxspeed")).strip().lower() in ("none", "null", "nan"):
                 data["maxspeed"] = DEFAULT_SPEED_KMH
+            if "average_speed" not in data:
+                data["average_speed"] = AVERAGE_MOTORWAYS_TRUCK_SPEED_KMH
             if "length" not in data:
                 data["length"] = self.haversine_nodes(u, v, "length")
         

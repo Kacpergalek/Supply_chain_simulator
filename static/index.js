@@ -6,13 +6,25 @@ async function readJSON(appRoute, query) {
     const select = document.querySelector(query);
     select.innerHTML = "";
 
-    data.forEach(word => {
-        const option = document.createElement("option");
-        option.value = word;
-        option.textContent = word;
-        select.appendChild(option);
-    });
+    if (Array.isArray(data)) {
+        data.forEach(word => {
+            const option = document.createElement("option");
+            option.value = word;
+            option.textContent = word;
+            select.appendChild(option);
+        });
+    } 
+
+    else if (typeof data === 'object' && data !== null) {
+        Object.entries(data).forEach(([id, city]) => {
+            const option = document.createElement("option");
+            option.value = id;
+            option.textContent = city; 
+            select.appendChild(option);
+        });
+    }
 }
+
 
 readJSON("/api/disruption_type", "#disruptionType");
 readJSON("/api/disruption_severity", "#severity");
@@ -26,13 +38,25 @@ function sendData() {
     var text = "";
     var dict = {}
     var listOfForms = ["disruptionType", "severity", "disruptionDuration", "simulationDuration", "dayOfStart", "placeOfDisruption"];
-    for (index in listOfForms) {
+    // for (index in listOfForms) {
 
-        var e = document.getElementById(listOfForms[index]);
-        text += e.options[e.selectedIndex].text;
-        dict[listOfForms[index]] = e.value;
+    //     var e = document.getElementById(listOfForms[index]);
+    //     text += e.options[e.selectedIndex].text;
+    //     dict[listOfForms[index]] = e.value;
 
-    }
+    // }
+
+    listOfForms.forEach(function(fieldId) {
+        var element = document.getElementById(fieldId);
+        
+        if (element) {
+            // .value pobiera wartość atrybutu 'value' z wybranej opcji
+            // W przypadku placeOfDisruption będzie to ID (np. "93750"), 
+            // pod warunkiem, że <option> ma format: <option value="ID">Miasto</option>
+            dict[fieldId] = element.value; 
+        }
+    });
+
 
     $.ajax({
         url: '/api/process',
@@ -75,7 +99,7 @@ function goToStatistics() {
 
 document.getElementById('go-to-stat').addEventListener('click', goToStatistics);
 
-const map = L.map('map').setView([52.23, 21.01], 6);
+const map = L.map('map').setView([49.5, 15.5], 5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
 }).addTo(map);
