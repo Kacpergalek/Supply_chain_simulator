@@ -2,6 +2,8 @@ import copy
 import random
 import networkx as nx
 import json
+import osmnx as ox
+from geopy.geocoders import Nominatim
 
 from pathlib import Path
 from collections import Counter, deque
@@ -46,10 +48,10 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth):
     frequency = Counter(route_nodes)
     node_scores = {}
     for n in frequency:
-        if n in graph:
+        if n in graph and graph.nodes[n].get("type", "") not in {"airport", "seaport"}:
             node_scores[n] = frequency[n] * 0.8 + graph.degree(n) * 0.2
 
-    important_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:10]
+    important_nodes = sorted(node_scores, key=node_scores.get, reverse=True)[:30]
 
     delivery_endpoints = {d.start_node_id for d in deliveries} | {d.end_node_id for d in deliveries}
 
@@ -94,10 +96,13 @@ def find_nodes_to_disrupt(graph, deliveries, max_depth):
         return True
 
     print(f"Checking candidates with {max_depth} radius...")
-    safe_centers = []
+    safe_centers = {}
     for n in important_nodes:
-        if is_disruption_safe(n):
-            safe_centers.append(n)
+        print(n)
+        # if is_disruption_safe(n):
+        city = get_city_from_node(n, graph)
+        print(city)
+        safe_centers[n] = city
 
     path = Path(__file__).parent.parent
     output_path = path / "data" / "input_data" / "form_data" / "place_of_disruption.json"
@@ -158,3 +163,24 @@ def find_random_nodes_to_disrupt(graph, max_depth=20):
 
     with open(output_path, "w") as f:
         json.dump(disruption_nodes, f, indent=4)
+
+
+
+def get_city_from_node(node, graph):
+
+    node_data = graph.nodes[node]
+    lat = node_data['y']
+    lon = node_data['x']
+
+    geolocator = Nominatim(user_agent="supply_chain_simulation_app")
+    
+    try:
+        location = geolocator.reverse((lat, lon), language='pl')
+        if not location:
+            return "unknown"
+            
+        address = location.raw.get('address', {})
+        return address.get('city') or address.get('town') or address.get('village') or "unknown"
+        
+    except Exception as e:
+        return f"Error: {e}"

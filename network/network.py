@@ -19,7 +19,9 @@ from network.europe import europe_seaports_un_locode
 from network.world import top_world_airports_iata
 from network.world import top_world_seaport_locodes
 from network.world import country_codes
+from network.world import world_top_cities
 from utils.graph_helper import haversine_coordinates
+from utils.graph_helper import normalize_country
 
 class NetworkManager:
 
@@ -30,22 +32,32 @@ class NetworkManager:
 
     def create_graph(self, region : str = "Europe", road_type : str = "motorway") -> SimulationGraph:
         full_graph = None
-        if region == "Europe":
+        if region.lower() == "europe":
             full_graph = self.get_graph_from_file(europe_countries[0], road_type=road_type)
             for country in europe_countries[1:]:
                 graph = self.get_graph_from_file(country, road_type=road_type)
                 full_graph = full_graph.compose(graph)
+        if region.lower() == "world":
+            cities = europe_countries.copy()
+            for world_country in world_top_cities.keys():
+                cities.extend(world_top_cities[world_country])
+
+            full_graph = self.get_graph_from_file(cities[0], road_type=road_type)
+            for country in cities[1:]:
+                graph = self.get_graph_from_file(country, road_type=road_type)
+                full_graph = full_graph.compose(graph)
+                print(country)
         return full_graph
 
 
     def get_graph_from_file(self, country : str, road_type : str = "motorway") -> SimulationGraph:
-        file_path = f"{unidecode(country).lower().replace(" ", "_")}_{road_type}.pkl"
+        file_path = f"{normalize_country(country)}_{road_type}.pkl"
         sim_graph = self.graph_manager.load_pickle_graph(file_path)
         if sim_graph is not None:
             for node, data in sim_graph.nodes(data=True):
                 if "country" not in data:
-                    data["country"] = unidecode(country).lower().replace(" ", "_")
-        sim_graph = self.merge_graph_components(sim_graph, max_dist_km=400)
+                    data["country"] = normalize_country(country)
+        # sim_graph = self.merge_graph_components(sim_graph, max_dist_km=400)
         return sim_graph
 
 

@@ -77,7 +77,7 @@ class Simulation:
         # self.network.compose(seaport_graph)
         # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
         #self.network = network_manager.get_graph_from_file("world", road_type="")
-        self.network = network_manager.get_graph_from_file("world", road_type="")
+        self.network = network_manager.get_graph_from_file("world", road_type="test")
         # airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
         # self.network.compose(airplane_graph)
 
@@ -225,16 +225,16 @@ class Simulation:
         finally:
             print(f"Simulation completed after {self.current_time} time steps")
 
-    def initialize(self) -> None:
+    # def initialize(self) -> None:
         """
         - Assign random initial finances to each importer-exporter.
         - Compute and store initial costs for all product deliveries.
         - Save deliveries and an initial route map to disk.
         """
         #find_nodes_to_disrupt(self.network, self.product_deliveries, 50)
-        self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
-        self.save_deliveries()
-        self.save_current_map()
+        # self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
+        # self.save_deliveries()
+        # self.save_current_map()
 
     def interpret_disruption_parameters(self) -> None:
         """
