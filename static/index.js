@@ -189,7 +189,17 @@ function updateMap(state) {
         if (graphNodes[n]) {
             const marker = L.circleMarker([graphNodes[n].y, graphNodes[n].x], {
                 radius: 6, color: "green", fillColor: "green", fillOpacity: 1
-            }).bindTooltip(graphNodes[n].city || "Exporter").addTo(map);
+            }).bindTooltip(() => {
+                const info = state.agents[n];
+                return `
+                    <b>${info.city}</b><br>
+                    ID: ${info.agent_id}<br>
+                    Sklep: ${info.store_name}<br>
+                    Kategoria: ${info.store_category}<br>
+                    Typ: Eksporter
+                `;
+            })
+            .addTo(map);
             exporterMarkers.push(marker);
         }
     });
@@ -199,7 +209,15 @@ function updateMap(state) {
         if (graphNodes[n]) {
             const marker = L.circleMarker([graphNodes[n].y, graphNodes[n].x], {
                 radius: 6, color: "red", fillColor: "red", fillOpacity: 1
-            }).bindTooltip(graphNodes[n].city || "Importer").addTo(map);
+            }).bindTooltip(() => {
+                const info = state.agents[n];
+                return `
+                    
+                    ID: ${info.agent_id}<br>
+                    Typ: Importer
+                `;
+            })
+            .addTo(map);
             importerMarkers.push(marker);
         }
     });
@@ -211,7 +229,17 @@ function updateMap(state) {
                 color: "orange",
                 fillColor: "orange",
                 fillOpacity: 1
-            }).bindTooltip(graphNodes[n].city || "Importer/Exporter").addTo(map);
+            }).bindTooltip(() => {
+                const info = state.agents[n];
+                return `
+                    <b>${info.city}</b><br>
+                    ID: ${info.agent_id}<br>
+                    Sklep: ${info.store_name}<br>
+                    Kategoria: ${info.store_category}<br>
+                    Typ: Importer/Eksporter
+                `;
+            })
+            .addTo(map);
             importerMarkers.push(marker);
         }
     });
