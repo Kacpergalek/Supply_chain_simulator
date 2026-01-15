@@ -343,7 +343,7 @@ manageLogs();
 
 // Update slider display values
 const simulationDurationSlider = document.getElementById('simulationDuration');
-const severitySlider = document.getElementById('severity');
+const dayOfStartSlider = document.getElementById('dayOfStart');
 const disruptionDurationSlider = document.getElementById('disruptionDuration');
 
 if (simulationDurationSlider) {
@@ -352,9 +352,9 @@ if (simulationDurationSlider) {
     });
 }
 
-if (severitySlider) {
-    severitySlider.addEventListener('input', function () {
-        document.getElementById('severityValue').textContent = parseFloat(this.value).toFixed(2);
+if (dayOfStartSlider) {
+    dayOfStartSlider.addEventListener('input', function () {
+        document.getElementById('dayOfStartValue').textContent = this.value;
     });
 }
 

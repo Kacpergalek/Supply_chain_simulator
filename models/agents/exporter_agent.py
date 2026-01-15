@@ -76,6 +76,7 @@ class ExporterAgent(BaseAgent):
 
         self.finances += self.delivery.find_parcel_retail_price()
         self.finances -= material_cost
+        self.finances -= self.delivery.cost
 
         self.unit_demand = demand
 
@@ -133,7 +134,7 @@ class ExporterAgent(BaseAgent):
         if params is None:
             params = {}
 
-        driving_hours = float(params.get("driving_hours_per_day", 8.0))
+        driving_hours = float(params.get("driving_hours_per_day", 24.0))
         # default_speed = float(params.get("default_speed_kmh", 60.0))
 
         prices = {

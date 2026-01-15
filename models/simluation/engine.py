@@ -62,13 +62,12 @@ class Simulation:
     def __init__(self):
         """ Time and path initialization """
         self.initializing = 0
-        # thread = Thread(target=self.loading_percentage)
-        # thread.start()
+        thread = Thread(target=self.loading_percentage)
+        thread.start()
         self.path = Path(__file__).parent.parent.parent
         self.time_manager = TimeManager("day")
         # self.delete_files()
         self.current_time = 0
-        # self.inject_parameters()
 
         """ Network initialization"""
         self.initializing = 1
@@ -95,15 +94,6 @@ class Simulation:
                                                                                         self.node_to_exporter,
                                                                                         self.material_paths, False)
         self.deliveries = self.product_deliveries + self.material_deliveries
-        for d in self.product_deliveries:
-            print(d.delivery_id, d.route, d.cost, d.lead_time)
-        for d in self.deliveries:
-            for node in d.route:
-                data = self.network.nodes[node]
-                if data.get("type") == "seaport":
-                    print(f"Delivery {d.delivery_id} contains a seaport")
-                if data.get("type") == "airport":
-                    print(f"Delivery {d.delivery_id} contains an airport")
 
         """ Disruption parameters """
         self.disruption = {}
@@ -247,7 +237,7 @@ class Simulation:
         - Always invoke `handle_time_step` for per-step demand/parcel logic.
         """
         t = self.current_time
-        print(f" =========== Executing time step {t} ===========")
+        print(f"=========== Executing time step {t} ===========")
         """ Send first parcel """
         if self.current_time == 1:
             material_cost = []
