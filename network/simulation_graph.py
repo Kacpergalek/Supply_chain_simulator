@@ -279,7 +279,7 @@ class SimulationGraph(nx.MultiGraph):
         for node_id, data in self.nodes(data=True):
             node_lat = data.get('y', None)
             node_lon = data.get('x', None)
-            if node_lat is None or node_lon is None or node_id == node or data["type"] in ("airport", "seaport"):
+            if node_lat is None or node_lon is None or node_id == node or data["type"] in {"airport", "seaport"}:
                 continue
 
             dist = haversine_coordinates(lattitude, longitude, node_lat, node_lon, "length")
@@ -398,13 +398,13 @@ class SimulationGraph(nx.MultiGraph):
 
     def connect_airports_seaports(self, default_capacity : int, default_price : float):
         for source_node, source_data in self.nodes(data=True):
-            if source_data.get("type") in ("airport", "seaport"):
+            if source_data.get("type") in {"airport", "seaport"}:
                 nearest_node = self.get_nearest_node(node=source_node)
                 length = self.haversine_nodes(source_node, nearest_node, "length")   
                 edge_data = {
                     "length" : length,
                     "capacity" : default_capacity,
-                    "cost" : default_price, 
+                    "cost" : (length/1000) * default_price, 
                     "added_artificially" : True,
                     "flow" : 0,
                     "type" : "road"

@@ -16,3 +16,5 @@ venv
 .vscode
 saved_statistics/
 
+data/input_data/network_data/world_*
+

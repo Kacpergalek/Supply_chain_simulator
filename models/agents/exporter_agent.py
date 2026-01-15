@@ -150,9 +150,9 @@ class ExporterAgent(BaseAgent):
 
         def get_edge_mode(edge_data):
             """Returns 'air', 'sea', or 'land' based on OSM tags."""
-            if edge_data.get("mode") in ["air", "flight"]:
+            if edge_data.get("type") == "airline_route":
                 return "air"
-            if edge_data.get("mode") in ["sea", "shipping"]:
+            if edge_data.get("type") == "sea_route":
                 return "sea"
 
             if edge_data.get("route") == "ferry":
@@ -192,7 +192,7 @@ class ExporterAgent(BaseAgent):
             #     target=dest_node,
             #     weight='cost',
             # )
-            path = nx.dijkstra_path(sim_graph, self.node_id, dest_node, weight="cost")
+            path = nx.dijkstra_path(nx.MultiGraph(sim_graph), self.node_id, dest_node, weight="cost")
 
             #path = sim_graph.astar(start_node=self.node_id, end_node=dest_node)
 
