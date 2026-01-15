@@ -193,11 +193,18 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         w1.className = 'chart-wrapper';
         w1.id = `${agg_type}-demand-chart`;
         // inline sizing to match other pages
-        w1.style.width = '70%';
-        w1.style.maxWidth = '1200px';
+    
         w1.style.minHeight = '360px';
         w1.style.background = 'transparent';
         container.appendChild(w1);
+    
+
+        const cap1 = document.createElement('div');
+        cap1.className = 'chart-caption';
+        cap1.textContent =
+            'This chart shows how much demand was fulfilled versus lost over time. ' +
+            'It illustrates the impact of disruptions on service level.';
+        container.appendChild(cap1);
 
         const title2 = document.createElement('h3');
         title2.textContent = `${agg_type_text} Cost and Loss`;
@@ -209,12 +216,15 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const w2 = document.createElement('div');
         w2.className = 'chart-wrapper';
         w2.id = `${agg_type}-cost-loss-chart`;
-        w2.style.width = '70%';
-        w2.style.maxWidth = '1200px';
+       
         w2.style.minHeight = '360px';
         w2.style.background = 'transparent';
         container.appendChild(w2);
-
+        const cap2 = document.createElement('div');
+        cap2.className = 'chart-caption';
+        cap2.textContent =
+            'Total operational cost and additional disruption-related losses over time.';
+        container.appendChild(cap2);
         const title3 = document.createElement('h3');
         title3.textContent = `${agg_type_text} Lead Time`;
         title3.style.width = '70%';
@@ -225,12 +235,15 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const w3 = document.createElement('div');
         w3.className = 'chart-wrapper';
         w3.id = `${agg_type}-lead-time-chart`;
-        w3.style.width = '70%';
-        w3.style.maxWidth = '1200px';
+     
         w3.style.minHeight = '360px';
         w3.style.background = 'transparent';
         container.appendChild(w3);
-
+        const cap3 = document.createElement('div');
+        cap3.className = 'chart-caption';
+        cap3.textContent =
+            'Average lead time evolution reflecting delays caused by disruptions.';
+        container.appendChild(cap3);
         const mode = window.currentChartStyle === 'line' ? 'lines+markers' : 'lines';
         const type = window.currentChartStyle === 'bar' ? 'bar' : undefined;
 
