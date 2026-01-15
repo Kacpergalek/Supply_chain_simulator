@@ -13,13 +13,13 @@ async function readJSON(appRoute, query) {
             option.textContent = word;
             select.appendChild(option);
         });
-    } 
+    }
 
     else if (typeof data === 'object' && data !== null) {
         Object.entries(data).forEach(([id, city]) => {
             const option = document.createElement("option");
             option.value = id;
-            option.textContent = city; 
+            option.textContent = city;
             select.appendChild(option);
         });
     }
@@ -28,34 +28,40 @@ async function readJSON(appRoute, query) {
 
 readJSON("/api/disruption_type", "#disruptionType");
 readJSON("/api/disruption_severity", "#severity");
-readJSON("/api/disruption_duration", "#disruptionDuration");
-readJSON("/api/simulation_duration", "#simulationDuration");
-readJSON("/api/day_of_start", "#dayOfStart");
 readJSON("/api/place_of_disruption", "#placeOfDisruption");
 
 function sendData() {
     console.log("Sending simulation parameters.")
-    var text = "";
     var dict = {}
-    var listOfForms = ["disruptionType", "severity", "disruptionDuration", "simulationDuration", "dayOfStart", "placeOfDisruption"];
-    // for (index in listOfForms) {
 
-    //     var e = document.getElementById(listOfForms[index]);
-    //     text += e.options[e.selectedIndex].text;
-    //     dict[listOfForms[index]] = e.value;
+    // Get values from form elements
+    var disruptionType = document.getElementById("disruptionType");
+    var severity = document.getElementById("severity");
+    var disruptionDuration = document.getElementById("disruptionDuration");
+    var simulationDuration = document.getElementById("simulationDuration");
+    var dayOfStart = document.getElementById("dayOfStart");
+    var placeOfDisruption = document.getElementById("placeOfDisruption");
 
-    // }
+    // For select elements, use .value. For input elements, also use .value
+    if (disruptionType) {
+        dict["disruptionType"] = disruptionType.options ? disruptionType.options[disruptionType.selectedIndex].value : disruptionType.value;
+    }
+    if (severity) {
+        dict["severity"] = severity.options ? severity.options[severity.selectedIndex].value : severity.value;
+    }
+    if (disruptionDuration) {
+        dict["disruptionDuration"] = disruptionDuration.value;
+    }
+    if (simulationDuration) {
+        dict["simulationDuration"] = simulationDuration.value;
+    }
+    if (dayOfStart) {
+        dict["dayOfStart"] = dayOfStart.value;
+    }
+    if (placeOfDisruption) {
+        dict["placeOfDisruption"] = placeOfDisruption.options ? placeOfDisruption.options[placeOfDisruption.selectedIndex].value : placeOfDisruption.value;
+    }
 
-    listOfForms.forEach(function(fieldId) {
-        var element = document.getElementById(fieldId);
-        
-        if (element) {
-            // .value pobiera wartość atrybutu 'value' z wybranej opcji
-            // W przypadku placeOfDisruption będzie to ID (np. "93750"), 
-            // pod warunkiem, że <option> ma format: <option value="ID">Miasto</option>
-            dict[fieldId] = element.value; 
-        }
-    });
 
 
     $.ajax({
@@ -77,11 +83,11 @@ function sendData() {
 function startSimulation() {
     fetch('/api/graph', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({start: true})
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start: true })
     })
-        .then(response => response.json().then(body => ({status: response.status, body})))
-        .then(({status, body}) => {
+        .then(response => response.json().then(body => ({ status: response.status, body })))
+        .then(({ status, body }) => {
             const msg = body.message || JSON.stringify(body)
             // const el = document.getElementById('response')
             // el.innerText = msg
@@ -118,7 +124,7 @@ Promise.all([
     fetch('/api/nodes').then(r => r.json())
 ]).then(([edges, nodes]) => {
     graphNodes = nodes;
-    
+
     console.log("✅ Bazowa sieć dróg załadowana.");
     fetch('/api/map_state')
         .then(res => res.json())
@@ -148,7 +154,7 @@ function updateMap(state) {
     // trasy agentów
     state.routes.forEach((path, i) => {
         const coords = path.filter(n => graphNodes[n])
-                        .map(n => [graphNodes[n].y, graphNodes[n].x]);
+            .map(n => [graphNodes[n].y, graphNodes[n].x]);
         const oldPath = lastRoutes[i];
         const changed = !oldPath || JSON.stringify(oldPath) !== JSON.stringify(path);
 
@@ -221,7 +227,7 @@ function updateMap(state) {
     state.disrupted.forEach(n => {
         if (graphNodes[n]) {
             const marker = L.marker([graphNodes[n].y, graphNodes[n].x], {
-                icon: L.divIcon({html: "<b style='color:black'>X</b>", className: ''})
+                icon: L.divIcon({ html: "<b style='color:black'>X</b>", className: '' })
             }).bindTooltip("Disrupted").addTo(map);
             disruptedMarkers.push(marker);
         }
@@ -312,3 +318,43 @@ toggleBtn.addEventListener("click", () => {
 });
 
 manageLogs();
+
+/* ========================== Slider Value Updates ========================== */
+
+// Update slider display values
+const simulationDurationSlider = document.getElementById('simulationDuration');
+const severitySlider = document.getElementById('severity');
+const disruptionDurationSlider = document.getElementById('disruptionDuration');
+
+if (simulationDurationSlider) {
+    simulationDurationSlider.addEventListener('input', function () {
+        document.getElementById('simulationDurationValue').textContent = this.value;
+    });
+}
+
+if (severitySlider) {
+    severitySlider.addEventListener('input', function () {
+        document.getElementById('severityValue').textContent = parseFloat(this.value).toFixed(2);
+    });
+}
+
+if (disruptionDurationSlider) {
+    disruptionDurationSlider.addEventListener('input', function () {
+        document.getElementById('disruptionDurationValue').textContent = this.value;
+    });
+}
+
+/* ========================== Number Input Functions ========================== */
+
+function incrementDayOfStart() {
+    const input = document.getElementById('dayOfStart');
+    input.value = parseInt(input.value) + 1;
+}
+
+function decrementDayOfStart() {
+    const input = document.getElementById('dayOfStart');
+    const newValue = parseInt(input.value) - 1;
+    if (newValue >= parseInt(input.min)) {
+        input.value = newValue;
+    }
+}

@@ -1,91 +1,130 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Supply Chain Simulation</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
-            crossorigin="anonymous"></script>
+        crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='index.js') }}" defer></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 
 
-    
+
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.12/codemirror.min.css">
-    
+
 </head>
 
 <body>
-<main class="wrapper">
-    <section class="main-app">
-        <!-- ZMIANA: panel disruption po lewej -->
-        <section class="form-wrapper">
-            <h2>Choose simulation parameters</h2>
-            <div class="form-container">
-                <form id="disruptionForm">
-                    <div class="form-group">
-                        <label for="disruptionType">Disruption Type:</label>
-                        <select id="disruptionType" name="disruptionType" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="severity">Disruption Severity:</label>
-                        <select id="severity" name="severity" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="disruptionDuration">Disruption duration:</label>
-                        <select id="disruptionDuration" name="disruptionDuration" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="simulationDuration">Simulation Duration:</label>
-                        <select id="simulationDuration" name="simulationDuration" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="dayOfStart">Day of Start:</label>
-                        <select id="dayOfStart" name="dayOfStart" required></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="placeOfDisruption">Place of Disruption:</label>
-                        <select id="placeOfDisruption" name="placeOfDisruption" required></select>
-                    </div>
-                </form>
-
-                <button class="form-button primary-btn" onclick="sendData()">Submit</button>
-                <div id="output"></div>
-                <div id="message" class="message"></div>
-            </div>
-        </section>
-
-        <!-- ZMIANA: mapa + panel sterowania/logów po prawej -->
-        <section id="content">
-            <div class="simulation content-page">
-                <section class="map-section">
-                    <div id="map"></div>
-
-                    <!-- Panel sterowania/logów jako overlay -->
-                    <div class="map-controls">
-                        <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start simulation</button>
-                        <button id="go-to-stat" class="statistics-btn secondary-btn" role="button"
-                                onClick="goToStatistics()">See statistics</button>
-                        <div id="response"></div>
-
-                        <div id="log-panel">
-                            <button id="log-panel-toggle">Logs ▼</button>
-                            <div id="logger" class="log-content"></div>
+    <main class="wrapper">
+        <section class="main-app">
+            <!-- ZMIANA: panel disruption po lewej -->
+            <section class="form-wrapper">
+                <!-- <h2>Choose simulation parameters</h2> -->
+                <div class="form-container">
+                    <form id="disruptionForm">
+                        <div class="form-group">
+                            <div class="form-group section-divider">
+                                <label class="section-title">🕒 Temporal controls</label>
+                            </div>
+                            <label for="simulationDuration">Simulation duration (days)</label>
+                            <div class="slider-container">
+                                <input type="range" id="simulationDuration" name="simulationDuration" min="10" max="35"
+                                    value="15" class="slider">
+                                <span class="slider-value" id="simulationDurationValue">15</span>
+                            </div>
+                            <div class="slider-labels">
+                                <span>10</span>
+                                <span>35</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="disruptionDuration">Shock Duration (days)</label>
+                                <div class="slider-container">
+                                    <input type="range" id="disruptionDuration" name="disruptionDuration" min="1"
+                                        max="10" value="3" class="slider">
+                                    <span class="slider-value" id="disruptionDurationValue">3</span>
+                                </div>
+                                <div class="slider-labels">
+                                    <span>1</span>
+                                    <span>10</span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="dayOfStart">Shock starts at day</label>
+                                <div class="slider-container">
+                                    <input type="range" id="dayOfStart" name="dayOfStart" min="2" max="8" value="3"
+                                        class="slider">
+                                    <span class="slider-value" id="dayOfStartValue">3</span>
+                                </div>
+                                <div class="slider-labels">
+                                    <span>2</span>
+                                    <span>8</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </section>
 
-            </div>
+                        <div class="form-group">
+
+                            <div class="form-group section-divider">
+                                <label class="section-title">⚠️ Custom Shock Controls</label>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="disruptionType">Shock Type:</label>
+                                <select id="disruptionType" name="disruptionType" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="severity">Severity:</label>
+                                <select id="severity" name="severity" required></select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="placeOfDisruption">Place of shock:</label>
+                                <select id="placeOfDisruption" name="placeOfDisruption" required></select>
+                            </div>
+                        </div>
+                    </form>
+
+                    <button class="form-button primary-btn" onclick="sendData()">Submit</button>
+                    <div id="output"></div>
+                    <div id="message" class="message"></div>
+                </div>
+            </section>
+
+            <!-- ZMIANA: mapa + panel sterowania/logów po prawej -->
+            <section id="content">
+                <div class="simulation content-page">
+                    <section class="map-section">
+                        <div id="map"></div>
+
+                        <!-- Panel sterowania/logów jako overlay -->
+                        <div class="map-controls">
+                            <button class="start-button primary-btn" role="button" onClick="startSimulation()">Start
+                                simulation</button>
+                            <button id="go-to-stat" class="statistics-btn secondary-btn" role="button"
+                                onClick="goToStatistics()">See statistics</button>
+                            <div id="response"></div>
+
+                            <div id="log-panel">
+                                <button id="log-panel-toggle">Logs ▼</button>
+                                <div id="logger" class="log-content"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </section>
         </section>
-    </section>
-</main>
+    </main>
 </body>
+
 </html>

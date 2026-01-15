@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Supply Chain Disruption Simulation</title>
     <script src="{{ url_for('static', filename='statistics.js') }}" defer></script>
@@ -11,40 +12,45 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='components.css') }}">
     <script src="https://cdn.plot.ly/plotly-3.2.0.min.js" charset="utf-8"></script>
 </head>
+
 <body>
-<main>
-    <button class="secondary-btn" id="back-btn">Go back</button>
-    <div class="panel-container content-page">
-        <h2>Per-agent statistics</h2>
-        <div class="controls">
+    <main>
+        <button class="secondary-btn" id="back-btn">Go back</button>
+        <div class="panel-container content-page">
+            <h2>Statistics for every agent</h2>
+            <div class="controls">
 
-            <label for="dataset-select"></label>
-            <select id="dataset-select">
-                <option value="fulfilled">Fulfilled demand</option>
-                <option value="lost">Lost demand</option>
-                <option value="cost">Cost</option>
-                <option value="loss">Loss</option>
-                <option value="time">Lead time</option>
-                <option value="final">Final snapshot</option>
-            </select>
-            <button id="download-stats" class="primary-btn" type="button">Download</button>
+                <label for="dataset-select"></label>
+                <select id="dataset-select">
+                    <option value="fulfilled">Fulfilled demand</option>
+                    <option value="lost">Lost demand</option>
+                    <option value="cost">Cost</option>
+                    <option value="loss">Loss</option>
+                    <option value="time">Lead time</option>
+                    <option value="final">Final snapshot</option>
+                </select>
+                <button id="download-stats" class="primary-btn" type="button">Download</button>
 
-            <label for="format-toggle-btn"></label>
-            <button id="format-toggle-btn" class="secondary-btn" type="button">.csv</button>
+                <label for="format-toggle-btn"></label>
+                <button id="format-toggle-btn" class="secondary-btn" type="button">.csv</button>
+            </div>
+
+            <div id="stats"></div>
         </div>
 
-        <div id="stats"></div>
-    </div>
+        <div id="chartsContainer">
+            <h2>Aggregated statistics over time</h2>
+            <div id="buttons">
+                <label for="agg-toggle-btn"></label>
+                <button id="agg-toggle-btn" class="secondary-btn" type="button">Average</button>
 
-    <div id="chartsContainer">
-        <h2>Aggregated statistics over time</h2>
-        <p>Select whether to view average or sum of all agents.</p>
-        <label for="agg-toggle-btn"></label>
-        <button id="agg-toggle-btn" class="secondary-btn" type="button">Average</button>
-
-        <div id="average"></div>
-        <div id="sum"></div>
-    </div>
-</main>
+                <label for="chart-style-toggle-btn"></label>
+                <button id="chart-style-toggle-btn" class="secondary-btn" type="button">Bar chart</button>
+            </div>
+            <div id="average"></div>
+            <div id="sum"></div>
+        </div>
+    </main>
 </body>
+
 </html>

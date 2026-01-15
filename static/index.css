@@ -1,3 +1,7 @@
+body {
+  overflow: hidden;
+}
+
 /* ========================== Parameters form ========================== */
 
 .form-wrapper {
@@ -12,15 +16,18 @@
 #content {
     width: 80%;
     height: 100vh;
-    position: relative; /* dla panelu sterowania */
+    position: relative;
+    /* dla panelu sterowania */
     box-sizing: border-box;
     margin: 0;
 }
+
 .main-app {
     display: flex;
     flex-direction: row;
     width: 100%;
-    height: 100vh; /* pełna wysokość */
+    height: 100vh;
+    /* pełna wysokość */
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -52,7 +59,8 @@ label {
     font-weight: bold;
 }
 
-select, input[type="number"] {
+select,
+input[type="number"] {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
@@ -100,9 +108,12 @@ select, input[type="number"] {
 }*/
 #map {
     width: 100%;
-    height: 100%;    /* wypełnia rodzica */
-    min-height: 600px; /* opcjonalnie minimalna wysokość */
+    height: 100%;
+    /* wypełnia rodzica */
+    min-height: 600px;
+    /* opcjonalnie minimalna wysokość */
 }
+
 .map-section {
     width: 100%;
     height: 100vh;
@@ -112,6 +123,7 @@ select, input[type="number"] {
 img {
     width: 100%;
 }
+
 /*
 .simulation-section {
     display: flex;
@@ -125,16 +137,17 @@ img {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: rgba(255,255,255,0.9);
+    background: rgba(255, 255, 255, 0.9);
     padding: 10px;
     border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
     gap: 8px;
     max-width: 250px;
     z-index: 1000;
 }
+
 .map-controls button {
     width: 100%;
     padding: 8px;
@@ -182,6 +195,7 @@ img {
 .simulation-section {
     flex-grow: 1;
 }
+
 #log-panel-toggle {
     width: 100%;
     padding: 6px;
@@ -197,10 +211,167 @@ img {
     border: 1px solid #ccc;
     padding: 6px;
     margin-top: 4px;
-    display: none; /* domyślnie ukryte */
+    display: none;
+    /* domyślnie ukryte */
 }
 
 /* ZMIANA: klasa open pokazuje logi */
 #log-panel.open .log-content {
     display: block;
 }
+
+/* ========================== Enhanced Form Styling ========================== */
+
+/* Slider styling */
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.slider {
+    flex: 1;
+    height: 8px;
+    border-radius: 5px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(to right, #ddd 0%, #ddd 100%);
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #66ff66;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #66ff66;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-value {
+    min-width: 50px;
+    font-weight: bold;
+    color: #66ff66;
+    font-size: 14px;
+    text-align: right;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Checkbox styling */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-weight: normal;
+    color: #333;
+    user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+    display: none;
+}
+
+.checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+    display: inline-block;
+    background-color: white;
+    position: relative;
+}
+
+.checkbox-label input[type="checkbox"]:checked+.checkmark {
+    background-color: #66ff66;
+    border-color: #66ff66;
+}
+
+.checkbox-label input[type="checkbox"]:checked+.checkmark:after {
+    content: '✓';
+    position: absolute;
+    color: white;
+    font-weight: bold;
+    top: -4px;
+    left: 3px;
+}
+
+/* Section divider */
+.section-divider {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.section-title {
+    display: block;
+    color: #333;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Number input with +/- buttons */
+.number-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.number-input {
+    width: 60px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+}
+
+.number-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #ddd;
+    background-color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.number-btn:hover {
+    background-color: #f5f5f5;
+    border-color: #999;
+}
+
+.number-btn:active {
+    background-color: #eee;
+}
+

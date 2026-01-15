@@ -22,23 +22,17 @@ function renderPrettyJson(containerSelector, dataObj) {
 }
 
 function jsonTimeseriesToWideCsv(obj) {
-    // obj: { "Agent 0": {"0": 0.0, "1": 1.2}, "Agent 1": {...} }
-    // produce CSV with header: Agent 0,Agent 1,... and rows ordered by numeric time index
+
     const agents = Object.keys(obj);
-    // gather all time keys
     const timeSet = new Set();
     agents.forEach(agent => {
         const series = obj[agent] || {};
         Object.keys(series).forEach(t => timeSet.add(t));
     });
-    // sort times numerically
     const times = Array.from(timeSet).map(t => Number(t)).filter(n => !Number.isNaN(n)).sort((a, b) => a - b);
-    // if there were non-numeric keys (unlikely), include them in insertion order after numeric
     const nonNumeric = Array.from(timeSet).filter(t => Number.isNaN(Number(t)));
     const allTimes = times.map(String).concat(nonNumeric);
-
     const rows = [];
-    // header: agents only (no time column) to match saved_statistics format
     rows.push(agents.join(','));
 
     allTimes.forEach(time => {
@@ -77,7 +71,6 @@ async function displayData(dataset, format) {
 
 /* ============================ FORMAT TOGGLE ============================ */
 
-// initialize format toggle (button shows the alternative format)
 window.currentFormat = window.currentFormat || 'json';
 const formatToggleBtn = document.getElementById('format-toggle-btn');
 function updateFormatButton() {
@@ -85,7 +78,6 @@ function updateFormatButton() {
     const alt = window.currentFormat === 'json' ? 'csv' : 'json';
     formatToggleBtn.textContent = '.' + alt;
 }
-// initialize only if element exists
 if (formatToggleBtn) {
     updateFormatButton();
     formatToggleBtn.addEventListener('click', function (e) {
@@ -157,11 +149,11 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
 
         function normalizeSeries(s) {
             // if it's already an object with x/y
-            if (!s) return {x: [], y: []};
+            if (!s) return { x: [], y: [] };
             if (Array.isArray(s)) {
                 const y = s.map(v => (v === null || v === undefined) ? null : Number(v));
                 const x = y.map((_, i) => i + 1); // 1-based day index
-                return {x, y};
+                return { x, y };
             }
             if (typeof s === 'object') {
                 // assume mapping time->value
@@ -169,14 +161,14 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
                 if (times.length > 0) {
                     const x = times;
                     const y = times.map(t => s[String(t)]);
-                    return {x, y};
+                    return { x, y };
                 }
                 // fallback: try to extract values
                 const vals = Object.values(s).map(v => Number(v));
                 const x = vals.map((_, i) => i + 1);
-                return {x, y: vals};
+                return { x, y: vals };
             }
-            return {x: [], y: []};
+            return { x: [], y: [] };
         }
 
         const flf = normalizeSeries(fulfilled);
@@ -185,94 +177,95 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const lss = normalizeSeries(loss);
         const ldt = normalizeSeries(lead);
 
+        const title1 = document.createElement('h3');
+        title1.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Demand`;
+        title1.style.width = '70%';
+        title1.style.textAlign = 'left';
+        container.appendChild(title1);
+
         const w1 = document.createElement('div');
         w1.className = 'chart-wrapper';
         w1.id = `${agg_type}-demand-chart`;
         // inline sizing to match other pages
-        w1.style.width = '90%';
-        w1.style.maxWidth = '1000px';
+        w1.style.width = '70%';
+        w1.style.maxWidth = '1200px';
         w1.style.minHeight = '360px';
         w1.style.background = 'transparent';
         container.appendChild(w1);
 
+        const title2 = document.createElement('h3');
+        title2.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Cost and Loss`;
+        title2.style.width = '70%';
+        title2.style.textAlign = 'left';
+        title2.style.marginTop = '2rem';
+        container.appendChild(title2);
+
         const w2 = document.createElement('div');
         w2.className = 'chart-wrapper';
-        w2.id = `${agg_type}-cost-chart`;
-        w2.style.width = '90%';
-        w2.style.maxWidth = '1000px';
+        w2.id = `${agg_type}-cost-loss-chart`;
+        w2.style.width = '70%';
+        w2.style.maxWidth = '1200px';
         w2.style.minHeight = '360px';
         w2.style.background = 'transparent';
         container.appendChild(w2);
 
+        const title3 = document.createElement('h3');
+        title3.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Lead Time`;
+        title3.style.width = '70%';
+        title3.style.textAlign = 'left';
+        title3.style.marginTop = '2rem';
+        container.appendChild(title3);
+
         const w3 = document.createElement('div');
         w3.className = 'chart-wrapper';
-        w3.id = `${agg_type}-loss-chart`;
-        w3.style.width = '90%';
-        w3.style.maxWidth = '1000px';
+        w3.id = `${agg_type}-lead-time-chart`;
+        w3.style.width = '70%';
+        w3.style.maxWidth = '1200px';
         w3.style.minHeight = '360px';
         w3.style.background = 'transparent';
         container.appendChild(w3);
 
-        const w4 = document.createElement('div');
-        w4.className = 'chart-wrapper';
-        w4.id = `${agg_type}-lead-time-chart`;
-        w4.style.width = '90%';
-        w4.style.maxWidth = '1000px';
-        w4.style.minHeight = '360px';
-        w4.style.background = 'transparent';
-        container.appendChild(w4);
+        const mode = window.currentChartStyle === 'line' ? 'lines+markers' : 'lines';
+        const type = window.currentChartStyle === 'bar' ? 'bar' : undefined;
 
-        // green palette
-        const trace1 = {x: flf.x, y: flf.y, mode: 'lines+markers', name: 'Fulfilled', line: {color: '#08A045'}};
-        const trace2 = {x: lst.x, y: lst.y, mode: 'lines+markers', name: 'Lost', line: {color: '#0B6E4F'}};
+        const trace1 = { x: flf.x, y: flf.y, mode: mode, type: type, name: 'Fulfilled', line: { color: '#08A045' } };
+        const trace2 = { x: lst.x, y: lst.y, mode: mode, type: type, name: 'Lost', line: { color: '#0B6E4F' } };
         const layout1 = {
             title: 'Fulfilled vs lost demand over Time',
-            xaxis: {title: 'day'},
-            yaxis: {title: 'value'},
-            legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
+            xaxis: { title: 'day' },
+            yaxis: { title: 'value' },
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center' },
             plot_bgcolor: '#f5f5f5',
             paper_bgcolor: 'transparent',
-            margin: {t: 50}
+            margin: { t: 50 }
         };
-        Plotly.newPlot(`${agg_type}-demand-chart`, [trace1, trace2], layout1, {responsive: true});
+        Plotly.newPlot(`${agg_type}-demand-chart`, [trace1, trace2], layout1, { responsive: true });
 
-        const trace3 = {x: cst.x, y: cst.y, mode: 'lines+markers', name: 'Cost', line: {color: '#21D375'}};
+        const trace3 = { x: cst.x, y: cst.y, mode: mode, type: type, name: 'Cost', line: { color: '#21D375' } };
+        const trace4 = { x: lss.x, y: lss.y, mode: mode, type: type, name: 'Loss', line: { color: '#6BBF59' } };
         const layout2 = {
-            title: 'Cost over Time',
-            xaxis: {title: 'day'},
-            yaxis: {title: 'value'},
-            legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
+            title: 'Cost and Additional Cost (Loss) over Time',
+            xaxis: { title: 'day' },
+            yaxis: { title: 'value' },
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center' },
             plot_bgcolor: '#f5f5f5',
             paper_bgcolor: 'transparent',
-            margin: {t: 50}
+            margin: { t: 50 }
         };
-        Plotly.newPlot(`${agg_type}-cost-chart`, [trace3], layout2, {responsive: true});
+        Plotly.newPlot(`${agg_type}-cost-loss-chart`, [trace3, trace4], layout2, { responsive: true });
 
-        const trace4 = {x: lss.x, y: lss.y, mode: 'lines+markers', name: 'Loss', line: {color: '#6BBF59'}};
+        const trace5 = { x: ldt.x, y: ldt.y, mode: mode, type: type, name: 'Lead time', line: { color: '#3D9970' } };
         const layout3 = {
-            title: 'Additional Cost (Loss) over Time',
-            xaxis: {title: 'day'},
-            yaxis: {title: 'value'},
-            legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
-            plot_bgcolor: '#f5f5f5',
-            paper_bgcolor: 'transparent',
-            margin: {t: 50}
-        };
-        Plotly.newPlot(`${agg_type}-loss-chart`, [trace4], layout3, {responsive: true});
-
-        const trace5 = {x: ldt.x, y: ldt.y, mode: 'lines+markers', name: 'Lead time', line: {color: '#3D9970'}};
-        const layout4 = {
             title: 'Lead Time over Time',
-            xaxis: {title: 'Day'},
-            yaxis: {title: 'Lead Time (days)'},
-            legend: {orientation: 'h', x: 0.5, xanchor: 'center'},
+            xaxis: { title: 'Day' },
+            yaxis: { title: 'Lead Time (days)' },
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center' },
             plot_bgcolor: '#f5f5f5',
             paper_bgcolor: 'transparent',
-            margin: {t: 50}
+            margin: { t: 50 }
         };
-        Plotly.newPlot(`${agg_type}-lead-time-chart`, [trace5], layout4, {responsive: true});
+        Plotly.newPlot(`${agg_type}-lead-time-chart`, [trace5], layout3, { responsive: true });
 
-        // ensure container is centered and spaced and pushed below navbar
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
         container.style.alignItems = 'center';
@@ -282,6 +275,25 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         console.error(err);
         container.innerHTML = '<div style="color:red">Failed to render charts</div>';
     }
+}
+
+/* ============================ CHART STYLE TOGGLE ============================ */
+
+window.currentChartStyle = window.currentChartStyle || 'Line';
+const chartStyleToggleBtn = document.getElementById('chart-style-toggle-btn');
+function updateChartStyleButton() {
+    if (!chartStyleToggleBtn) return;
+    const alt = window.currentChartStyle === 'Line' ? 'Bar' : 'Line';
+    chartStyleToggleBtn.textContent = alt + " chart"
+}
+
+if (chartStyleToggleBtn) {
+    chartStyleToggleBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        window.currentChartStyle = window.currentChartStyle === 'Line' ? 'Bar' : 'Line';
+        updateChartStyleButton();
+        updateGraphs();
+    });
 }
 
 /* ============================ AGGREGATION TOGGLE ============================ */

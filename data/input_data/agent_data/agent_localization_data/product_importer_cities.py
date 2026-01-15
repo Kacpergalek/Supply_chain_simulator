@@ -9,6 +9,6 @@
 # ]
 
 product_importer_cities = [
-    "Los Angeles, United States", "Vancouver, Canada", "Sao Paulo, Brazil", "Buenos Aires, Argentina",  "Birmingham, United Kingdom",
-    "Algiers, Algeria", "Melbourne, Australia", "London, United Kingdom", "New Delhi, India", "Bandung, Indonesia"
+    "Los Angeles, United States", "Vancouver, Canada", "Sao Paulo, Brazil", "Buenos Aires, Argentina",  "Rio de Janeiro, Brazil",
+    "Algiers, Algeria", "Melbourne, Australia", "Leeds, United Kingdom", "New Delhi, India", "Bandung, Indonesia"
 ]

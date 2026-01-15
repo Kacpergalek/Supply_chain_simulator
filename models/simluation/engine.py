@@ -62,8 +62,8 @@ class Simulation:
     def __init__(self):
         """ Time and path initialization """
         self.initializing = 0
-        thread = Thread(target=self.loading_percentage)
-        thread.start()
+        # thread = Thread(target=self.loading_percentage)
+        # thread.start()
         self.path = Path(__file__).parent.parent.parent
         self.time_manager = TimeManager("day")
         # self.delete_files()
@@ -101,6 +101,13 @@ class Simulation:
                                                                                         self.node_to_exporter,
                                                                                         self.material_paths, False)
         self.deliveries = self.product_deliveries + self.material_deliveries
+        for d in self.deliveries:
+            for node in d.route:
+                data = self.network.nodes[node]
+                if data.get("type") == "seaport":
+                    print(f"Delivery {d.delivery_id} contains a seaport")
+                if data.get("type") == "airport":
+                    print(f"Delivery {d.delivery_id} contains an airport")
 
         """ Disruption parameters """
         self.disruption = {}
@@ -431,16 +438,16 @@ class Simulation:
 
     def load_deliveries(self, deliveries: list[Delivery], folder: str = "delivery",
                         file_name: str = "starting_deliveries.json") -> None:
-        data_path = os.path.join(self.path, "data/input_data/simulation_data")
+        data_path = os.path.join(self.path, "data", "input_data", "delivery_data")
         folder_path = os.path.join(data_path, folder)
         if not os.path.exists(data_path):
             raise FileNotFoundError(f"Folder: {data_path} does not exist.")
 
         full_path = os.path.join(data_path, file_name)
-        if not os.path.exists(data_path):
-            raise FileExistsError(f"File: {data_path} does not exist.")
+        if not os.path.exists(full_path):
+            raise FileExistsError(f"File: {full_path} does not exist.")
 
-        with open(data_path, "r", encoding="utf-8") as json_file:
+        with open(full_path, "r", encoding="utf-8") as json_file:
             try:
                 data = json.load(json_file)
             except json.JSONDecodeError as e:

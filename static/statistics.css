@@ -68,6 +68,43 @@
     transform: none;
 }
 
+/* ======================= Chart Style Select ======================= */
+
+#chart-style-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: #66ff66;
+    color: #000000;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: Inter, -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: rgba(39, 174, 96, .15) 0 4px 9px;
+    cursor: pointer;
+    outline: none;
+    text-align: left;
+    background-image: none;
+}
+
+#chart-style-select::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+#chart-style-select::-ms-expand {
+    display: none;
+}
+
+#chart-style-select:hover,
+#chart-style-select:active {
+    background-color: #66ff66;
+    color: #000000;
+    box-shadow: rgba(39, 174, 96, .15) 0 4px 9px;
+    transform: none;
+}
+
 /* ======================= Graphs ======================= */
 
 #chartsContainer {
@@ -81,6 +118,30 @@
     background: transparent;
     box-sizing: border-box;
     padding-bottom: 2rem;
+}
+
+/* Chart wrapper styling */
+.chart-wrapper {
+    width: 70%;
+    max-width: 1200px;
+    background: transparent;
+}
+
+/* Headers for graphs */
+.panel-container h3,
+#chartsContainer h3 {
+    width: 70%;
+    max-width: 1200px;
+    text-align: left;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#chartsContainer h3:first-of-type {
+    margin-top: 0;
 }
 
 /* ensure action buttons have space and don't overlap */
