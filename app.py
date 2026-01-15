@@ -291,16 +291,39 @@ def map_state():
         [i.node_id for i in sim.product_importers] +
         [i.node_id for i in sim.importer_exporters]
     )
+
     both = [e.node_id for e in sim.importer_exporters]
     disrupted = getattr(sim, "disruption_nodes", [])
+
+    # 🔥 NOWE: pełne dane agentów
+    agents = {}
+
+    # Eksporterzy (pełne dane)
+    for e in sim.material_exporters + sim.importer_exporters:
+        agents[e.node_id] = {
+            "agent_id": e.agent_id,
+            "city": getattr(e, "city", None),
+            "store_name": getattr(e, "store_name", None),
+            "store_category": getattr(e, "store_category", None),
+            "type": "exporter"
+        }
+
+    # Importerzy (tylko ID + city)
+    for i in sim.product_importers:
+        agents[i.node_id] = {
+            "agent_id": i.agent_id,
+            "type": "importer"
+        }
 
     return jsonify({
         "routes": routes,
         "exporters": exporters,
         "importers": importers,
         "both": both,
-        "disrupted": disrupted
+        "disrupted": disrupted,
+        "agents": agents
     })
+
 
 
 @app.route('/api/graph', methods=['POST'])
