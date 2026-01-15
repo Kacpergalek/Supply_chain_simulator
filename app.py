@@ -30,8 +30,6 @@ class QueueLogHandler(logging.Handler):
         except Exception:
             pass
 
-
-# attach handler to root logger so logs from modules are captured
 handler = QueueLogHandler()
 handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -41,21 +39,14 @@ root_logger.setLevel(logging.INFO)
 root_logger.addHandler(handler)
 sim = Simulation()
 
-# Filter handler so only simulation-related records are queued
-
-
 class SimulationFilter(logging.Filter):
     def filter(self, record):
-        # accept records from the simulation engine module or from the
-        # temporary 'simulation_stream' logger used to capture print()
         name = getattr(record, "name", "")
         return name.startswith("models.simulation_engine") or name == "simulation_stream"
 
 
 handler.addFilter(SimulationFilter())
 
-# Also print logs to the original stdout so Flask/Werkzeug startup messages
-# and other logs remain visible in the terminal.
 console_handler = logging.StreamHandler(stream=sys.__stdout__)
 console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(formatter)
@@ -64,7 +55,6 @@ root_logger.addHandler(console_handler)
 
 class StreamToLogger:
     """Fake file-like stream that redirects writes to logging"""
-
     def __init__(self, logger, level=logging.INFO):
         self.logger = logger
         self.level = level
@@ -77,10 +67,6 @@ class StreamToLogger:
     def flush(self):
         pass
 
-# NOTE: we do NOT redirect global stdout here. We'll redirect stdout/stderr
-# only inside the simulation thread so only simulation prints are captured.
-
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -92,10 +78,8 @@ def events():
         while True:
             try:
                 msg = log_queue.get(timeout=1.0)
-                # SSE data field
                 yield f"data: {msg}\n\n"
             except queue.Empty:
-                # keep-alive comment
                 yield ': keep-alive\n\n'
 
     return Response(stream_with_context(stream()), mimetype='text/event-stream')
@@ -204,7 +188,6 @@ def jsonify_final_stats():
 
 @app.route('/api/stats/download')
 def download_latest_stats():
-    # return the latest JSON file as an attachment for download
     latest_file = None
     for file in os.listdir(OUTPUT_PATH):
         if file.endswith('.json'):
@@ -214,7 +197,6 @@ def download_latest_stats():
         return jsonify({}), 404
 
     return send_from_directory(OUTPUT_PATH, latest_file, as_attachment=True)
-
 
 @app.route('/api/process', methods=['POST'])
 def process():
@@ -227,7 +209,6 @@ def process():
     sim.initialize()
 
     return jsonify(data)
-
 
 @app.route("/category/parameters/api/process", methods=["POST"])
 def parameters_process():
@@ -277,7 +258,6 @@ def api_nodes():
         }
     return jsonify(nodes_payload)
 
-
 @app.route("/api/map_state")
 def map_state():
     routes = [d.route for d in sim.deliveries]
@@ -302,7 +282,6 @@ def map_state():
         "disrupted": disrupted
     })
 
-
 @app.route('/api/graph', methods=['POST'])
 def start_simulation():
     data = request.get_json()
@@ -310,27 +289,19 @@ def start_simulation():
     if isinstance(data, dict):
         start_flag = bool(data.get("start", False))
 
-    # app.logger.info("Start simulation? %s", start_flag)
-
     if start_flag:
         if Path('data/input_data/disruption_parameters.pkl').exists():
             def run_simulation():
-                # redirect stdout/stderr to a dedicated simulation logger so
-                # only outputs from the simulation are queued and streamed
                 sim_logger = logging.getLogger('simulation_stream')
                 orig_stdout = sys.stdout
                 orig_stderr = sys.stderr
                 sys.stdout = StreamToLogger(sim_logger, level=logging.INFO)
                 sys.stderr = StreamToLogger(sim_logger, level=logging.ERROR)
                 try:
-                    # sim = Simulation(max_time=15, time_resolution="day")
-                    # sim.inject_parameters()
-
                     sim.run()
                 except Exception as e:
                     app.logger.exception("Simulation failed: %s", e)
                 finally:
-                    # restore original streams
                     sys.stdout = orig_stdout
                     sys.stderr = orig_stderr
 
@@ -341,7 +312,6 @@ def start_simulation():
             return jsonify({"message": "No parameters provided. Please provide parameters first."}), 400
 
     return jsonify({"message": "No action taken"}), 400
-
 
 if __name__ == "__main__":
     app.run(debug=True, use_reloader=False)

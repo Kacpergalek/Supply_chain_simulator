@@ -6,6 +6,10 @@ import json
 from pathlib import Path
 from collections import Counter, deque
 
+from network import SimulationGraph
+from utils.graph_helper import haversine_km
+
+
 def get_edge_cost(u, v, d, prices):
     mode = "land"  # Default
     if d.get("mode") in ["air", "flight"] or "aeroway" in d:
@@ -158,3 +162,50 @@ def find_random_nodes_to_disrupt(graph, max_depth=20):
 
     with open(output_path, "w") as f:
         json.dump(disruption_nodes, f, indent=4)
+
+def find_closest_hub_node(graph: SimulationGraph, reference_node_id: int, node_type: str):
+    """
+    Find the closest hub node (airport or seaport) to a given reference node.
+
+    Parameters
+    ----------
+    graph : SimulationGraph
+        Transportation network with node attributes 'x', 'y' (lon, lat) and 'type'.
+    reference_node_id : int
+        Node id from which to search for the closest airport/seaport.
+    node_type: str
+        Seaport or airport.
+
+    Returns
+    -------
+    int | None
+        ID of the closest airport/seaport node, or None if none exists.
+    """
+    if reference_node_id not in graph:
+        return None
+
+    ref_data = graph.nodes[reference_node_id]
+    ref_lon = ref_data.get("x")
+    ref_lat = ref_data.get("y")
+
+    if ref_lon is None or ref_lat is None:
+        return None
+
+    best_node = None
+    best_dist = float("inf")
+
+    for node_id, data in graph.nodes(data=True):
+        if not data.get("type") == node_type:
+            continue
+
+        lon = data.get("x")
+        lat = data.get("y")
+        if lon is None or lat is None:
+            continue
+
+        d = haversine_km(ref_lat, ref_lon, lat, lon)
+        if d < best_dist:
+            best_dist = d
+            best_node = node_id
+
+    return best_node

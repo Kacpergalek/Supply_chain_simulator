@@ -1,3 +1,5 @@
+import math
+
 def haversine_coordinates(lat1, lon1, lat2, lon2, metric : str):
     if metric == "length":
         R = 6371  # promień Ziemi
@@ -12,7 +14,14 @@ def haversine_coordinates(lat1, lon1, lat2, lon2, metric : str):
 
         return R * c * 1000
 
-import math
+def haversine_km(lat1, lon1, lat2, lon2) -> float:
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+    d_lon = lon2 - lon1
+    d_lat = lat2 - lat1
+    a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * \
+        math.cos(lat2) * math.sin(d_lon / 2) ** 2
+    c = 2 * math.asin(math.sqrt(a))
+    return 6371 * c
 
 
 def convert_speed(data: str | list | int | float | None, output_type: str = "float"):

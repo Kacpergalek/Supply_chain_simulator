@@ -14,7 +14,7 @@ from models.delivery.delivery import Delivery
 from models.simluation.statistics_manager import StatisticsManager
 from models.simluation.time_manager import TimeManager
 
-from utils.find_nodes_to_disrupt import bfs_limited
+from utils.find_nodes_to_disrupt import bfs_limited, find_closest_hub_node
 from utils.find_nodes_to_disrupt import find_nodes_to_disrupt
 from utils.find_delivery import find_delivery_by_agent
 
@@ -162,6 +162,10 @@ class Simulation:
                 "phase_4": round(self.depth / 8)
             }
             self.number_of_phases = len(self.disaster_steps_dict)
+        if self.disruption_type == "Technical":
+            closest_hub = find_closest_hub_node(self.network, self.place_of_disruption, "seaport")
+            if closest_hub is not None:
+                self.place_of_disruption = closest_hub
 
     def load_disruption_parameters(self):
         full_path = self.path / "data" / "input_data" / "disruption_parameters.pkl"
@@ -225,38 +229,6 @@ class Simulation:
         finally:
             print(f"Simulation completed after {self.current_time} time steps")
 
-    def initialize(self) -> None:
-        """
-        - Assign random initial finances to each importer-exporter.
-        - Compute and store initial costs for all product deliveries.
-        - Save deliveries and an initial route map to disk.
-        """
-        #find_nodes_to_disrupt(self.network, self.product_deliveries, 50)
-        self.statistics_manager.update_cost(self.product_deliveries, self.node_to_exporter)
-        self.save_deliveries()
-        self.save_current_map()
-
-    def interpret_disruption_parameters(self) -> None:
-        """
-        Translate disruption configuration into internal severity parameters.
-        depth controls the BFS radius of node deactivation.
-        """
-        if self.severity == "Low":
-            self.depth = 10
-        elif self.severity == "Normal":
-            self.depth = 25
-        else:
-            self.depth = 50
-
-        if self.disruption_type == "Natural disaster":
-            self.disaster_steps_dict = {
-                "phase_1": round(self.depth / 2),
-                "phase_2": round(self.depth / 4),
-                "phase_3": round(self.depth / 6),
-                "phase_4": round(self.depth / 8)
-            }
-            self.number_of_phases = len(self.disaster_steps_dict)
-
     def should_continue(self) -> bool:
         if self.current_time >= self.max_time:
             return False
@@ -298,7 +270,10 @@ class Simulation:
 
 
     def handle_disruption_start(self) -> None:
-        places_of_disruption = bfs_limited(self.network, self.place_of_disruption, self.depth)
+        if self.disruption_type == "Technical":
+            places_of_disruption = [self.place_of_disruption]
+        else:
+            places_of_disruption = bfs_limited(self.network, self.place_of_disruption, self.depth)
         self.deactivate_nodes(places_of_disruption)
         deactivated_deliveries = self.find_deactivated_deliveries()
         disrupted_deliveries = self.mark_deliveries_disrupted(deactivated_deliveries, disrupted=True)
@@ -445,12 +420,12 @@ class Simulation:
             print(f"DISRUPTION ENDS (time step {t})")
 
     def save_deliveries(self, folder: str = "delivery", file_name: str = "starting_deliveries.json") -> None:
-        data_path = os.path.join(self.path, "data/input_data/simulation_data")
+        data_path = os.path.join(self.path, "data/input_data/delivery_data")
         folder_path = os.path.join(data_path, folder)
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        if not os.path.exists(data_path):
+            os.makedirs(data_path)
 
-        full_path = os.path.join(folder_path, file_name)
+        full_path = os.path.join(data_path, file_name)
         with open(full_path, "w", encoding="utf-8") as json_file:
             json.dump([delivery.to_dict() for delivery in self.deliveries], json_file, indent=4, ensure_ascii=False)
 
@@ -458,14 +433,14 @@ class Simulation:
                         file_name: str = "starting_deliveries.json") -> None:
         data_path = os.path.join(self.path, "data/input_data/simulation_data")
         folder_path = os.path.join(data_path, folder)
-        if not os.path.exists(folder_path):
-            raise FileNotFoundError(f"Folder: {folder_path} does not exist.")
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Folder: {data_path} does not exist.")
 
-        full_path = os.path.join(folder_path, file_name)
-        if not os.path.exists(full_path):
-            raise FileExistsError(f"File: {full_path} does not exist.")
+        full_path = os.path.join(data_path, file_name)
+        if not os.path.exists(data_path):
+            raise FileExistsError(f"File: {data_path} does not exist.")
 
-        with open(full_path, "r", encoding="utf-8") as json_file:
+        with open(data_path, "r", encoding="utf-8") as json_file:
             try:
                 data = json.load(json_file)
             except json.JSONDecodeError as e:
