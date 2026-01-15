@@ -5,13 +5,11 @@
     align-items: center;
     width: 100%;
     padding: 1.5rem 1rem 2rem;
-    /* small top padding, space around content */
     box-sizing: border-box;
 }
 
 /* ======================= Agent stat panel ======================= */
 
-/* make stats scrollable and readable, avoid overlap with buttons */
 #stats {
     width: 90%;
     max-height: calc(100vh - 220px);
@@ -29,7 +27,6 @@
 
 /* ======================= Dataset Select ======================= */
 
-/* Style dataset select to match primary button */
 #dataset-select {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -46,7 +43,6 @@
     cursor: pointer;
     outline: none;
     text-align: left;
-    /* remove native arrow on some browsers */
     background-image: none;
 }
 
@@ -54,12 +50,10 @@
     display: none;
 }
 
-/* Remove dropdown arrow for IE/Edge */
 #dataset-select::-ms-expand {
     display: none;
 }
 
-/* Hover/active: keep same appearance as base for accessibility */
 #dataset-select:hover,
 #dataset-select:active {
     background-color: #66ff66;
@@ -144,7 +138,6 @@
     margin-top: 0;
 }
 
-/* ensure action buttons have space and don't overlap */
 .panel-container>button,
 #stats,
 .dashboard-section {

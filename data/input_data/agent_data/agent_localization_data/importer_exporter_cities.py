@@ -1,9 +1,9 @@
-# importer_exporter_cities = [
-#     "Berlin, Germany", "Basel, Switzerland", "Warsaw, Poland", "Milan, Italy", "Zürich, Switzerland",
-#     "Marseille, France", "Barcelona, Spain", "Geneva, Switzerland", "Amsterdam, Netherlands", "Seville, Spain"
-# ]
-
 importer_exporter_cities = [
-    "Paris, France", "Madrid, Spain", "London, United Kingdom", "Cologne, Germany", "Rotterdam, Netherlands",
-    "Zürich, Switzerland", "Naples, Italy", "Hamburg, Germany", "Kraków, Poland", "Brussels, Belgium"
+    "Berlin, Germany", "Basel, Switzerland", "Warsaw, Poland", "Stockholm, Sweden", "Valencia, Spain",
+    "Birmingham, United Kingdom", "Brussels, Belgium", "Porto, Portugal", "Amsterdam, Netherlands", "Seville, Spain"
 ]
+
+# importer_exporter_cities = [
+#     "Warsaw, Poland", "Milan, Italy", "Stockholm, Sweden", "Helsinki, Finland", "Lisbon, Portugal",
+#     "Vienna, Austria", "Wrocław, Poland", "Budapest, Hungary", "Lyon, France", "Marseille, France"
+# ]

@@ -57,7 +57,7 @@ class NetworkManager:
             for node, data in sim_graph.nodes(data=True):
                 if "country" not in data:
                     data["country"] = normalize_country(country)
-        # sim_graph = self.merge_graph_components(sim_graph, max_dist_km=400)
+        sim_graph = self.merge_graph_components(sim_graph, max_dist_km=200)
         return sim_graph
 
 

@@ -34,7 +34,6 @@ function sendData() {
     console.log("Sending simulation parameters.")
     var dict = {}
 
-    // Get values from form elements
     var disruptionType = document.getElementById("disruptionType");
     var severity = document.getElementById("severity");
     var disruptionDuration = document.getElementById("disruptionDuration");
@@ -42,7 +41,6 @@ function sendData() {
     var dayOfStart = document.getElementById("dayOfStart");
     var placeOfDisruption = document.getElementById("placeOfDisruption");
 
-    // For select elements, use .value. For input elements, also use .value
     if (disruptionType) {
         dict["disruptionType"] = disruptionType.options ? disruptionType.options[disruptionType.selectedIndex].value : disruptionType.value;
     }
@@ -62,8 +60,6 @@ function sendData() {
         dict["placeOfDisruption"] = placeOfDisruption.options ? placeOfDisruption.options[placeOfDisruption.selectedIndex].value : placeOfDisruption.value;
     }
 
-
-
     $.ajax({
         url: '/api/process',
         type: 'POST',
@@ -72,7 +68,6 @@ function sendData() {
         success: async function (response) {
             await new Promise(r => setTimeout(r, 500));
             alert("Data submitted successfully. You can start the simulation")
-            // document.getElementById('output').innerHTML = JSON.stringify(response, null, 2);
         },
         error: function (error) {
             console.log(error);
@@ -89,8 +84,6 @@ function startSimulation() {
         .then(response => response.json().then(body => ({ status: response.status, body })))
         .then(({ status, body }) => {
             const msg = body.message || JSON.stringify(body)
-            // const el = document.getElementById('response')
-            // el.innerText = msg
             alert(msg);
         })
         .catch(err => {
@@ -183,12 +176,12 @@ function updateMap(state) {
                     weight: 3
                 }).addTo(map);
 
-                routeLayers[i] = polyline; // 🔧 ZMIANA – zapisujemy warstwę pod indeksem
+                routeLayers[i] = polyline; // ZMIANA – zapisujemy warstwę pod indeksem
             }, 5);
         }
     });
 
-    // 🔧 ZMIANA – zapamiętujemy aktualne trasy
+    // ZMIANA – zapamiętujemy aktualne trasy
     lastRoutes = state.routes.map(r => [...r]);
 
     // eksporterzy
@@ -247,8 +240,8 @@ function highlightNode(nodeId) {
 }
 
 document.querySelector("#placeOfDisruption").addEventListener("change", function () {
-    let nodeId = parseInt(this.value);          // 🔥 poprawka 1: zawsze liczba
-    const node = graphNodes[String(nodeId)];    // 🔥 poprawka 2: zawsze poprawny klucz
+    let nodeId = parseInt(this.value);          // poprawka 1: zawsze liczba
+    const node = graphNodes[String(nodeId)];    // poprawka 2: zawsze poprawny klucz
 
     if (!node) return;
 
@@ -299,7 +292,6 @@ async function manageLogs() {
         evtSource.close();
     };
 }
-// === 🔥 Aktualizacja mapy po wyborze węzła ===
 
 // =========================== SLIDE-IN LOG PANEL =============================
 
@@ -342,19 +334,4 @@ if (disruptionDurationSlider) {
     disruptionDurationSlider.addEventListener('input', function () {
         document.getElementById('disruptionDurationValue').textContent = this.value;
     });
-}
-
-/* ========================== Number Input Functions ========================== */
-
-function incrementDayOfStart() {
-    const input = document.getElementById('dayOfStart');
-    input.value = parseInt(input.value) + 1;
-}
-
-function decrementDayOfStart() {
-    const input = document.getElementById('dayOfStart');
-    const newValue = parseInt(input.value) - 1;
-    if (newValue >= parseInt(input.min)) {
-        input.value = newValue;
-    }
 }

@@ -213,6 +213,7 @@ def find_closest_hub_node(graph: SimulationGraph, reference_node_id: int, node_t
             best_dist = d
             best_node = node_id
 
+    print("found hub node")
     return best_node
 
 

@@ -62,7 +62,64 @@ retail store data in that city. Delete .pkl files from "data/input_data/store_da
 the program. It's going to take a while to load all the data.
 
 ## File structure 📝
-work in progress
+
+```
+Supply_chain_simulator/
+│
+├── data/                                    # Data management
+│   ├── input_data/                          # Simulation parameters, localization, and delivery data
+│   └── output_data/                         # Generated timeseries and aggregated statistics
+│
+├── models/                                  # Core simulation classes and logic
+│   ├── agents/                              # Supply chain agents
+│   │   ├── agent_manager.py                 # Manages creation and initialization of all agents
+│   │   ├── base_agent.py                    # Parent class for all agents
+│   │   ├── exporter_agent.py                # Exporters (suppliers) with pathfinding logic
+│   │   └── agents_tests/                    # Unit tests for agent functionality
+│   │
+│   ├── delivery/                            # Delivery and logistics management
+│   │   ├── delivery.py                      # Delivery class with route and cost calculation
+│   │   └── delivery_manager.py              # Manages initialization and updates of deliveries
+│   │
+│   ├── product/                             # Product and material definitions
+│   │   ├── product.py                       # Product class with pricing and properties
+│   │   ├── product_manager.py               # Manages product initialization
+│   │   └── raw_material.py                  # Raw material class
+│   │
+│   ├── simluation/                          # Simulation engine and statistics [note: typo in original]
+│   │   ├── engine.py                        # Main simulation loop and disruption logic
+│   │   ├── statistics_manager.py            # Tracks and persists KPIs (cost, demand, lead time)
+│   │   └── time_manager.py                  # Time granularity management
+│   │
+│   ├── industrial_building/                 # Industrial infrastructure
+│   │   └── [building-related classes]
+│   │
+│   └── testing_field/                       # Testing and validation utilities
+│       └── [testing-related classes]
+│
+├── network/                                 # Transportation network management
+│   ├── simulation_graph.py                  # Core graph data structure for the network
+│   ├── network.py                           # Network initialization and management
+│   ├── graph_reader.py                      # Reads network data from files
+│   ├── visualization.py                     # Network visualization utilities
+│   ├── empty_visualization.py               # Base visualization template
+│   ├── transport_types.py                   # Enum for transport modes
+│   ├── europe.py                            # European network configuration
+│   ├── world.py                             # World network configuration
+│   └── __init__.py                          # Package initialization
+│
+├── utils/                                   # Helper functions
+│
+├── static/                                  # Static assets (CSS, JavaScript, images)
+│
+├── templates/                               # HTML templates for web interface
+│
+├── app.py                                   # Flask web application entry point
+├── requirements.txt                         # Python dependencies
+├── README.md                                # Project documentation
+└── .gitignore                               # Git ignore configuration
+```
+
 
 ## Contributors ✋
 **Berenike Banek** - berenike@student.agh.edu.pl  

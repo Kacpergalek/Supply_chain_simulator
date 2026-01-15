@@ -73,13 +73,7 @@ class Simulation:
         """ Network initialization"""
         self.initializing = 1
         network_manager = NetworkManager()
-        # seaport_graph = network_manager.load_seaports_graph(default_capacity=5, default_price=3)
-        # self.network.compose(seaport_graph)
-        # self.network.connect_airports_seaports(default_capacity=1000, default_price=0.5)
-        #self.network = network_manager.get_graph_from_file("world", road_type="")
         self.network = network_manager.get_graph_from_file("world_ports", road_type="motorway")
-        # airplane_graph = network_manager.load_airports_graph(default_capacity=10, default_price=1000)
-        # self.network.compose(airplane_graph)
 
         """ Agents initialization """
         self.initializing = 2
@@ -101,6 +95,8 @@ class Simulation:
                                                                                         self.node_to_exporter,
                                                                                         self.material_paths, False)
         self.deliveries = self.product_deliveries + self.material_deliveries
+        for d in self.product_deliveries:
+            print(d.delivery_id, d.route, d.cost, d.lead_time)
         for d in self.deliveries:
             for node in d.route:
                 data = self.network.nodes[node]
@@ -223,7 +219,7 @@ class Simulation:
         try:
             while self.should_continue():
                 self.current_time += 1
-                self.display_info()
+                # self.display_info()
                 self.execute_time_step()
                 self.statistics_manager.add_snapshot(current_time=self.current_time)
                 time.sleep(1)
@@ -263,18 +259,20 @@ class Simulation:
 
         """ Start a disruption """
         if self.start_day == t:
+            print("Disruption started!")
             self.handle_disruption_start()
 
         """ End a disruption"""
         if self.end_day == t and self.disruption_type != "Natural disaster":
+            print("Disruption ended! The network has recovered.")
             self.handle_disruption_end()
         """ End a disruption gradually """
         if self.end_day <= t <= self.end_day + self.number_of_phases and self.disruption_type == "Natural disaster":
+            print("Disruption ended! The network is slowly recovering.")
             self.handle_gradual_ending()
 
         """ What happens regardless of a disruption"""
         self.handle_time_step(t)
-
 
     def handle_disruption_start(self) -> None:
         if self.disruption_type == "Technical":
@@ -298,13 +296,14 @@ class Simulation:
         nodes_to_deactivate = [n for n in places_of_disruption if n not in importer_exporter_nodes
                                and n not in importer_nodes and n not in exporter_nodes]
         self.network.deactivate_nodes(nodes_to_deactivate)
+        print("Network has been reduced.")
 
         return nodes_to_deactivate
 
-    def update_statistics(self, deliveries: list[Delivery], old_cost: list[float]) -> None:
+    def update_statistics(self, deliveries: list[Delivery], old_cost: list[float], disrupted: bool) -> None:
         self.statistics_manager.update_loss(deliveries, self.node_to_exporter, old_cost)
         self.statistics_manager.update_cost(deliveries, self.node_to_exporter)
-        self.statistics_manager.update_lost_demand(deliveries, self.node_to_exporter, False)
+        self.statistics_manager.update_lost_demand(deliveries, self.node_to_exporter, disrupted)
         self.statistics_manager.update_lead_time(deliveries, self.node_to_exporter)
 
     def handle_disruption_end(self) -> None:
@@ -316,7 +315,7 @@ class Simulation:
 
         self.mark_deliveries_disrupted(deliveries_to_fix, disrupted=False)
         self.load_deliveries(deliveries_to_fix)
-        self.update_statistics(product_deliveries_to_fix, [])
+        self.update_statistics(product_deliveries_to_fix, [], False)
         self.reset_parcels(deliveries_to_fix)
         self.disruption_nodes = []
         self.save_current_map()
@@ -324,6 +323,7 @@ class Simulation:
     def handle_gradual_ending(self) -> None:
         """ If disruption type is a natural disaster (after ending the comeback is gradual) """
         if self.phase == 5:
+            print("Network has recovered fully.")
             self.handle_disruption_end()
             return
         if self.phase == 1:
@@ -352,7 +352,7 @@ class Simulation:
         self.reset_parcels(currently_disrupted_deliveries)
 
         self.load_deliveries(fixed_deliveries)
-        self.update_statistics(fixed_product_deliveries, [])
+        self.update_statistics(fixed_product_deliveries, [], False)
         self.reset_parcels(currently_disrupted_deliveries)
 
         self.save_current_map(self.place_of_disruption)
@@ -415,7 +415,7 @@ class Simulation:
 
         for delivery in disrupted_deliveries:
             delivery.update_delivery(self.node_to_exporter, active_network, disrupted)
-        self.update_statistics(disrupted_product_deliveries, old_cost)
+        self.update_statistics(disrupted_product_deliveries, old_cost, disrupted)
 
     def display_info(self) -> None:
         t = self.current_time
@@ -508,6 +508,7 @@ class Simulation:
                 os.remove(file_path)
 
     def reset(self) -> None:
+        print("Resetting simulation...")
         self.current_time = 0
 
         """ Disruption reinitialization """

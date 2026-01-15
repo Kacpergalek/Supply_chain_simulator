@@ -1,5 +1,5 @@
 # product_importer_cities = [
-#     "Paris, France", "Hamburg, Germany", "Turin, Italy", "Brussels, Belgium", "Madrid, Spain",
+#     "Toulouse, France", "Lisbon, Portugal", "Turin, Italy", "Brussels, Belgium", "Madrid, Spain",
 #     "London, United Kingdom", "Vienna, Austria", "Wrocław, Poland", "Porto, Portugal", "Stockholm, Sweden"
 # ]
 
@@ -7,8 +7,8 @@
 #     "New York City, United States", "Vancouver, Canada", "Sao Paulo, Brazil", "Buenos Aires, Argentina", "Cairo, Egypt",
 #     "Algiers, Algeria", "Melbourne, Australia", "London, United Kingdom", "Dublin, Ireland", "Birmingham, United Kingdom"
 # ]
-
+#
 product_importer_cities = [
-    "Los Angeles, United States", "Vancouver, Canada", "Sao Paulo, Brazil", "Buenos Aires, Argentina",  "Rio de Janeiro, Brazil",
+    "New York City, United States", "Vancouver, Canada", "Sao Paulo, Brazil", "Buenos Aires, Argentina",  "Rio de Janeiro, Brazil",
     "Algiers, Algeria", "Melbourne, Australia", "Leeds, United Kingdom", "New Delhi, India", "Bandung, Indonesia"
 ]

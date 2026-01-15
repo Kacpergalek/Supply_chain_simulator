@@ -34,7 +34,7 @@ empty_graph = graph.coherence(threshold=10000)
 reader.save_pickle_file("added_world_edges_motorway.pkl", empty_graph)
 print(f"Consolidation time: {time.time() - consolidate_start_time}")
 # load airports and seaports
-
+reader.save_pickle_file("world_without_ports_motorway.pkl", graph)
 airplane_graph = network.load_airports_graph(default_capacity=10, default_price=10)
 graph.compose(airplane_graph)
 seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)

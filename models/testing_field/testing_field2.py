@@ -169,9 +169,9 @@ reader.save_pickle_file("world_without_ports_motorway.pkl", graph) """
 
 
 graph = network.get_graph_from_file("world_without_ports")
-airplane_graph = network.load_airports_graph(default_capacity=10, default_price=10)
+airplane_graph = network.load_airports_graph(default_capacity=1000, default_price=100)
 graph.compose(airplane_graph)
-seaport_graph = network.load_seaports_graph(default_capacity=5, default_price=1)
+seaport_graph = network.load_seaports_graph(default_capacity=500, default_price=60)
 graph.compose(seaport_graph)
 graph.connect_airports_seaports(default_capacity=1000, default_price=0.5)
 

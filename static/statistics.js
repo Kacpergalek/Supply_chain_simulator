@@ -178,10 +178,16 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const ldt = normalizeSeries(lead);
 
         const title1 = document.createElement('h3');
-        title1.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Demand`;
+        let agg_type_text;
+        if (agg_type === 'avg') {
+            agg_type_text = 'Average';
+        } else {
+            agg_type_text = 'Sum';
+        }
+        title1.textContent = `${agg_type_text} Demand`;
         title1.style.width = '70%';
         title1.style.textAlign = 'left';
-        container.appendChild(title1);
+        // container.appendChild(title1);
 
         const w1 = document.createElement('div');
         w1.className = 'chart-wrapper';
@@ -194,11 +200,11 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         container.appendChild(w1);
 
         const title2 = document.createElement('h3');
-        title2.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Cost and Loss`;
+        title2.textContent = `${agg_type_text} Cost and Loss`;
         title2.style.width = '70%';
         title2.style.textAlign = 'left';
         title2.style.marginTop = '2rem';
-        container.appendChild(title2);
+        // container.appendChild(title2);
 
         const w2 = document.createElement('div');
         w2.className = 'chart-wrapper';
@@ -210,11 +216,11 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         container.appendChild(w2);
 
         const title3 = document.createElement('h3');
-        title3.textContent = `${agg_type.charAt(0).toUpperCase()}${agg_type.slice(1)} Lead Time`;
+        title3.textContent = `${agg_type_text} Lead Time`;
         title3.style.width = '70%';
         title3.style.textAlign = 'left';
         title3.style.marginTop = '2rem';
-        container.appendChild(title3);
+        // container.appendChild(title3);
 
         const w3 = document.createElement('div');
         w3.className = 'chart-wrapper';
@@ -302,17 +308,13 @@ async function updateGraphs() {
 
     const avgContainer = document.getElementById('average');
     const sumContainer = document.getElementById('sum');
-    // 2. Logic to show/hide containers and update button text
     if (window.currentAggragate === 'Average') {
-        // Show Average, Hide Sum
         avgContainer.style.display = 'block';
         sumContainer.style.display = 'none';
         aggToggleBtn.textContent = 'Sum'; // Offer option to switch to Sum
 
-        // Render if empty (or re-render to be safe)
         plotAggregationGraph("/api/average_stats", '#average', "avg");
     } else {
-        // Show Sum, Hide Average
         avgContainer.style.display = 'none';
         sumContainer.style.display = 'block';
         aggToggleBtn.textContent = 'Average'; // Offer option to switch to Average

@@ -4,6 +4,6 @@
 # ]
 
 material_exporter_cities = [
-    "Warsaw, Poland", "Milan, Italy", "Stockholm, Sweden", "Helsinki, Finland", "Lisbon, Portugal",
-    "Vienna, Austria", "Wrocław, Poland", "Budapest, Hungary", "Lyon, France", "Marseille, France"
+    "Toulouse, France", "Madrid, Spain", "London, United Kingdom", "Cologne, Germany", "Rotterdam, Netherlands",
+    "Zürich, Switzerland", "Naples, Italy", "Hamburg, Germany", "Kraków, Poland", "Antwerp, Belgium"
 ]
