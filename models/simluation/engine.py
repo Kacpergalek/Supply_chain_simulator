@@ -406,6 +406,7 @@ class Simulation:
         for delivery in disrupted_deliveries:
             delivery.update_delivery(self.node_to_exporter, active_network, disrupted)
         self.update_statistics(disrupted_product_deliveries, old_cost, disrupted)
+        print("Deliveries have been updated.")
 
     def display_info(self) -> None:
         t = self.current_time

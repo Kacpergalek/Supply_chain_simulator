@@ -177,18 +177,6 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         const lss = normalizeSeries(loss);
         const ldt = normalizeSeries(lead);
 
-        const title1 = document.createElement('h3');
-        let agg_type_text;
-        if (agg_type === 'avg') {
-            agg_type_text = 'Average';
-        } else {
-            agg_type_text = 'Sum';
-        }
-        title1.textContent = `${agg_type_text} Demand`;
-        title1.style.width = '70%';
-        title1.style.textAlign = 'left';
-        // container.appendChild(title1);
-
         const w1 = document.createElement('div');
         w1.className = 'chart-wrapper';
         w1.id = `${agg_type}-demand-chart`;
@@ -197,7 +185,6 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         w1.style.minHeight = '360px';
         w1.style.background = 'transparent';
         container.appendChild(w1);
-    
 
         const cap1 = document.createElement('div');
         cap1.className = 'chart-caption';
@@ -206,44 +193,49 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
             'It illustrates the impact of disruptions on service level.';
         container.appendChild(cap1);
 
-        const title2 = document.createElement('h3');
-        title2.textContent = `${agg_type_text} Cost and Loss`;
-        title2.style.width = '70%';
-        title2.style.textAlign = 'left';
-        title2.style.marginTop = '2rem';
-        // container.appendChild(title2);
 
         const w2 = document.createElement('div');
         w2.className = 'chart-wrapper';
-        w2.id = `${agg_type}-cost-loss-chart`;
+        w2.id = `${agg_type}-cost-chart`;
        
         w2.style.minHeight = '360px';
         w2.style.background = 'transparent';
         container.appendChild(w2);
+
         const cap2 = document.createElement('div');
         cap2.className = 'chart-caption';
         cap2.textContent =
-            'Total operational cost and additional disruption-related losses over time.';
+            'Total operational cost over time.';
         container.appendChild(cap2);
-        const title3 = document.createElement('h3');
-        title3.textContent = `${agg_type_text} Lead Time`;
-        title3.style.width = '70%';
-        title3.style.textAlign = 'left';
-        title3.style.marginTop = '2rem';
-        // container.appendChild(title3);
 
         const w3 = document.createElement('div');
         w3.className = 'chart-wrapper';
-        w3.id = `${agg_type}-lead-time-chart`;
-     
+        w3.id = `${agg_type}-loss-chart`;
+
         w3.style.minHeight = '360px';
         w3.style.background = 'transparent';
         container.appendChild(w3);
+
         const cap3 = document.createElement('div');
         cap3.className = 'chart-caption';
         cap3.textContent =
-            'Average lead time evolution reflecting delays caused by disruptions.';
+            'Additional disruption-related losses over time.';
         container.appendChild(cap3);
+
+        const w4 = document.createElement('div');
+        w4.className = 'chart-wrapper';
+        w4.id = `${agg_type}-lead-time-chart`;
+     
+        w4.style.minHeight = '360px';
+        w4.style.background = 'transparent';
+        container.appendChild(w4);
+
+
+        const cap4 = document.createElement('div');
+        cap4.className = 'chart-caption';
+        cap4.textContent =
+            'Average lead time evolution reflecting delays caused by disruptions.';
+        container.appendChild(cap4);
         const mode = window.currentChartStyle === 'line' ? 'lines+markers' : 'lines';
         const type = window.currentChartStyle === 'bar' ? 'bar' : undefined;
 
@@ -260,10 +252,9 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
         };
         Plotly.newPlot(`${agg_type}-demand-chart`, [trace1, trace2], layout1, { responsive: true });
 
-        const trace3 = { x: cst.x, y: cst.y, mode: mode, type: type, name: 'Cost', line: { color: '#21D375' } };
-        const trace4 = { x: lss.x, y: lss.y, mode: mode, type: type, name: 'Loss', line: { color: '#6BBF59' } };
+        const trace3 = { x: cst.x, y: cst.y, mode: mode, type: type, name: 'Cost', line: { color: '#21D375' } }
         const layout2 = {
-            title: 'Cost and Additional Cost (Loss) over Time',
+            title: 'Cost over Time',
             xaxis: { title: 'day' },
             yaxis: { title: 'value' },
             legend: { orientation: 'h', x: 0.5, xanchor: 'center' },
@@ -271,10 +262,22 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
             paper_bgcolor: 'transparent',
             margin: { t: 50 }
         };
-        Plotly.newPlot(`${agg_type}-cost-loss-chart`, [trace3, trace4], layout2, { responsive: true });
+        Plotly.newPlot(`${agg_type}-cost-chart`, [trace3], layout2, { responsive: true });
+
+        const trace4 = { x: lss.x, y: lss.y, mode: mode, type: type, name: 'Loss', line: { color: '#6BBF59' } };
+        const layout3 = {
+            title: 'Additional Cost (Loss) over Time',
+            xaxis: { title: 'day' },
+            yaxis: { title: 'value' },
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center' },
+            plot_bgcolor: '#f5f5f5',
+            paper_bgcolor: 'transparent',
+            margin: { t: 50 }
+        };
+        Plotly.newPlot(`${agg_type}-loss-chart`, [trace4], layout3, { responsive: true });
 
         const trace5 = { x: ldt.x, y: ldt.y, mode: mode, type: type, name: 'Lead time', line: { color: '#3D9970' } };
-        const layout3 = {
+        const layout4 = {
             title: 'Lead Time over Time',
             xaxis: { title: 'Day' },
             yaxis: { title: 'Lead Time (days)' },
@@ -283,7 +286,7 @@ async function plotAggregationGraph(appRoute, query, agg_type) {
             paper_bgcolor: 'transparent',
             margin: { t: 50 }
         };
-        Plotly.newPlot(`${agg_type}-lead-time-chart`, [trace5], layout3, { responsive: true });
+        Plotly.newPlot(`${agg_type}-lead-time-chart`, [trace5], layout4, { responsive: true });
 
         container.style.display = 'flex';
         container.style.flexDirection = 'column';
